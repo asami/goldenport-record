@@ -11,7 +11,7 @@ import java.util.{TimeZone, Calendar, GregorianCalendar}
 import org.json.simple.{JSONValue, JSONArray}
 import com.asamioffice.goldenport.util.NameCounter
 import com.asamioffice.goldenport.text.UJson
-import sql.SqlU.{symbol2name => to_name, value2literal => to_literal}
+import sql.SqlU.{value2literal => to_literal}
 import org.goldenport.util._
 import org.goldenport.atom._
 import scala.collection.mutable.LinkedHashMap
@@ -22,11 +22,12 @@ import scala.collection.mutable.LinkedHashMap
  * @since   Jun.  9, 2010
  *  version Jul.  3, 2011
  *  version Nov. 29, 2011
- * @version Feb. 12, 2012
+ * @version Feb. 16, 2012
  * @author  ASAMI, Tomoharu
  */
-class Record(data: Traversable[(Symbol, AnyRef)]) extends mutable.Map[Symbol, AnyRef] {
-  val fields = new ArrayBuffer[(Symbol, AnyRef)]
+class Record(data: Traversable[(String, AnyRef)]) extends mutable.Map[String, AnyRef] {
+  val fields = new ArrayBuffer[(String, AnyRef)]
+  // XXX to optional methods using context
   var datastoreKey: Option[AnyRef] = None // AppEngine Key
   var datastoreId: Option[AnyRef] = None // AppEngine ID/Name
   var g3Version: Option[String] = None
@@ -68,11 +69,11 @@ class Record(data: Traversable[(Symbol, AnyRef)]) extends mutable.Map[Symbol, An
     else !fields.exists(_._2.isInstanceOf[RecordFieldException])
   }
 
-  def asString(key: Symbol) = {
+  def asString(key: String) = {
     get(key).get.toString
   }
 
-  def asInt(key: Symbol, defaultvalue: Int): Int = {
+  def asInt(key: String, defaultvalue: Int): Int = {
     get(key) match {
       case Some(v) => v.toString.toInt
       case None => defaultvalue
@@ -80,15 +81,15 @@ class Record(data: Traversable[(Symbol, AnyRef)]) extends mutable.Map[Symbol, An
   }
 
   // Map
-  def get(key: Symbol): Option[AnyRef] = {
+  def get(key: String): Option[AnyRef] = {
     fields.find(kv => is_key_match(kv._1, key) && kv._2 != null).map(_._2)
   }
 
-  def iterator: Iterator[(Symbol, AnyRef)] = {
+  def iterator: Iterator[(String, AnyRef)] = {
     fields.iterator
   }
 
-  override def +=(kv: (Symbol, AnyRef)): this.type = {
+  override def +=(kv: (String, AnyRef)): this.type = {
     val idx = fields.indexWhere(_._1 == kv._1)
     if (idx != -1) {
       fields(idx) = kv
@@ -98,7 +99,7 @@ class Record(data: Traversable[(Symbol, AnyRef)]) extends mutable.Map[Symbol, An
     this
   }
 
-  override def -=(key: Symbol): this.type = {
+  override def -=(key: String): this.type = {
     val idx = fields.indexWhere(_._1 == key)
     if (idx != -1) {
       fields.remove(idx)
@@ -110,7 +111,7 @@ class Record(data: Traversable[(Symbol, AnyRef)]) extends mutable.Map[Symbol, An
     new Record()
   }
 
-  override def foreach[C](f: ((Symbol, AnyRef)) => C) {
+  override def foreach[C](f: ((String, AnyRef)) => C) {
     for (kv <- fields) f(kv)
   }
 
@@ -130,10 +131,10 @@ class Record(data: Traversable[(Symbol, AnyRef)]) extends mutable.Map[Symbol, An
 */
 
   //
-  def idField: Symbol = {
+  def idField: String = {
     schema match {
       case Some(s) => s.idName
-      case None => 'id
+      case None => "id"
     }
   }
 
@@ -143,7 +144,7 @@ class Record(data: Traversable[(Symbol, AnyRef)]) extends mutable.Map[Symbol, An
 
   def idOption: Option[AnyRef] = get(idField)
 
-  private lazy val normalized_fields: Seq[(Symbol, AnyRef)] = {
+  private lazy val normalized_fields: Seq[(String, AnyRef)] = {
     schema match {
       case Some(sc) => {
         fields.map {
@@ -167,13 +168,15 @@ class Record(data: Traversable[(Symbol, AnyRef)]) extends mutable.Map[Symbol, An
     }
   }
 
-  def fieldNameValueLiteralPairs(includes: List[Symbol]) = {
+  private def to_name(n: String) = n
+
+  def fieldNameValueLiteralPairs(includes: List[String]) = {
     for ((key, value) <- normalized_fields.toList if includes.contains(key)) yield {
       (to_name(key), to_literal(value))
     }
   }
 
-  def fieldNameValueLiteralPairsExcludes(excludes: List[Symbol]) = {
+  def fieldNameValueLiteralPairsExcludes(excludes: List[String]) = {
     for ((key, value) <- normalized_fields.toList if !excludes.contains(key)) yield {
       (to_name(key), to_literal(value))
     }
@@ -193,7 +196,7 @@ class Record(data: Traversable[(Symbol, AnyRef)]) extends mutable.Map[Symbol, An
 
   def sqlWhereClause: String = sqlWhereClause(sqlWhereFieldKeys)
 
-  def sqlWhereClause(keys: List[Symbol]): String = {
+  def sqlWhereClause(keys: List[String]): String = {
     (for ((key, value) <- normalized_fields if keys.contains(key)) yield {
       value match {
 //        case expr: Expression => Some(expr.sqlLiteral(key))
@@ -217,7 +220,7 @@ class Record(data: Traversable[(Symbol, AnyRef)]) extends mutable.Map[Symbol, An
   def sqlWhereExampleClause = sqlWhereClause
 
   def sqlWhereFieldKeys = {
-    def is_include(kv: (Symbol, AnyRef)): Boolean = {
+    def is_include(kv: (String, AnyRef)): Boolean = {
       val (key, value) = kv
       if (is_key_match(key, idField)) return true
 //      if (value.isInstanceOf[Expression]) return true
@@ -227,15 +230,15 @@ class Record(data: Traversable[(Symbol, AnyRef)]) extends mutable.Map[Symbol, An
     normalized_fields.filter(is_include).map(_._1).toList
   }
 
-  private def is_key_match(lhs: Symbol, rhs: Symbol) = {
-    lhs.name.toLowerCase == rhs.name.toLowerCase
+  private def is_key_match(lhs: String, rhs: String) = {
+    lhs.toLowerCase == rhs.toLowerCase
   }
 
   //
-  private val id_symbol = 'id
-  private val title_symbol = 'title
-  private val updated_symbols = Set('updated, 'update, 'updates)
-  private val published_symbols = Set('published, 'created, 'create, 'creates)
+  private val id_symbol = "id"
+  private val title_symbol = "title"
+  private val updated_symbols = Set("updated", "update", "updates")
+  private val published_symbols = Set("published", "created", "create", "creates")
 
   //
   private def id_value = {
@@ -346,28 +349,28 @@ class Record(data: Traversable[(Symbol, AnyRef)]) extends mutable.Map[Symbol, An
     }
   }
 
-  private def field_string(atom: Symbol, value: String = ""): String = {
+  private def field_string(atom: String, value: String = ""): String = {
     fields.find(_._1 == atom) match {
       case Some((_, v)) => atom_string(v)
       case None => value
     }
   }
 
-  private def field_string_symbols(atoms: Set[Symbol], value: String = ""): String = {
+  private def field_string_symbols(atoms: Set[String], value: String = ""): String = {
     fields.find(kv => atoms.contains(kv._1)) match {
       case Some((_, v)) => atom_string(v)
       case None => value
     }
   }
 
-  private def field_string_symbols_option(atoms: Set[Symbol]): Option[String] = {
+  private def field_string_symbols_option(atoms: Set[String]): Option[String] = {
     fields.find(kv => atoms.contains(kv._1)) match {
       case Some((_, v)) => Some(atom_string(v))
       case None => None
     }
   }
 
-  private def field_vdatetime_symbols_option(atoms: Set[Symbol]): Option[VDateTime] = {
+  private def field_vdatetime_symbols_option(atoms: Set[String]): Option[VDateTime] = {
     fields.find(kv => atoms.contains(kv._1)) match {
       case Some((_, v: VDateTime)) => Some(v)
       case Some((_, v: java.util.Date)) => Some(VDateTime(v))
@@ -384,14 +387,14 @@ class Record(data: Traversable[(Symbol, AnyRef)]) extends mutable.Map[Symbol, An
   }
 
   def toMap: Map[String, AnyRef] = {
-    Map(toArray.map(kv => (kv._1.name, kv._2)): _*)
+    Map(toArray.map(kv => (kv._1, kv._2)): _*)
   } 
 
   private def csv_string(value: Any) = {
     value.toString
   }
 
-  def referenceIds(refName: Symbol, ctx: RecordContext): Option[(QSymbol, List[Any])] = { 
+  def referenceIds(refName: String, ctx: RecordContext): Option[(String, List[Any])] = { 
     def make_list(s: String) = {
       JSONValue.parse(s) match {
         case a: JSONArray => a.iterator.map(Record.normalizeId).toList
@@ -414,7 +417,7 @@ class Record(data: Traversable[(Symbol, AnyRef)]) extends mutable.Map[Symbol, An
           case _ => {
             fields.find(c => is_key_match(f.name, c._1)) match {
               case Some(c) => f.normalize(c._2, ctx) match {
-                case Right(r) => Some((QSymbol(f.name), List(r)))
+                case Right(r) => Some((f.name, List(r)))
                 case Left(l) => None
               }
               case None => None
@@ -425,9 +428,9 @@ class Record(data: Traversable[(Symbol, AnyRef)]) extends mutable.Map[Symbol, An
       }
       case None => fields.find(f => is_key_match(f._1, refName)) match {
         case Some(f) => f._2 match {
-          case l: Seq[_] => Some((QSymbol(refName), l.map(_.toString).toList))
-          case s: String if s.startsWith("[") => Some((QSymbol(refName), make_list(s)))
-          case s: Any => Some((QSymbol(refName), List(s.toString)))
+          case l: Seq[_] => Some((refName, l.map(_.toString).toList))
+          case s: String if s.startsWith("[") => Some(refName, make_list(s))
+          case s: Any => Some(refName, List(s.toString))
         }
         case None => None
       }
@@ -441,18 +444,18 @@ object Record {
   }
 
   def apply(data: Traversable[(AnyRef, Any)]): Record = {
-    def to_symbol(s: AnyRef) = s match {
-      case v: Symbol => v
-      case s => Symbol(s.toString)
+    def tokey(s: AnyRef) = s match {
+      case v: String => v
+      case s => s.toString
     }
 
     require (!data.exists(_._2 == null))
     
-    new Record(_flat_to_multi(data.map(kv => (to_symbol(kv._1), kv._2.asInstanceOf[AnyRef]))))
+    new Record(_flat_to_multi(data.map(kv => (tokey(kv._1), kv._2.asInstanceOf[AnyRef]))))
   }
 
-  private def _flat_to_multi(kvs: Traversable[(Symbol, AnyRef)]): Traversable[(Symbol, AnyRef)] = {
-    val map = new LinkedHashMap[Symbol, ArrayBuffer[AnyRef]]
+  private def _flat_to_multi(kvs: Traversable[(String, AnyRef)]): Traversable[(String, AnyRef)] = {
+    val map = new LinkedHashMap[String, ArrayBuffer[AnyRef]]
     for (kv <- kvs) {
       var c = map.get(kv._1)
       if (c.isDefined) {
@@ -564,7 +567,7 @@ object ResultSetRecord {
       }
       val columntype = metadata.getColumnType(i)
 //println("ResultSetRecord: " + columntype + "," + columnname + " = " + ctx.getSqlData(rs, i, columntype))
-      record += Symbol(columnname) -> ctx.getSqlData(rs, i, columntype)
+      record += columnname -> ctx.getSqlData(rs, i, columntype)
     }
     record
   }

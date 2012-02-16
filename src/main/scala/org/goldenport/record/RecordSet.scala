@@ -357,7 +357,7 @@ class RecordQueryRecordSet(val in: Stream[Record], val query: RecordQuery)(impli
       r
     } else {
       val fields = query.slots.flatMap {
-        case r: RecordQueryRealSlot => r.columnAtoms(query.context)
+        case r: RecordQueryRealSlot => r.columnNames(query.context)
         case v: RecordQueryVirtualSlot => Nil
       }
       new Record(

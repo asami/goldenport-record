@@ -6,7 +6,7 @@ import org.goldenport.util._
 /**
  * @since   Aug. 17, 2010
  *  version Jun. 26, 2011
- * @version Feb. 14, 2012
+ * @version Feb. 16, 2012
  * @author  ASAMI, Tomoharu
  */
 object SqlU {
@@ -44,6 +44,6 @@ object SqlU {
         case _ => k -> v
       }
     }
-    conds.map(kv => symbol2name(kv._1) + " = " + value2literal(kv._2)).mkString(" OR ")
+    conds.map(kv => kv._1 + " = " + value2literal(kv._2)).mkString(" OR ")
   }
 }

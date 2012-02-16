@@ -3,8 +3,8 @@ package org.goldenport.record
 import scala.collection.mutable.ArrayBuffer
 import java.io.InputStream
 import java.sql.ResultSet
-import org.goldenport.util.QSymbol
 import org.goldenport.record.sql.SqlDatatype
+import org.smartdox._
 
 /**
  * derived from org.goldenport.g3.message.
@@ -12,7 +12,7 @@ import org.goldenport.record.sql.SqlDatatype
  * @since   Aug. 12, 2010
  *  version Jul.  3, 2011
  *  version Dec.  4, 2011
- * @version Feb. 14, 2012
+ * @version Feb. 16, 2012
  * @author  ASAMI, Tomoharu
  */
 object Schema {
@@ -23,39 +23,39 @@ object Schema {
 
 trait UseRecord {
   implicit def symbol2Field(name: Symbol): RecordField = {
-    new RecordField(name)
+    new RecordField(name.name)
   }
 
   implicit def sql2Property(datatype: SqlDatatype): Property = {
     Property("sql", datatype)
   }
 
-  implicit def tuple2Field(tuple: Tuple1[Symbol]): RecordField = {
+  implicit def tuple2Field(tuple: Tuple1[String]): RecordField = {
     Field(make_field_elements(tuple))
   }
 
-  implicit def tuple2Field(tuple: Tuple2[Symbol, XDatatype]): RecordField = {
+  implicit def tuple2Field(tuple: Tuple2[String, XDatatype]): RecordField = {
     Field(make_field_elements(tuple))
   }
 
-  implicit def tuple2Field(tuple: Tuple3[Symbol, XDatatype, RecordSchemaElement]): RecordField = {
+  implicit def tuple2Field(tuple: Tuple3[String, XDatatype, RecordSchemaElement]): RecordField = {
     Field(make_field_elements(tuple))
   }
 
-  implicit def tuple2Field(tuple: Tuple4[Symbol, XDatatype, RecordSchemaElement, RecordSchemaElement]): RecordField = {
+  implicit def tuple2Field(tuple: Tuple4[String, XDatatype, RecordSchemaElement, RecordSchemaElement]): RecordField = {
     Field(make_field_elements(tuple))
   }
 
-  implicit def tuple2Field(tuple: Tuple5[Symbol, XDatatype, RecordSchemaElement, RecordSchemaElement, RecordSchemaElement]): RecordField = {
+  implicit def tuple2Field(tuple: Tuple5[String, XDatatype, RecordSchemaElement, RecordSchemaElement, RecordSchemaElement]): RecordField = {
     Field(make_field_elements(tuple))
   }
 
-  implicit def tuple2Field(tuple: Tuple6[Symbol, XDatatype, Multiplicity, RecordSchemaElement, RecordSchemaElement, RecordSchemaElement]): RecordField = {
+  implicit def tuple2Field(tuple: Tuple6[String, XDatatype, Multiplicity, RecordSchemaElement, RecordSchemaElement, RecordSchemaElement]): RecordField = {
     Field(make_field_elements(tuple))
   }
 
-  private def make_field_elements(tuple: Product): (Symbol, XDatatype, Multiplicity, List[Constraint], List[XFacet], List[Property]) = {
-    val names = new ArrayBuffer[Symbol]
+  private def make_field_elements(tuple: Product): (String, XDatatype, Multiplicity, List[Constraint], List[XFacet], List[Property]) = {
+    val names = new ArrayBuffer[String]
     val datatypes = new ArrayBuffer[XDatatype]
     val multiplicities = new ArrayBuffer[Multiplicity]
     val constraints = new ArrayBuffer[Constraint]
@@ -73,7 +73,7 @@ trait UseRecord {
     }
 
     tuple.productIterator.foreach {
-      case name: Symbol => names += name
+      case name: String => names += name
       case datatype: XDatatype => datatypes += datatype
       case multiplicity: Multiplicity => multiplicities += multiplicity
       case constraint: Constraint => constraints += constraint
@@ -86,11 +86,11 @@ trait UseRecord {
     (names(0), make_datatype, make_multiplicity, constraints.toList, facets.toList, properties.toList)
   }
 
+/*
   implicit def symbol2qsymbol(atom: Symbol): QSymbol = QSymbol(atom)
 
   implicit def string2qsymbol(atom: String): QSymbol = QSymbol(atom)
 
-/*
   implicit val recordResulter: PartialFunction[AnyRef, Record] = {
     case r: Record => r
     case rs: RecordSet => rs.head
@@ -106,48 +106,50 @@ trait UseRecord {
 object UseRecord extends UseRecord
 
 object Field {
-  def apply(name: Symbol, datatype: XDatatype = XInt,
+  def apply(name: String, datatype: XDatatype = XString, // XInt
             multiplicity: Multiplicity = MOne,
             constraints: List[Constraint] = Nil,
             facets: List[XFacet] = Nil,
-            properties: List[Property] = Nil) = {
+            properties: List[Property] = Nil,
+            summary: String = "",
+            description: Dox = Empty) = {
     new RecordField(name, datatype, multiplicity, constraints, facets, properties)
   }
 
-  def apply(tuple: Tuple6[Symbol, XDatatype, Multiplicity, List[Constraint], List[XFacet], List[Property]]) = {
+  def apply(tuple: Tuple6[String, XDatatype, Multiplicity, List[Constraint], List[XFacet], List[Property]]) = {
     new RecordField(tuple._1, tuple._2, tuple._3, tuple._4, tuple._5, tuple._6)
   }
 
-  def unapply(field: RecordField): Option[(Symbol, XDatatype, Multiplicity, List[Constraint], List[XFacet], List[Property])] = {
+  def unapply(field: RecordField): Option[(String, XDatatype, Multiplicity, List[Constraint], List[XFacet], List[Property])] = {
     Some((field.name, field.datatype, field.multiplicity,
           field.constraints, field.facets, field.properties))
   }
 }
 
-object IdField extends RecordField('id, XLong, MOne, List(CId), Nil) {
-  def apply(name: Symbol = 'id, datatype: XDatatype = XLong) = {
+object IdField extends RecordField("id", XLong, MOne, List(CId), Nil) {
+  def apply(name: String = "id", datatype: XDatatype = XLong) = {
     new RecordField(name, datatype, MOne, List(CId), Nil)
   }
 }
 
-object AutoIdField extends RecordField('id, XLong, MOne, List(CId, CAutoId), Nil) {
-  def apply(name: Symbol = 'id, datatype: XDatatype = XLong) = {
+object AutoIdField extends RecordField("id", XLong, MOne, List(CId, CAutoId), Nil) {
+  def apply(name: String = "id", datatype: XDatatype = XLong) = {
     new RecordField(name, datatype, MOne, List(CId, CAutoId), Nil)
   }
 }
 
-object DateField extends RecordField('date, XDate, MOne, List(CAutoDateTime), Nil) {
-  def apply(name: Symbol = 'date) = {
+object DateField extends RecordField("date", XDate, MOne, List(CAutoDateTime), Nil) {
+  def apply(name: String = "date") = {
     new RecordField(name, XDate, MOne, List(CAutoDateTime), Nil)
   }
 }
 
 class RecordSchema(val fields: RecordField*) {
-  def getField(name: Symbol): Option[RecordField] = {
+  def getField(name: String): Option[RecordField] = {
     fields.find(_.name == name)
   }
 
-  def findDataType(name: Symbol): Option[XDatatype] = {
+  def findDataType(name: String): Option[XDatatype] = {
    fields.find(_.name == name).map(_.datatype)
   }
 
@@ -196,7 +198,7 @@ class RecordSchema(val fields: RecordField*) {
 }
 
 class RecordField(
-  val name: Symbol,
+  val name: String,
   val datatype: XDatatype = XString,
   val multiplicity: Multiplicity = MOne,
   val constraints: List[Constraint] = Nil,
@@ -745,14 +747,14 @@ object XPositiveInteger extends XPositiveInteger {
 
 // entity reference datatype
 
-class XEntityReference(val uri: QSymbol, val datatype: XDatatype = XLong) extends XDatatype {
-  val name = "reference(" + uri.name + ")"
+class XEntityReference(val uri: String, val datatype: XDatatype = XLong) extends XDatatype {
+  val name = "reference(" + uri + ")"
 }
 
 object XEntityReference {
-  def apply(uri: QSymbol) = new XEntityReference(uri)
+  def apply(uri: String) = new XEntityReference(uri)
 
-  def apply(uri: QSymbol, dt: XDatatype) = new XEntityReference(uri, dt)
+  def apply(uri: String, dt: XDatatype) = new XEntityReference(uri, dt)
 }
 
 /*
