@@ -1,5 +1,7 @@
 package org.goldenport.record
 
+import scalaz._
+import Scalaz._
 import scala.collection.mutable.ArrayBuffer
 import java.io.InputStream
 import java.sql.ResultSet
@@ -12,7 +14,7 @@ import org.smartdox._
  * @since   Aug. 12, 2010
  *  version Jul.  3, 2011
  *  version Dec.  4, 2011
- * @version Feb. 16, 2012
+ * @version Feb. 17, 2012
  * @author  ASAMI, Tomoharu
  */
 object Schema {
@@ -112,7 +114,7 @@ object Field {
             facets: List[XFacet] = Nil,
             properties: List[Property] = Nil,
             summary: String = "",
-            description: Dox = Empty) = {
+            description: Dox = EmptyDox) = {
     new RecordField(name, datatype, multiplicity, constraints, facets, properties)
   }
 
@@ -169,9 +171,8 @@ class RecordSchema(val fields: RecordField*) {
           println("date for normalize = " + d)
           val data = f.normalize(d, ctx) match {
             case Right(dd) => f.validate(dd, ctx) match {
-              case Nil => dd
-              case List(e: RecordFieldException) => e
-              case errors: List[_] => errors.head.asInstanceOf[RecordFieldException] // XXX
+              case Success(_) => dd
+              case Failure(e) => e.head
             }
             case Left(e) => e
           }
@@ -250,35 +251,44 @@ class RecordField(
     }
   }
 
-  def validate(data: AnyRef, ctx: RecordContext): List[RecordFieldException] = {
-    def fv(v: AnyRef) = facets.flatMap(_.validate(v, ctx))
-    def zv(v: AnyRef) = v match {
+  def validate[T <: AnyRef](data: T, ctx: RecordContext): ValidationNEL[RecordFieldException, T] = {
+    def fv(v: T): ValidationNEL[RecordFieldException, T] = {
+      facets.flatMap(_.validateO(v, ctx)) match {
+        case Nil => data.success
+        case e :: es => nel(e, es).fail
+      }
+    }
+    def zv(v: T) = v match {
       case null => true
       case None => true
       case Nil => true
       case seq: Seq[AnyRef] => seq.isEmpty 
       case _ => false
     }
+    def mv(v: T) = {
+      v match {
+        case col: Iterable[AnyRef] => col.foldLeft(
+          data.success : ValidationNEL[RecordFieldException, T]) {
+          case (a, e) => {
+            val x = fv(e.asInstanceOf[T])
+            x <+> a // XXX
+          }
+        }
+        case _ => fv(data)
+      }      
+    }
 
     multiplicity match {
       case MOne => if (zv(data)) {
-        List(new MultiplicityRecordFieldException("One"))
+        new MultiplicityRecordFieldException("One").failNel
       } else {
         fv(data) 
       }
-      case MZeroOne => if (zv(data)) Nil else fv(data)
+      case MZeroOne => if (zv(data)) data.success else fv(data)
       case MOneMore => if (zv(data)) {
-        List(new MultiplicityRecordFieldException("OneMore"))
-      } else {
-        data match {
-          case col: Iterable[AnyRef] => col.flatMap(fv).toList
-          case _ => fv(data)
-        }
-      }
-      case MZeroMore => if (zv(data)) Nil else data match {
-        case col: Iterable[AnyRef] => col.flatMap(fv).toList
-        case _ => fv(data)
-      }
+        new MultiplicityRecordFieldException("OneMore").failNel
+      } else mv(data)
+      case MZeroMore => mv(data)
     }
   }
 }
@@ -807,13 +817,20 @@ abstract class XFacet extends RecordSchemaElement {
     }
   }
 
-  def validate(data: AnyRef, ctx: RecordContext): Option[RecordFieldException]
+  def validate[T](data: T, ctx: RecordContext): ValidationNEL[RecordFieldException, T] = {
+    validateO(data.asInstanceOf[AnyRef], ctx) match {
+      case Some(e) => e.failNel
+      case None => data.success
+    }
+  }
+
+  def validateO(data: AnyRef, ctx: RecordContext): Option[RecordFieldException]
 }
 
 class XLength(val value: Int) extends XFacet {
   val name = "length"
 
-  def validate(data: AnyRef, ctx: RecordContext): Option[RecordFieldException] = {
+  def validateO(data: AnyRef, ctx: RecordContext): Option[RecordFieldException] = {
     data match {
       case s: String => condition(s.length == value) // I18N
       case n: Number => condition(n.toString.length == value)
@@ -829,7 +846,7 @@ object XLength {
 class XMinLength(value: Int) extends XFacet {
   val name = "minLength"
 
-  def validate(data: AnyRef, ctx: RecordContext): Option[RecordFieldException] = {
+  def validateO(data: AnyRef, ctx: RecordContext): Option[RecordFieldException] = {
     data match {
       case s: String => condition(s.length >= value)
       case n: Number => condition(n.toString.length >= value)
@@ -845,7 +862,7 @@ object XMinLength {
 class XMaxLength(value: Int) extends XFacet {
   val name = "maxLength"
 
-  def validate(data: AnyRef, ctx: RecordContext): Option[RecordFieldException] = {
+  def validateO(data: AnyRef, ctx: RecordContext): Option[RecordFieldException] = {
     data match {
       case s: String => condition(s.length <= value)
       case n: Number => condition(n.toString.length <= value)
@@ -861,7 +878,7 @@ object XMaxLength {
 class XPattern extends XFacet {
   val name = "pattern"
 
-  def validate(data: AnyRef, ctx: RecordContext): Option[RecordFieldException] = {
+  def validateO(data: AnyRef, ctx: RecordContext): Option[RecordFieldException] = {
     throw new UnsupportedOperationException
   }
 }
@@ -869,7 +886,7 @@ class XPattern extends XFacet {
 class XEnumeration(val values: List[AnyRef]) extends XFacet {
   val name = "enumeration"
 
-  def validate(data: AnyRef, ctx: RecordContext): Option[RecordFieldException] = {
+  def validateO(data: AnyRef, ctx: RecordContext): Option[RecordFieldException] = {
     if (values.exists(_ == data)) None
     else invalid_value
   }
@@ -884,7 +901,7 @@ object XEnumeration {
 class XWhiteSpace extends XFacet {
   val name = "whiteSpace"
 
-  def validate(data: AnyRef, ctx: RecordContext): Option[RecordFieldException] = {
+  def validateO(data: AnyRef, ctx: RecordContext): Option[RecordFieldException] = {
     throw new UnsupportedOperationException
   }
 }
@@ -893,7 +910,7 @@ class XMaxInclusive(value: Number) extends XFacet {
   val name = "maxInclusive"
   private val _value = big_decimal(value)
 
-  def validate(data: AnyRef, ctx: RecordContext): Option[RecordFieldException] = {
+  def validateO(data: AnyRef, ctx: RecordContext): Option[RecordFieldException] = {
     data match {
       case n: Number => condition(big_decimal(n) <= _value)
       case _ => invalid_value
@@ -909,7 +926,7 @@ class XMaxExclusive(value: Number) extends XFacet {
   val name = "maxExclusive"
   private val _value = big_decimal(value)
 
-  def validate(data: AnyRef, ctx: RecordContext): Option[RecordFieldException] = {
+  def validateO(data: AnyRef, ctx: RecordContext): Option[RecordFieldException] = {
     println("data = " + data)
     println("data = " + data.getClass + "/" + data)
     data match {
@@ -932,7 +949,7 @@ class XMinInclusive(value: Number) extends XFacet {
   val name = "minInclusive"
   private val _value = big_decimal(value)
 
-  def validate(data: AnyRef, ctx: RecordContext): Option[RecordFieldException] = {
+  def validateO(data: AnyRef, ctx: RecordContext): Option[RecordFieldException] = {
     data match {
       case n: Number => condition(big_decimal(n) >= _value)
       case _ => invalid_value
@@ -948,7 +965,7 @@ class XMinExclusive(value: Number) extends XFacet {
   val name = "minExclusive"
   private val _value = big_decimal(value)
 
-  def validate(data: AnyRef, ctx: RecordContext): Option[RecordFieldException] = {
+  def validateO(data: AnyRef, ctx: RecordContext): Option[RecordFieldException] = {
     data match {
       case n: Number => condition(big_decimal(n) > _value)
       case _ => invalid_value
@@ -963,7 +980,7 @@ object XMinExclusive {
 class XTodalDigits extends XFacet {
   val name = "todalDigits"
 
-  def validate(data: AnyRef, ctx: RecordContext): Option[RecordFieldException] = {
+  def validateO(data: AnyRef, ctx: RecordContext): Option[RecordFieldException] = {
     throw new UnsupportedOperationException
   }
 }
@@ -971,7 +988,7 @@ class XTodalDigits extends XFacet {
 class XFractionDigits extends XFacet {
   val name = "fractionDigits"
 
-  def validate(data: AnyRef, ctx: RecordContext): Option[RecordFieldException] = {
+  def validateO(data: AnyRef, ctx: RecordContext): Option[RecordFieldException] = {
     throw new UnsupportedOperationException
   }
 }
@@ -1072,3 +1089,5 @@ abstract class RecordContext {
 }
 
 class PlainRecordContext extends RecordContext
+
+object DefaultRecordContext extends PlainRecordContext
