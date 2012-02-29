@@ -14,7 +14,7 @@ import org.smartdox._
  * @since   Aug. 12, 2010
  *  version Jul.  3, 2011
  *  version Dec.  4, 2011
- * @version Feb. 17, 2012
+ * @version Feb. 29, 2012
  * @author  ASAMI, Tomoharu
  */
 object Schema {
@@ -113,9 +113,11 @@ object Field {
             constraints: List[Constraint] = Nil,
             facets: List[XFacet] = Nil,
             properties: List[Property] = Nil,
-            summary: String = "",
-            description: Dox = EmptyDox) = {
-    new RecordField(name, datatype, multiplicity, constraints, facets, properties)
+            title: Dox = EmptyDox,
+            summary: Dox = EmptyDox,
+            content: Dox = EmptyDox) = {
+    new RecordField(name, datatype, multiplicity, constraints, facets, properties,
+        Some(Description(name, title, summary, content)))
   }
 
   def apply(tuple: Tuple6[String, XDatatype, Multiplicity, List[Constraint], List[XFacet], List[Property]]) = {
@@ -204,7 +206,8 @@ class RecordField(
   val multiplicity: Multiplicity = MOne,
   val constraints: List[Constraint] = Nil,
   val facets: List[XFacet] = Nil,
-  val properties: List[Property] = Nil
+  val properties: List[Property] = Nil,
+  val description: Option[Description] = None
 ) {
   def isId = constraints.contains(CId)
   def isAuto = constraints.exists(_.isAuto)
