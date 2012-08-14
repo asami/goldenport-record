@@ -149,10 +149,24 @@ case object DateField extends RecordField("date", XDate, MOne, List(CAutoDateTim
   }
 }
 
-case class ParameterField() extends RecordField("")
+class ParameterField(
+  datatype: XDatatype = XString,
+  multiplicity: Multiplicity = MOne,
+  constraints: List[Constraint] = Nil,
+  facets: List[XFacet] = Nil,
+  properties: List[Property] = Nil,
+  description: Option[Description] = None
+) extends RecordField("", datatype, multiplicity, constraints, facets, properties, description)
 
 object Parameter {
-  def apply() = ParameterField()
+  def apply(
+  datatype: XDatatype = XString,
+  multiplicity: Multiplicity = MOne,
+  constraints: List[Constraint] = Nil,
+  facets: List[XFacet] = Nil,
+  properties: List[Property] = Nil,
+  description: Option[Description] = None
+) = new ParameterField(datatype, multiplicity, constraints, facets, properties, description)
 }
 
 class RecordSchema(val fields: RecordField*) {
