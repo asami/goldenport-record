@@ -14,7 +14,8 @@ import org.smartdox._
  * @since   Aug. 12, 2010
  *  version Jul.  3, 2011
  *  version Dec.  4, 2011
- * @version Feb. 29, 2012
+ *  version Feb. 29, 2012
+ * @version Aug. 15, 2012
  * @author  ASAMI, Tomoharu
  */
 object Schema {
@@ -130,22 +131,28 @@ object Field {
   }
 }
 
-object IdField extends RecordField("id", XLong, MOne, List(CId), Nil) {
+case object IdField extends RecordField("id", XLong, MOne, List(CId), Nil) {
   def apply(name: String = "id", datatype: XDatatype = XLong) = {
     new RecordField(name, datatype, MOne, List(CId), Nil)
   }
 }
 
-object AutoIdField extends RecordField("id", XLong, MOne, List(CId, CAutoId), Nil) {
+case object AutoIdField extends RecordField("id", XLong, MOne, List(CId, CAutoId), Nil) {
   def apply(name: String = "id", datatype: XDatatype = XLong) = {
     new RecordField(name, datatype, MOne, List(CId, CAutoId), Nil)
   }
 }
 
-object DateField extends RecordField("date", XDate, MOne, List(CAutoDateTime), Nil) {
+case object DateField extends RecordField("date", XDate, MOne, List(CAutoDateTime), Nil) {
   def apply(name: String = "date") = {
     new RecordField(name, XDate, MOne, List(CAutoDateTime), Nil)
   }
+}
+
+case class ParameterField() extends RecordField("")
+
+object Parameter {
+  def apply() = ParameterField()
 }
 
 class RecordSchema(val fields: RecordField*) {
@@ -770,6 +777,32 @@ object XEntityReference {
   def apply(uri: String, dt: XDatatype) = new XEntityReference(uri, dt)
 }
 
+// extra datatypes
+case object XFile extends XDatatype {
+  val name = "file"
+}
+
+case object XURL extends XDatatype {
+  val name = "url"
+}
+
+// XAnyUri
+case object XURI extends XDatatype {
+  val name = "uri"
+}
+
+case object XMoney extends XDatatype {
+  val name = "money"
+}
+
+case object XUnit extends XDatatype {
+  val name = "unit"
+}
+
+case object XParcent extends XDatatype {
+  val name = "percent"
+}
+
 /*
  * Multiplicity
  */
@@ -980,8 +1013,8 @@ object XMinExclusive {
   def apply(value: Number) = new XMinExclusive(value)
 }
 
-class XTodalDigits extends XFacet {
-  val name = "todalDigits"
+class XTotalDigits extends XFacet {
+  val name = "totalDigits"
 
   def validateO(data: AnyRef, ctx: RecordContext): Option[RecordFieldException] = {
     throw new UnsupportedOperationException
@@ -1022,6 +1055,9 @@ object CUnique extends CUnique
 
 class CPassword extends Constraint
 object CPassword extends CPassword
+
+case object CExist extends Constraint
+case object CNonExist extends Constraint
 
 /*
 class CDerivation(val expression: Expression) extends Constraint
