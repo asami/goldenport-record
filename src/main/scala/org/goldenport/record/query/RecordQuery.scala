@@ -9,7 +9,8 @@ import org.goldenport.record._
 /**
  * @since   Aug. 29, 2010
  *  version Jun. 26, 2011
- * @version Feb. 16, 2012
+ *  version Feb. 16, 2012
+ * @version Feb. 17, 2013
  * @author  ASAMI, Tomoharu
  */
 class RecordQuery(val patterns: List[RecordQueryPattern], val slots: List[RecordQuerySlot], val context: RecordQueryContext) {
@@ -441,13 +442,13 @@ class Id(val atom: String, val ids: List[Any]) extends RecordQueryFieldPattern {
 
 class ForwardRef(val base: String, val join: String = "id") extends RecordQueryFieldPattern {
   def normalize(rqctx: RecordQueryContext): List[RecordQueryPattern] = {
-    error("XXX")
+    sys.error("XXX")
   }
 }
 
 class BackwardRef(val join: String, val base: String = "id") extends RecordQueryFieldPattern {
   def normalize(rqctx: RecordQueryContext): List[RecordQueryPattern] = {
-    error("XXX")
+    sys.error("XXX")
   }
 }
 
@@ -491,7 +492,7 @@ class IncludeEntity(val uri: URI)(val pattern: RecordQueryFieldPattern)(val fiel
   def normalize(rqctx: RecordQueryContext): List[RecordQuerySlot] = {
     def join_atoms = fields.flatMap {
       case f: Field => List(f.atom)
-      case a: AllFields => error("XXX")
+      case a: AllFields => sys.error("XXX")
     }
 
     def forward_ref(fr: ForwardRef) = {
@@ -515,7 +516,7 @@ class IncludeEntity(val uri: URI)(val pattern: RecordQueryFieldPattern)(val fiel
     pattern match {
       case fr: ForwardRef => forward_ref(fr)
       case br: BackwardRef => backward_ref(br)
-      case _ => error("XXX")
+      case _ => sys.error("XXX")
     }
   }
 
@@ -541,7 +542,7 @@ class EntityAll(val uri: URI, val atom: String, val ids: List[Any]) extends Reco
   }
 
   def normalize(ctx: RecordQueryContext): List[RecordQuerySlot] = {
-    error("XXX: EntityAll")
+    sys.error("XXX: EntityAll")
   }
 
 /*

@@ -6,7 +6,8 @@ import org.goldenport.util._
 /**
  * @since   Aug. 17, 2010
  *  version Jun. 26, 2011
- * @version Feb. 16, 2012
+ *  version Feb. 16, 2012
+ * @version Feb. 17, 2013
  * @author  ASAMI, Tomoharu
  */
 object SqlU {
@@ -35,12 +36,12 @@ object SqlU {
   def makeExampleWhere(example: Record) = {
     val conds = for ((k, v) <- example.fields) yield {
       v match {
-        case c: XEnumeration => error("Sql")
-        case c: XMaxInclusive => error("Sql")
-        case c: XMaxExclusive => error("Sql")
-        case c: XMinInclusive => error("Sql")
-        case c: XMinExclusive => error("Sql")
-        case c: Constraint => error("Sql")
+        case c: XEnumeration => sys.error("Sql")
+        case c: XMaxInclusive => sys.error("Sql")
+        case c: XMaxExclusive => sys.error("Sql")
+        case c: XMinInclusive => sys.error("Sql")
+        case c: XMinExclusive => sys.error("Sql")
+        case c: Constraint => sys.error("Sql")
         case _ => k -> v
       }
     }

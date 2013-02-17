@@ -22,7 +22,8 @@ import scala.collection.mutable.LinkedHashMap
  * @since   Jun.  9, 2010
  *  version Jul.  3, 2011
  *  version Nov. 29, 2011
- * @version Feb. 16, 2012
+ *  version Feb. 16, 2012
+ * @version Feb. 17, 2013
  * @author  ASAMI, Tomoharu
  */
 class Record(data: Traversable[(String, AnyRef)]) extends mutable.Map[String, AnyRef] {
@@ -182,7 +183,7 @@ class Record(data: Traversable[(String, AnyRef)]) extends mutable.Map[String, An
     }
   }
 
-  def openInputStream(): InputStream = error("not supported yet")
+  def openInputStream(): InputStream = sys.error("not supported yet")
 
   // sql
   def sqlFieldsClause = fieldNames.mkString("(", ", ", ")")
@@ -398,7 +399,7 @@ class Record(data: Traversable[(String, AnyRef)]) extends mutable.Map[String, An
     def make_list(s: String) = {
       JSONValue.parse(s) match {
         case a: JSONArray => a.iterator.map(Record.normalizeId).toList
-        case j => error("json = " + j + "/" + j.getClass)
+        case j => sys.error("json = " + j + "/" + j.getClass)
       }
     }
 
