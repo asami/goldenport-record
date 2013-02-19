@@ -1,5 +1,7 @@
 package org.goldenport.record.v2
 
+import org.goldenport.Strings
+
 /**
  * derived from org.goldenport.g3.message.
  * 
@@ -8,51 +10,51 @@ package org.goldenport.record.v2
  *  version Nov. 29, 2011
  *  version Feb. 16, 2012
  *  version Jul. 28, 2012
- * @version Feb. 16, 2013
+ * @version Feb. 20, 2013
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record]) {
 }
 
 case class Record(fields: List[Field]) {
-  def find(key: Symbol): Option[List[Any]] = {
+  def get(key: Symbol): Option[List[Any]] = {
     fields.find(_.isMatch(key)).map(_.values)
   }
 
-  def findOne(key: Symbol): Option[Any] = {
-    find(key).map(_(0))
+  def getOne(key: Symbol): Option[Any] = {
+    get(key).map(_(0))
   }
 
-  def find(key: String): Option[List[Any]] = {
-    find(Symbol(key))
+  def get(key: String): Option[List[Any]] = {
+    get(Symbol(key))
   }
 
-  def findOne(key: String): Option[Any] = {
-    find(Symbol(key))
+  def getOne(key: String): Option[Any] = {
+    get(Symbol(key))
   }
 
   def asString(key: Symbol): String = {
-    findOne(key).get.toString
+    getOne(key).get.toString
   }
 
   def asInt(key: Symbol): Int = {
-    findOne(key).get.toString.toInt // XXX
+    getOne(key).get.toString.toInt // XXX
   }
 
   def asLong(key: Symbol): Long = {
-    findOne(key).get.toString.toLong // XXX
+    getOne(key).get.toString.toLong // XXX
   }
 
   def asString(key: String): String = {
-    findOne(key).get.toString
+    getOne(key).get.toString
   }
 
   def asInt(key: String): Int = {
-    findOne(key).get.toString.toInt // XXX
+    getOne(key).get.toString.toInt // XXX
   }
 
   def asLong(key: String): Long = {
-    findOne(key).get.toString.toLong // XXX
+    getOne(key).get.toString.toLong // XXX
   }
 }
 
@@ -65,6 +67,55 @@ case class Field(key: Symbol, values: List[Any]) {
         val n = key.name.substring(i + 1)
         n == k.name
       } else false
+    }
+  }
+
+  def isEmpty: Boolean = {
+    values.isEmpty || (values(0) match {
+      case null => true
+      case x: String => Strings.blankp(x)
+      case _ => false
+    })
+  }
+
+  def update(v: Seq[Any]): Field = {
+    Field(key, v.toList)
+  }
+
+  def mapDouble(f: Double => Double): Field = {
+    try {
+      values match {
+        case Nil => this
+        case v => {
+          val a = v.map(x => f(x.toString.toDouble))
+          Field(key, a)
+        }
+      }
+    } catch {
+      case e => this
+    }
+  }
+
+  def mapDecimal(f: BigDecimal => BigDecimal): Field = {
+    try {
+      values match {
+        case Nil => this
+        case v => {
+          val a = v.map(x => f(scala.math.BigDecimal(x.toString)))
+          Field(key, a)
+        }
+      }
+    } catch {
+      case e => this
+    }
+  }
+
+  def mapColumnDecimal(
+    schema: Schema, p: Column => Boolean, f: BigDecimal => BigDecimal
+  ): Field = {
+    schema.columns.find(c => c.name == key && p(c)) match {
+      case Some(c) => mapDecimal(f)
+      case None => this
     }
   }
 }
