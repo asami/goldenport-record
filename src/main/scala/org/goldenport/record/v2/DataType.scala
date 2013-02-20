@@ -22,6 +22,8 @@ sealed trait DataType {
       case e => e.fail
     }
   }
+  def isValue: Boolean = true
+  def isReference: Boolean = !isValue
   def isSqlString: Boolean = true
 
   protected final def normalize_long(s: String): String = {
@@ -66,7 +68,6 @@ case object XLong extends DataType {
   override def toDouble(s: String) = s.parseLong.map(_.toDouble)
   def label = "整数値(-2^63~2^63)"
   override def isSqlString = false
-  def extjsName = "int"
 }
 
 case object XFloat extends DataType {
@@ -90,9 +91,15 @@ case object XDouble extends DataType {
   override def isSqlString = false
 }
 
-case object XDecimal extends DataType {
+case object XInteger extends DataType {
   def validate(s: String): ValidationResult = Valid // TODO
   def label = "整数値"
+  override def isSqlString = false
+}
+
+case object XDecimal extends DataType {
+  def validate(s: String): ValidationResult = Valid // TODO
+  def label = "数値"
   override def isSqlString = false
 }
 
@@ -163,54 +170,46 @@ case object XUnit extends DataType {
 case object XUuid extends DataType {
   def validate(s: String): ValidationResult = Valid
   def label = "UUID"
-  def extjsName = "string"
 }
 
 case object XEverforthid extends DataType {
   def validate(s: String): ValidationResult = Valid
   def label = "EverforthID"
-  def extjsName = "string"
 }
 
 case object XXml extends DataType {
   def validate(s: String): ValidationResult = Valid
   def label = "XML"
-  def extjsName = "string"
 }
 
 case object XHtml extends DataType {
   def validate(s: String): ValidationResult = Valid
   def label = "HTML"
-  def extjsName = "string"
 }
 
-case class XEntityReference() extends DataType {
+case class XEntityReference(schema: Schema, reader: (java.sql.Connection, Schema, Record) => RecordSet) extends DataType {
   def validate(s: String): ValidationResult = Valid
   def label = "参照"
   override def isSqlString = false // XXX assume typical case
-  def extjsName = "string"
+  override def isValue = false
 }
 
 case class XPowertype() extends DataType {
   def validate(s: String): ValidationResult = Valid
   def label = "区分"
-  def extjsName = "string"
 }
 
 case class XPowertypeReference() extends DataType {
   def validate(s: String): ValidationResult = Valid
   def label = "区分"
-  def extjsName = "string"
 }
 
 case class XStateMachine() extends DataType {
   def validate(s: String): ValidationResult = Valid
   def label = "ワークフロー"
-  def extjsName = "string"
 }
 
 case class XStateMachineReference() extends DataType {
   def validate(s: String): ValidationResult = Valid
   def label = "ワークフロー"
-  def extjsName = "string"
 }

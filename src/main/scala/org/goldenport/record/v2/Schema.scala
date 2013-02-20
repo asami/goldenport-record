@@ -19,7 +19,7 @@ case class Schema(
   columnGroups: Seq[ColumnGroup] = Nil,
   grouping: Grouping = NullGrouping,
   validations: Seq[Validator] = Nil,
-  contexts: Seq[Context] = Nil,
+//  contexts: Seq[Context] = Nil,
 //  view: GuiView = ExtjsGridView(),
 //  sql: SqlSchema = NullSqlSchema,
 //  charts: Seq[Chart] = Nil,
@@ -29,38 +29,12 @@ case class Schema(
 //  comment: String = "",
 //  history: String = ""
 ) {
-  def convertField(field: Field): Field = {
-    mapField(field)
-  }
-
-  def convertRecord(record: Record): Record = {
-    mapRecord(record)
-  }
-
-  def convertRecords(records: RecordSet): RecordSet = {
-    mapRecords(records)
-  }
-
-  protected def mapField(field: Field): Field = {
-    mapDataType(field)
-  }
-
-  protected def mapDataType(field: Field): Field = {
-    getColumn(field.key) match {
-      case Some(c) => field.values match {
-        case Nil => field
-        case v => Field(field.key, v.map(c.datatype.mapData))
-      }
-      case None => field
-    }
-  }
-
   final def getColumn(key: Symbol) = {
     columns.find(_.name == key)
   }
 
   final def getIdColumn: Option[Column] = {
-    columns.find(_.sql.isId)
+    columns.find(_.kind == IdKind)
   }
 
   final def idColumn: Column = {
@@ -84,17 +58,17 @@ case class Schema(
 object NullSchema extends Schema(Nil)
 
 trait ColumnSlot {
-  def toGridColumn: String
+//  def toGridColumn: String
   def merge(c: Column): Option[ColumnSlot] = None
 }
 
 case class ColumnGroupSlot(config: ColumnGroup, columns: Seq[Column]) extends ColumnSlot {
   def label = config.label
 
-  def toGridColumn: String = {
-    val cs = columns.map(_.toGridColumn).mkString("[", ",", "]")
-    """{"xtype": "gridcolumn", "text": "%s", "columns": %s}""".format(label, cs)
-  }
+//  def toGridColumn: String = {
+//    val cs = columns.map(_.toGridColumn).mkString("[", ",", "]")
+//    """{"xtype": "gridcolumn", "text": "%s", "columns": %s}""".format(label, cs)
+//  }
 
   override def merge(c: Column): Option[ColumnSlot] = {
     config.columns.contains(c.name) option {
@@ -179,8 +153,9 @@ case class Grouping(key: String = "group_field") {
   }
 
   def adjustColumns(columns: Seq[Column]) = {
-    if (columns.exists(_.name == key)) columns
-    else columns :+ Column(key, "Group")
+//    if (columns.exists(_.name == key)) columns
+//    else columns :+ Column(key, "Group")
+    columns
   }
 
 /*
@@ -197,7 +172,7 @@ case class Grouping(key: String = "group_field") {
 
 object NullGrouping extends Grouping() {
   override def adjustColumns(columns: Seq[Column]) = columns
-  override def gridFeatures = Nil
+//  override def gridFeatures = Nil
 }
 
 sealed trait ValidationResult {
@@ -216,7 +191,7 @@ case object Valid extends ValidationResult {
   }
 }
 
-case class Description(name: String, issue: String, value: Seq[String] = Nil, label: Option[String] = None) {
+case class Description(name: String, issue: String, value: Seq[Any] = Nil, label: Option[String] = None) {
   def message = {
     value match {
       case Nil => "%s: %s".format(name, issue)
@@ -277,7 +252,7 @@ case class DuplicateWarning(
 }  
 
 case class IllegalFieldWarning(key: String,
-                               value: Seq[String],
+                               value: Seq[Any],
                                label: Option[String] = None,
                                message: Option[String] = None) extends Warning {
   def descriptions = Vector(Description(label | key, message | "値が異常です。", value))
@@ -314,7 +289,7 @@ case class CompoundFailure(failures: Vector[Invalid], warning: Option[Warning] =
 }
 
 case class IllegalFieldFailure(key: String,
-                               value: Seq[String],
+                               value: Seq[Any],
                                label: Option[String] = None,
                                message: Option[String] = None) extends Invalid {
   def descriptions = Vector(Description(label | key, message + "値が異常です。", value))
@@ -393,17 +368,17 @@ trait RecordsValidator extends Validator {
 }
 
 class FieldsMatchValidator(keys: Seq[String],
-                           predicate: Seq[String] => Boolean,
+                           predicate: Seq[Any] => Boolean,
                            failure: Boolean = true,
                            message: Option[String] = None) extends FieldValidator {
   def validateField(field: Field) = {
     val k = field.key
-    val v = field.value
+    val v = field.values
     if (keys.contains(k)) {
       if (predicate(v)) Valid
       else {
-        if (failure) IllegalFieldFailure(k, v, none, message)
-        else IllegalFieldWarning(k, v, none, message)
+        if (failure) IllegalFieldFailure(k.name, v, none, message)
+        else IllegalFieldWarning(k.name, v, none, message)
       }
     } else Valid
   }
@@ -411,7 +386,7 @@ class FieldsMatchValidator(keys: Seq[String],
 
 case object FieldMatchValidator {
   def apply(key: String, value: String) = {
-    new FieldsMatchValidator(List(key), (x: Seq[String]) => {
+    new FieldsMatchValidator(List(key), (x: Seq[Any]) => {
       x match {
         case Nil => false
         case x :: Nil if x == value => true
@@ -421,7 +396,7 @@ case object FieldMatchValidator {
   }
 
   def apply(key: String, values: Seq[String]) = {
-    new FieldsMatchValidator(List(key), (x: Seq[String]) => {
+    new FieldsMatchValidator(List(key), (x: Seq[Any]) => {
       x match {
         case Nil => false
         case x :: Nil if values.contains(x) => true
@@ -433,7 +408,7 @@ case object FieldMatchValidator {
 
 case object FieldContainsValidator {
   def apply(key: String, values: Seq[String], failure: Boolean = true) = {
-    new FieldsMatchValidator(List(key), (x: Seq[String]) => {
+    new FieldsMatchValidator(List(key), (x: Seq[Any]) => {
       values.contains(x.contains _)
 //      x.flatMap(a => values.find(a.contains)) ? false | true
     }, failure, (values.mkString("(", ",", ")") + "を含んでいます。").some)
@@ -493,6 +468,7 @@ case class DuplicateCompositeIdValidator(ids: Seq[String], labels: Seq[String] =
 /*
  * Context
  */
+/*
 trait Context {
   def indicatorMessage(schema: Schema): String = ""
 
@@ -532,3 +508,4 @@ case object ThousandYenMoneyContext extends Context {
     field.mapColumnDecimal(schema, _.datatype == XMoney, _ / 1000)
   }
 }
+*/

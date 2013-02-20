@@ -11,12 +11,13 @@ import Validator._
  */
 case class Column(
   name: String,
-  label: String,
   datatype: DataType = XString,
   multiplicity: Multiplicity = MOne,
+  kind: ColumnKind = PlainKind,
   constraints: Seq[Constraint] = Nil,
   orderBy: Option[OrderBy] = None,
-  visibility: Visibility = PlainVisibility //,
+  visibility: Visibility = PlainVisibility,
+  label: String = null
 //  operations: Seq[Operation] = Nil,
 //  sql: SqlColumn = NullSqlColumn,
 //  extjs: Map[String, Any] = Map.empty,
@@ -24,8 +25,6 @@ case class Column(
 //  properties: Map[String, Any] = Map.empty,
 //  comment: String = ""
 ) extends ColumnSlot {
-  def toModelField: String = """{"name": "%s", "type": "%s"}""".format(name, datatype.extjsName)
-
   def toModelValidation: List[String] = {
     List(_validation_presence,
         _validation_length,
@@ -65,3 +64,9 @@ case class Column(
 
   def isMulti = !isSingle
 }
+
+sealed trait ColumnKind {
+}
+case object PlainKind extends ColumnKind
+case object IdKind extends ColumnKind
+case object NameKind extends ColumnKind
