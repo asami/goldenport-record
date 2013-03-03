@@ -68,7 +68,7 @@ case class Schema(
   }
 
   private def _complement_principal(c: Column, fs: Seq[Field], r: Record): Option[Field] = {
-    if (is_create_update_principal(c) && !fs.exists(_.key == c.name)) {
+    if (is_create_update_principal(c) && !fs.exists(_.key.name == c.name)) {
       r.principal.map(x => Field(Symbol(c.name), List(x.asString)))
     } else None
   }

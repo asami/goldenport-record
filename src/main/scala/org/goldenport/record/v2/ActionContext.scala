@@ -44,7 +44,7 @@ case class ActionContext(
 
   def setParam(key: String, value: Any): ActionContext = {
     value match {
-      case x: Seq[Any] => copy(params = params + (key -> x))
+      case x: Seq[_] => copy(params = params + (key -> x))
       case x => copy(params = params + (key -> List(value)))
     }
   }

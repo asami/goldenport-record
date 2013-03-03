@@ -15,7 +15,8 @@ import org.smartdox._
  *  version Jul.  3, 2011
  *  version Dec.  4, 2011
  *  version Feb. 29, 2012
- * @version Aug. 15, 2012
+ *  version Aug. 15, 2012
+ * @version Mar.  3, 2013
  * @author  ASAMI, Tomoharu
  */
 object Schema {
@@ -261,8 +262,9 @@ class RecordField(
 
     try {
       adjusted_data match {
-        case col: Iterable[AnyRef] => {
-          val r = col.map(v => datatype.normalize(v, ctx))
+        case col: Iterable[_] => {
+          val c = col.asInstanceOf[Iterable[AnyRef]]
+          val r = c.map(v => datatype.normalize(v, ctx))
           r.find(_.isLeft) match {
             case Some(left) => left
             case None => Right(r.map(_.right.get))
@@ -286,12 +288,12 @@ class RecordField(
       case null => true
       case None => true
       case Nil => true
-      case seq: Seq[AnyRef] => seq.isEmpty 
+      case seq: Seq[_] => seq.isEmpty 
       case _ => false
     }
     def mv(v: T) = {
       v match {
-        case col: Iterable[AnyRef] => col.foldLeft(
+        case col: Iterable[_] => col.foldLeft(
           data.success : ValidationNEL[RecordFieldException, T]) {
           case (a, e) => {
             val x = fv(e.asInstanceOf[T])
