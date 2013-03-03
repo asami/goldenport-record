@@ -10,13 +10,18 @@ import org.goldenport.Strings
  *  version Nov. 29, 2011
  *  version Feb. 16, 2012
  *  version Jul. 28, 2012
- * @version Feb. 20, 2013
+ *  version Feb. 20, 2013
+ * @version Mar.  3, 2013
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record]) {
 }
 
-case class Record(fields: List[Field]) {
+case class Record(
+  fields: List[Field],
+  principal: Option[Principal] = None,
+  timestamp: Long = System.currentTimeMillis
+) {
   def get(key: Symbol): Option[List[Any]] = {
     fields.find(_.isMatch(key)).map(_.values)
   }
@@ -55,6 +60,31 @@ case class Record(fields: List[Field]) {
 
   def asLong(key: String): Long = {
     getOne(key).get.toString.toLong // XXX
+  }
+
+  def inputFiles: Seq[InputFile] = {
+    fields.collect { case x: InputFile => x }
+  }
+
+  //
+  def +::(f: (String, String)): Record = {
+    copy(Field.create(f) +: fields)
+  }
+
+  def ::+(f: (String, String)): Record = {
+    copy(fields :+ Field.create(f))
+  }
+
+  def ::++(f: Seq[(String, String)]): Record = {
+    copy(fields ++ f.map(Field.create))
+  }
+
+  def +:(f: (String, Seq[String])): Record = {
+    copy(Field.create(f) +: fields)
+  }
+
+  def :+(f: (String, Seq[String])): Record = {
+    copy(fields :+ Field.create(f))
   }
 }
 
@@ -142,5 +172,9 @@ object Field {
       case xs: Seq[_] => Field(Symbol(data._1), xs.toList)
       case x => Field(Symbol(data._1), List(x))
     }
+  }
+
+  def create(data: Seq[(String, Any)]): List[Field] = {
+    data.map(create).toList
   }
 }

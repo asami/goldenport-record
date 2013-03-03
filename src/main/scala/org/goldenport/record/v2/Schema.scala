@@ -11,7 +11,7 @@ import Validator._
  * @snice   Nov. 23, 2012
  *  version Dec. 28, 2012
  *  version Jan. 30, 2013
- * @version Feb. 20, 2013
+ * @version Mar.  3, 2013
  * @author  ASAMI, Tomoharu
  */
 case class Schema(
@@ -19,9 +19,9 @@ case class Schema(
   columnGroups: Seq[ColumnGroup] = Nil,
   grouping: Grouping = NullGrouping,
   validations: Seq[Validator] = Nil,
+  sql: SqlSchema = NullSqlSchema,
 //  contexts: Seq[Context] = Nil,
 //  view: GuiView = ExtjsGridView(),
-//  sql: SqlSchema = NullSqlSchema,
 //  charts: Seq[Chart] = Nil,
   pageSize: Option[Int] = 100.some //,
 //  isAvailableMode: ExecutionMode => Boolean = _ => true,
@@ -53,6 +53,89 @@ case class Schema(
   }
 
   val gridColumns = columns.filter(_.visibility.grid).filter(_.isSingle)
+
+
+  def adjustInsert(r: Record): Record = {
+//    log_trace("Schema#adjustInsert before = " + r)
+    val a = r.fields.flatMap(filter_insert)
+    val b = columns.flatMap(_complement_insert(_, a, r))
+//    log_trace("Schema#adjustInsert after = " + (a ++ b))
+    r.copy(fields = a ++ b)
+  }
+
+  private def _complement_insert(c: Column, fs: Seq[Field], r: Record): Option[Field] = {
+    _complement_principal(c, fs, r)
+  }
+
+  private def _complement_principal(c: Column, fs: Seq[Field], r: Record): Option[Field] = {
+    if (is_create_update_principal(c) && !fs.exists(_.key == c.name)) {
+      r.principal.map(x => Field(Symbol(c.name), List(x.asString)))
+    } else None
+  }
+
+  def adjustUpdate(r: Record): Record = {
+    val a = r.fields.flatMap(filter_update)
+    val b = columns.flatMap(_complement_update(_, a, r))
+    Record(a ++ b)
+  }
+
+  private def _complement_update(c: Column, fs: Seq[Field], r: Record): Option[Field] = {
+    _complement_principal(c, fs, r)
+  }
+
+  // TODO handle date, time and datetime here, instead of driver.
+  protected final def filter_insert(f: Field): Option[Field] = {
+    columns.find(_.name == f.key) match {
+      case Some(c) if is_create_update_principal_value(c, f) => {
+//        log_trace("Schema#filter_insert drop(%s) = %s".format(c, f))
+        // f.copy(value = List(principal_id)).some
+        None
+      }
+      case Some(c) => c.isSingle option f
+      case None => {
+//        log_trace("Schema#filter_insert drop = " + f)
+        None
+      }
+    }
+  }
+
+  protected final def filter_update(f: Field): Option[Field] = {
+    columns.find(_.name == f.key) match {
+      case Some(c) if is_update_principal_value(c, f) => None // f.copy(value = List(principal_id)).some
+      case Some(c) => c.isSingle option f
+      case None => None
+    }
+  }
+
+  protected final def is_create_update_principal_value(
+    c: Column, f: Field
+  ) = {
+    f.isEmpty && is_create_update_principal(c)
+  }
+
+  protected final def is_create_update_principal(c: Column) = {
+    (c.name.endsWith("_by") && // TODO adds specific flag
+    (c.sql.isAutoCreate || c.sql.isAutoUpdate))
+  }
+
+  protected final def is_update_principal_value(
+    c: Column, f: Field
+  ) = {
+    f.isEmpty && is_update_principal(c)
+  }
+
+  protected final def is_update_principal(c: Column) = {
+    (c.name.endsWith("_by") && // TODO adds specific flag
+     c.sql.isAutoUpdate)
+  }
+
+  /*
+   * SQL
+   */
+  def sqlCommands: SqlActionCommands = {
+//    val methods = columns.flatMap(x => x.sql.methods.map(_.create(x)))
+    SqlActionCommands(sql.actions.map(_.create(this)))
+  }
 }
 
 object NullSchema extends Schema(Nil)

@@ -6,7 +6,8 @@ import Validator._
 /*
  * @snice   Dec.  8, 2012
  *  version Dec. 12, 2012
- * @version Feb. 20, 2013
+ *  version Feb. 20, 2013
+ * @version Mar.  3, 2013
  * @author  ASAMI, Tomoharu
  */
 case class Column(
@@ -17,9 +18,9 @@ case class Column(
   constraints: Seq[Constraint] = Nil,
   orderBy: Option[OrderBy] = None,
   visibility: Visibility = PlainVisibility,
-  label: String = null
+  label: String = null,
+  sql: SqlColumn = NullSqlColumn
 //  operations: Seq[Operation] = Nil,
-//  sql: SqlColumn = NullSqlColumn,
 //  extjs: Map[String, Any] = Map.empty,
 //  isAvailableMode: ExecutionMode => Boolean = _ => true,
 //  properties: Map[String, Any] = Map.empty,
