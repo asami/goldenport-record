@@ -11,7 +11,7 @@ import Validator._
  * @snice   Nov. 23, 2012
  *  version Dec. 28, 2012
  *  version Jan. 30, 2013
- * @version Mar.  3, 2013
+ * @version Mar.  4, 2013
  * @author  ASAMI, Tomoharu
  */
 case class Schema(
@@ -30,7 +30,7 @@ case class Schema(
 //  history: String = ""
 ) {
   final def getColumn(key: Symbol) = {
-    columns.find(_.name == key)
+    columns.find(_.name == key.name)
   }
 
   final def getIdColumn: Option[Column] = {
@@ -85,7 +85,7 @@ case class Schema(
 
   // TODO handle date, time and datetime here, instead of driver.
   protected final def filter_insert(f: Field): Option[Field] = {
-    columns.find(_.name == f.key) match {
+    columns.find(_.name == f.key.name) match {
       case Some(c) if is_create_update_principal_value(c, f) => {
 //        log_trace("Schema#filter_insert drop(%s) = %s".format(c, f))
         // f.copy(value = List(principal_id)).some
@@ -100,7 +100,7 @@ case class Schema(
   }
 
   protected final def filter_update(f: Field): Option[Field] = {
-    columns.find(_.name == f.key) match {
+    columns.find(_.name == f.key.name) match {
       case Some(c) if is_update_principal_value(c, f) => None // f.copy(value = List(principal_id)).some
       case Some(c) => c.isSingle option f
       case None => None

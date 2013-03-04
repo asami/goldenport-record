@@ -2,7 +2,7 @@ package org.goldenport.record.v2
 
 /*
  * @since   Dec.  8, 2012
- * @version Mar.  2, 2013
+ * @version Mar.  4, 2013
  * @author  ASAMI, Tomoharu
  */
 case class SqlColumn(
@@ -14,7 +14,8 @@ case class SqlColumn(
   isAutoUpdate: Boolean = false,
   methods: Seq[SqlMethod] = Nil,
   isDerived: Boolean = false, // derived data. ignores in insert/update.
-  value: String = null
+  value: String = null,
+  valueGenerator: Record => String = null
 ) {
   require (!isAutoId || isId, "isAutoId can be true when isId is true.")
 

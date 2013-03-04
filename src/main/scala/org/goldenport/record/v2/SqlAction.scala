@@ -7,7 +7,7 @@ import java.net.URI
  * Derived from SqlSchema.
  * 
  * @since   Jan.  9, 2013
- * @version Mar.  3, 2013
+ * @version Mar.  4, 2013
  * @author  ASAMI, Tomoharu
  */
 trait SqlAction {
@@ -120,6 +120,27 @@ case class SqlActionCommands(commands: Seq[SqlActionCommand]) {
     commands.foreach(_.afterInsert(record))
   }
 }
+
+/*
+case class IdGeneratorAction(
+  f: Record => String
+) extends SqlAction {
+  override def create_ActionCommand(schema: Schema, columns: Seq[(Column, SqlMethodCommand)], ids: Seq[Column]): SqlActionCommand = {
+    IdGeneratorActionCommand(this, schema, columns, ids)
+  }
+}
+
+case class IdGeneratorActionCommand(
+  action: IdGeneratorAction,
+  schema: Schema,
+  columns: Seq[(Column, SqlMethodCommand)],
+  ids: Seq[Column]
+) extends SqlActionCommand {
+  override def before_Insert(context: ActionContext) = {
+    context.copy(context.in ::+ "id" -> "action-id")
+  }
+}
+*/
 
 /*
  * Inserts an entity with:

@@ -7,7 +7,8 @@ import Validator._
  * @snice   Nov. 23, 2012
  *  version Dec. 18, 2012
  *  version Jan. 29, 2013
- * @version Feb. 20, 2013
+ *  version Feb. 20, 2013
+ * @version Mar.  4, 2013
  * @author  ASAMI, Tomoharu
  */
 sealed trait DataType {
@@ -190,7 +191,14 @@ case object XHtml extends DataType {
 case class XEntityReference(schema: Schema, reader: (java.sql.Connection, Schema, Record) => RecordSet) extends DataType {
   def validate(s: String): ValidationResult = Valid
   def label = "参照"
-  override def isSqlString = false // XXX assume typical case
+  override def isSqlString = false // typical case
+  override def isValue = false
+}
+
+case class XEverforthObjectReference(schema: Schema, reader: (java.sql.Connection, Schema, Record) => RecordSet) extends DataType {
+  def validate(s: String): ValidationResult = Valid
+  def label = "参照"
+  override def isSqlString = true
   override def isValue = false
 }
 

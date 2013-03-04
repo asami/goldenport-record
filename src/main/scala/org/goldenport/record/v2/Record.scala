@@ -11,10 +11,13 @@ import org.goldenport.Strings
  *  version Feb. 16, 2012
  *  version Jul. 28, 2012
  *  version Feb. 20, 2013
- * @version Mar.  3, 2013
+ * @version Mar.  4, 2013
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record]) {
+  def map(f: Record => Record): RecordSet = {
+    RecordSet(records.map(f))
+  }
 }
 
 case class Record(
@@ -28,6 +31,19 @@ case class Record(
 
   def getOne(key: Symbol): Option[Any] = {
     get(key).map(_(0))
+/*
+    println("getOne = " + get(key))
+    println("getOne 2 = " + get(key).headOption)
+    val a = get(key) match {
+      case Some(x) => {
+        println("getOne 3 = " + x)
+        x.headOption
+      }
+      case None => None
+    }
+    println("getOne r = " + a)
+    a
+*/
   }
 
   def get(key: String): Option[List[Any]] = {
@@ -35,7 +51,7 @@ case class Record(
   }
 
   def getOne(key: String): Option[Any] = {
-    get(Symbol(key))
+    getOne(Symbol(key))
   }
 
   def asString(key: Symbol): String = {
@@ -67,23 +83,23 @@ case class Record(
   }
 
   //
-  def +::(f: (String, String)): Record = {
+  def +::(f: (String, Any)): Record = {
     copy(Field.create(f) +: fields)
   }
 
-  def ::+(f: (String, String)): Record = {
+  def ::+(f: (String, Any)): Record = {
     copy(fields :+ Field.create(f))
   }
 
-  def ::++(f: Seq[(String, String)]): Record = {
+  def ::++(f: Seq[(String, Any)]): Record = {
     copy(fields ++ f.map(Field.create))
   }
 
-  def +:(f: (String, Seq[String])): Record = {
+  def +:(f: (String, Seq[Any])): Record = {
     copy(Field.create(f) +: fields)
   }
 
-  def :+(f: (String, Seq[String])): Record = {
+  def :+(f: (String, Seq[Any])): Record = {
     copy(fields :+ Field.create(f))
   }
 }
