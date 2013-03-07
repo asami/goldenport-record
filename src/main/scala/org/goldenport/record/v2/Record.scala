@@ -11,7 +11,7 @@ import org.goldenport.Strings
  *  version Feb. 16, 2012
  *  version Jul. 28, 2012
  *  version Feb. 20, 2013
- * @version Mar.  4, 2013
+ * @version Mar.  7, 2013
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record]) {
@@ -180,6 +180,10 @@ object Record {
   def create(data: Seq[(String, Any)]): Record = {
     Record(data.map(Field.create).toList)
   }
+
+  def createSingle(data: Seq[(String, Any)]): Record = {
+    Record(data.map(Field.createSingle).toList)
+  }
 }
 
 object Field {
@@ -190,7 +194,15 @@ object Field {
     }
   }
 
+  def createSingle(data: (String, Any)): Field = {
+    Field(Symbol(data._1), List(data._2))
+  }
+
   def create(data: Seq[(String, Any)]): List[Field] = {
     data.map(create).toList
+  }
+
+  def createSingle(data: Seq[(String, Any)]): List[Field] = {
+    data.map(createSingle).toList
   }
 }
