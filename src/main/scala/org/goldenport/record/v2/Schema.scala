@@ -11,14 +11,14 @@ import Validator._
  * @snice   Nov. 23, 2012
  *  version Dec. 28, 2012
  *  version Jan. 30, 2013
- * @version Mar.  4, 2013
+ * @version Mar. 12, 2013
  * @author  ASAMI, Tomoharu
  */
 case class Schema(
   columns: Seq[Column],
   columnGroups: Seq[ColumnGroup] = Nil,
   grouping: Grouping = NullGrouping,
-  validations: Seq[Validator] = Nil,
+  validators: Seq[Validator] = Nil,
   sql: SqlSchema = NullSqlSchema,
 //  contexts: Seq[Context] = Nil,
 //  view: GuiView = ExtjsGridView(),
@@ -53,7 +53,6 @@ case class Schema(
   }
 
   val gridColumns = columns.filter(_.visibility.grid).filter(_.isSingle)
-
 
   def adjustInsert(r: Record): Record = {
 //    log_trace("Schema#adjustInsert before = " + r)
@@ -127,6 +126,63 @@ case class Schema(
   protected final def is_update_principal(c: Column) = {
     (c.name.endsWith("_by") && // TODO adds specific flag
      c.sql.isAutoUpdate)
+  }
+
+  /*
+   * Validation
+   */
+  def validate(rs: RecordSet): ValidationResult = {
+    rs.records.map(validate).asMA.sum
+  }
+
+  def validate(r: Record): ValidationResult = {
+    List(_validate_redumental_fields(r),
+         _validate_missing_fields(r),
+         _validate_datatype(r),
+         _validate_validators(r)
+       ).asMA.sum
+  }
+
+  private def _validate_redumental_fields(r: Record): ValidationResult = {
+    r.fields.map(_.key.name).diff(columns.map(_.name)) match {
+      case Nil => Valid
+      case xs => {
+        val a: Seq[ValidationResult] = xs.map(x => RedundancyFieldWarning(x))
+        a.asMA.sum
+      }
+    }
+  }
+
+  private def _validate_missing_fields(r: Record): ValidationResult = {
+    val a = columns.filter(x => x.multiplicity == MOne ||
+                           x.multiplicity == MOneMore).map(_.name)
+    a.diff(r.fields.map(_.key.name)) match {
+      case Nil => Valid
+      case xs => {
+        val a: Seq[ValidationResult] = xs.map(x => MissingFieldFailure(x))
+        a.asMA.sum
+      }
+    }
+  }
+
+  private def _validate_datatype(r: Record): ValidationResult = {
+    r.fields.flatMap(
+      f => getColumn(f.key).map(c => _validate_datatype_column(c, f))
+    ).asMA.sum
+  }
+
+  private def _validate_datatype_column(c: Column, f: Field): ValidationResult = {
+    val a: Seq[ValidationResult] = f.values.map(
+      _ match {
+        case xs: Seq[_] => sys.error("???")
+        case x => c.datatype.validate(x)
+      }
+    )
+    a.asMA.sum
+  }
+
+  private def _validate_validators(r: Record): ValidationResult = {
+    Valid // TODO
   }
 
   /*
@@ -299,6 +355,7 @@ trait Warning extends ValidationResult {
 
   def asWarnings: Vector[Warning] = Vector(this)
   def descriptions: Vector[Description]
+  def messages: Vector[String] = descriptions.map(_.message)
 }
 
 case class CompoundWarning(warnings: Vector[Warning]) extends Warning {
@@ -341,6 +398,14 @@ case class IllegalFieldWarning(key: String,
   def descriptions = Vector(Description(label | key, message | "値が異常です。", value))
 }
 
+case class RedundancyFieldWarning(
+  key: String,
+  value: Seq[Any] = Nil,
+  label: Option[String] = None,
+  message: Option[String] = None) extends Warning {
+  def descriptions = Vector(Description(label | key, message | "余分なフィールドです。", value))
+}
+
 trait Invalid extends ValidationResult {
   def +(a: ValidationResult) = {
     a match {
@@ -357,6 +422,7 @@ trait Invalid extends ValidationResult {
   def asFailures: Vector[Invalid] = Vector(this)
   def descriptions: Vector[Description]
   def getWarning(): Option[Warning] = None
+  def messages: Vector[String] = descriptions.map(_.message)
 }
 
 case class CompoundFailure(failures: Vector[Invalid], warning: Option[Warning] = None) extends Invalid {
@@ -419,6 +485,14 @@ case class ValueDomainFailure(
   def descriptions = {
     Vector(Description((label orElse key) | "", message.format(value)))
   }
+}
+
+case class MissingFieldFailure(
+  key: String,
+  value: Seq[Any] = Nil,
+  label: Option[String] = None,
+  message: Option[String] = None) extends Invalid {
+  def descriptions = Vector(Description(label | key, message | "余分なフィールドです。", value))
 }
 
 trait Validator {

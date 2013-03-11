@@ -8,11 +8,11 @@ import Validator._
  *  version Dec. 18, 2012
  *  version Jan. 29, 2013
  *  version Feb. 20, 2013
- * @version Mar.  4, 2013
+ * @version Mar. 12, 2013
  * @author  ASAMI, Tomoharu
  */
 sealed trait DataType {
-  def validate(s: String): ValidationResult
+  def validate(d: Any): ValidationResult
   def label: String
   def mapData(s: String): String = s
   def toDouble(s: String): Validation[Throwable, Double] = new NumberFormatException(s).fail
@@ -39,25 +39,25 @@ sealed trait DataType {
 }
 
 case object XBoolean extends DataType {
-  def validate(s: String): ValidationResult = Valid // TODO
+  def validate(d: Any): ValidationResult = Valid // TODO
   def label = "Bool値"
   override def isSqlString = false
 }
 
 case object XByte extends DataType {
-  def validate(s: String): ValidationResult = Valid // TODO
+  def validate(d: Any): ValidationResult = Valid // TODO
   def label = "整数値(-128~127)"
   override def isSqlString = false
 }
 
 case object XShort extends DataType {
-  def validate(s: String): ValidationResult = Valid // TODO
+  def validate(d: Any): ValidationResult = Valid // TODO
   def label = "整数値(-32768~32767)"
   override def isSqlString = false
 }
 
 case object XInt extends DataType {
-  def validate(s: String): ValidationResult = Valid // TODO
+  def validate(d: Any): ValidationResult = Valid // TODO
   override def toDouble(s: String) = s.parseInt.map(_.toDouble)
   override def toDecimal(s: String) = s.parseInt.map(_.toDouble)
   def label = "整数値(-2^31~2^31、約20億)"
@@ -65,52 +65,52 @@ case object XInt extends DataType {
 }
 
 case object XLong extends DataType {
-  def validate(s: String): ValidationResult = Valid // TODO
+  def validate(d: Any): ValidationResult = Valid // TODO
   override def toDouble(s: String) = s.parseLong.map(_.toDouble)
   def label = "整数値(-2^63~2^63)"
   override def isSqlString = false
 }
 
 case object XFloat extends DataType {
-  def validate(s: String): ValidationResult = Valid // TODO
+  def validate(d: Any): ValidationResult = Valid // TODO
   override def toDouble(s: String) = s.parseFloat.map(_.toDouble)
   def label = "浮動小数点値"
   override def isSqlString = false
 }
 
 case object XFloat1 extends DataType {
-  def validate(s: String): ValidationResult = Valid // TODO
+  def validate(d: Any): ValidationResult = Valid // TODO
   override def toDouble(s: String) = s.parseFloat.map(_.toDouble)
   def label = "浮動小数点値"
   override def isSqlString = false
 }
 
 case object XDouble extends DataType {
-  def validate(s: String): ValidationResult = Valid // TODO
+  def validate(d: Any): ValidationResult = Valid // TODO
   override def toDouble(s: String) = s.parseDouble
   def label = "浮動小数点値"
   override def isSqlString = false
 }
 
 case object XInteger extends DataType {
-  def validate(s: String): ValidationResult = Valid // TODO
+  def validate(d: Any): ValidationResult = Valid // TODO
   def label = "整数値"
   override def isSqlString = false
 }
 
 case object XDecimal extends DataType {
-  def validate(s: String): ValidationResult = Valid // TODO
+  def validate(d: Any): ValidationResult = Valid // TODO
   def label = "数値"
   override def isSqlString = false
 }
 
 case object XString extends DataType {
-  def validate(s: String): ValidationResult = Valid
+  def validate(d: Any): ValidationResult = Valid
   def label = "文字列"
 }
 
 case object XToken extends DataType {
-  def validate(s: String): ValidationResult = Valid
+  def validate(d: Any): ValidationResult = Valid
   def label = "文字列"
   override def mapData(s: String) = {
     s.replace("　", " ").trim
@@ -118,106 +118,106 @@ case object XToken extends DataType {
 }
 
 case object XDate extends DataType {
-  def validate(s: String): ValidationResult = Valid // TODO
+  def validate(d: Any): ValidationResult = Valid // TODO
   def label = "日付"
   override def isSqlString = true
 }
 
 case object XTime extends DataType {
-  def validate(s: String): ValidationResult = Valid // TODO
+  def validate(d: Any): ValidationResult = Valid // TODO
   def label = "時間"
   override def isSqlString = true
 }
 
 case object XDateTime extends DataType {
-  def validate(s: String): ValidationResult = Valid // TODO
+  def validate(d: Any): ValidationResult = Valid // TODO
   def label = "日時"
   override def isSqlString = true
 }
 
 case object XText extends DataType {
-  def validate(s: String): ValidationResult = Valid // TODO
+  def validate(d: Any): ValidationResult = Valid // TODO
   def label = "テキスト"
 }
 
 case object XLink extends DataType {
-  def validate(s: String): ValidationResult = Valid // TODO
+  def validate(d: Any): ValidationResult = Valid // TODO
   def label = "リンク"
 }
 
 case object XEMail extends DataType {
-  def validate(s: String): ValidationResult = Valid // TODO
+  def validate(d: Any): ValidationResult = Valid // TODO
   def label = "メール"
 }
 
 case object XMoney extends DataType {
-  def validate(s: String): ValidationResult = Valid // TODO
+  def validate(d: Any): ValidationResult = Valid // TODO
   def label = "金額"
   override def isSqlString = false
 }
 
 case object XPercent extends DataType {
-  def validate(s: String): ValidationResult = Valid // TODO
+  def validate(d: Any): ValidationResult = Valid // TODO
   override def toDouble(s: String) = s.parseDouble
   def label = "パーセント"
   override def isSqlString = false
 }
 
 case object XUnit extends DataType {
-  def validate(s: String): ValidationResult = Valid
+  def validate(d: Any): ValidationResult = Valid
   def label = "単位"
 }
 
 case object XUuid extends DataType {
-  def validate(s: String): ValidationResult = Valid
+  def validate(d: Any): ValidationResult = Valid
   def label = "UUID"
 }
 
 case object XEverforthid extends DataType {
-  def validate(s: String): ValidationResult = Valid
+  def validate(d: Any): ValidationResult = Valid
   def label = "EverforthID"
 }
 
 case object XXml extends DataType {
-  def validate(s: String): ValidationResult = Valid
+  def validate(d: Any): ValidationResult = Valid
   def label = "XML"
 }
 
 case object XHtml extends DataType {
-  def validate(s: String): ValidationResult = Valid
+  def validate(d: Any): ValidationResult = Valid
   def label = "HTML"
 }
 
 case class XEntityReference(schema: Schema, reader: (java.sql.Connection, Schema, Record) => RecordSet) extends DataType {
-  def validate(s: String): ValidationResult = Valid
+  def validate(d: Any): ValidationResult = Valid
   def label = "参照"
   override def isSqlString = false // typical case
   override def isValue = false
 }
 
 case class XEverforthObjectReference(schema: Schema, reader: (java.sql.Connection, Schema, Record) => RecordSet) extends DataType {
-  def validate(s: String): ValidationResult = Valid
+  def validate(d: Any): ValidationResult = Valid
   def label = "参照"
   override def isSqlString = true
   override def isValue = false
 }
 
 case class XPowertype() extends DataType {
-  def validate(s: String): ValidationResult = Valid
+  def validate(d: Any): ValidationResult = Valid
   def label = "区分"
 }
 
 case class XPowertypeReference() extends DataType {
-  def validate(s: String): ValidationResult = Valid
+  def validate(d: Any): ValidationResult = Valid
   def label = "区分"
 }
 
 case class XStateMachine() extends DataType {
-  def validate(s: String): ValidationResult = Valid
+  def validate(d: Any): ValidationResult = Valid
   def label = "ワークフロー"
 }
 
 case class XStateMachineReference() extends DataType {
-  def validate(s: String): ValidationResult = Valid
+  def validate(d: Any): ValidationResult = Valid
   def label = "ワークフロー"
 }
