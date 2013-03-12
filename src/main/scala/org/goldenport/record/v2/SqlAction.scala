@@ -7,7 +7,7 @@ import java.net.URI
  * Derived from SqlSchema.
  * 
  * @since   Jan.  9, 2013
- * @version Mar.  4, 2013
+ * @version Mar. 12, 2013
  * @author  ASAMI, Tomoharu
  */
 trait SqlAction {
@@ -72,28 +72,53 @@ trait SqlActionCommand {
     })
   }
 
-  protected final def insert_records(driver: MutateDriver, context: ActionContext): ActionContext = {
-    insert_records(driver, context.outRecords)
+  //
+  protected final def insert_records_driver(driver: MutateDriver, context: ActionContext): ActionContext = {
+    insert_records_driver(driver, context.outRecords)
     context
   }
 
-  protected final def insert_records(driver: MutateDriver, records: Seq[Record]) {
+  protected final def insert_records_driver(driver: MutateDriver, records: Seq[Record]) {
     for (r <- records) {
       driver.insert(r)
     }
   }
 
-  protected final def insert_records_id(driver: MutateDriver, context: ActionContext, key: String = ActionContext.KEY_REFERENCE_IDS): ActionContext = {
-    val ids = insert_records_id(driver, context.outRecords)
+  protected final def insert_records_id_driver(driver: MutateDriver, context: ActionContext, key: String = ActionContext.KEY_REFERENCE_IDS): ActionContext = {
+    val ids = insert_records_id_driver(driver, context.outRecords)
     context.setParam(key, ids)
   }
 
-  protected final def insert_records_id(driver: MutateDriver, records: Seq[Record]): Seq[Long] = {
+  protected final def insert_records_id_driver(driver: MutateDriver, records: Seq[Record]): Seq[Long] = {
     for (r <- records) yield {
       driver.insertId(r)
     }
   }
 
+  //
+  protected final def insert_records(f: Record => Unit, context: ActionContext): ActionContext = {
+    insert_records(f, context.outRecords)
+    context
+  }
+
+  protected final def insert_records(f: Record => Unit, records: Seq[Record]) {
+    for (r <- records) {
+      f(r)
+    }
+  }
+
+  protected final def insert_records_id(f: Record => Any, context: ActionContext, key: String = ActionContext.KEY_REFERENCE_IDS): ActionContext = {
+    val ids = insert_records_id(f, context.outRecords)
+    context.setParam(key, ids)
+  }
+
+  protected final def insert_records_id(f: Record => Any, records: Seq[Record]): Seq[Any] = {
+    for (r <- records) yield {
+      f(r)
+    }
+  }
+
+  //
   protected final def get_main_record_id(context: ActionContext) = {
     get_record_ids(context, ActionContext.KEY_MAIN_ID)
   }
@@ -211,7 +236,7 @@ case class AssociationActionCommand(
 //    log_trace("AssociationActionCommand#after_Insert = " + context)
     val a = context.buildMainReference(action.mainColumnName, action.referenceColumnName)
     val b = after_records(a)
-    insert_records(action.association, b)
+    insert_records_driver(action.association, b)
   }
 }
 
@@ -253,7 +278,7 @@ case class TargetFileActionCommand(
     val a = before_records(source)
     val b = a.addUploadFiles(action.columnName, files)
 //    log_trace("TargetFileActionCommand#before_Insert = " + b)
-    val c = insert_records_id(action.target, b)
+    val c = insert_records_id_driver(action.target, b)
     c
   }
 }

@@ -20,6 +20,15 @@ trait InputFile {
   def filename: String
   def getUrl: Option[URL] = None
   def createWorkFile(): WorkFile
+  def contentType = {
+    UPathString.getSuffix(filename) match {
+      case "png" => "image/png"
+      case "jpg" => "image/jpeg"
+      case "jpeg" => "image/jpeg"
+      case "gif" => "image/gif"
+      case _ => "application/octet-stream"
+    }
+  }
 } 
 
 case class UrlInputFile(
@@ -28,9 +37,7 @@ case class UrlInputFile(
   url: URL
 ) extends InputFile {
   def filename = UPathString.getLastComponent(url.toString)
-
   override def getUrl = Some(url)
-
   def createWorkFile() = new UrlWorkFile(url)
 }
 
@@ -46,7 +53,7 @@ object InputFile {
 case class UploadFile(key: String, uri: String)
 
 trait WorkFile {
-  def length
+  def length: Long
   def openStream(): InputStream
   def dispose() {}
 }
