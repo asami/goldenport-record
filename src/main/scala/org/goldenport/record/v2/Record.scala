@@ -14,16 +14,22 @@ import org.goldenport.Strings
  * @version Mar. 12, 2013
  * @author  ASAMI, Tomoharu
  */
-case class RecordSet(records: Seq[Record]) {
+case class RecordSet(records: Seq[Record], opaque: AnyRef = null) {
   def map(f: Record => Record): RecordSet = {
     RecordSet(records.map(f))
+  }
+
+  def opaque(o: AnyRef): RecordSet = {
+    copy(opaque = o)
   }
 }
 
 case class Record(
   fields: List[Field],
   principal: Option[Principal] = None,
-  timestamp: Long = System.currentTimeMillis
+  timestamp: Long = System.currentTimeMillis,
+  inputFiles: Seq[InputFile] = Nil,
+  opaque: AnyRef = null
 ) {
   def get(key: Symbol): Option[List[Any]] = {
     fields.find(_.isMatch(key)).map(_.values)
@@ -81,10 +87,6 @@ case class Record(
   def exists(key: Symbol): Boolean = fields.exists(_.isMatch(key))
   def exists(key: String): Boolean = exists(Symbol(key))
 
-  def inputFiles: Seq[InputFile] = {
-    fields.collect { case x: InputFile => x }
-  }
-
   //
   def +::(f: (String, Any)): Record = {
     copy(Field.create(f) +: fields)
@@ -109,6 +111,26 @@ case class Record(
   def complements(f: Seq[(String, Any)]): Record = {
     val a = f.filterNot(x => exists(x._1))
     this ::++ a
+  }
+
+  def normalizeImages(fieldname: String): Record = {
+    val a = Symbol(fieldname)
+    fields.find(_.key == a) match {
+      case Some(f) => {
+        val b = fields.filter(_.key != a)
+        val c = for (x <- f.values) yield {
+          val n = "a"
+          val k = "a0"
+          InputFile.createByUrlString(n, k, x.toString)
+        }
+        this.copy(b, inputFiles = c)
+      }
+      case None => this
+    }
+  }
+
+  def opaque(o: AnyRef): Record = {
+    copy(opaque = o)
   }
 }
 

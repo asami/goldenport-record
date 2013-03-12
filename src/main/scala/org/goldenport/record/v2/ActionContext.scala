@@ -6,7 +6,7 @@ import scalaz._, Scalaz._
  * Derived from SqlSchema.
  * 
  * @since   Jan.  5, 2013
- * @version Mar.  3, 2013
+ * @version Mar. 12, 2013
  * @author  ASAMI, Tomoharu
  */
 case class ActionContext(
@@ -31,7 +31,8 @@ case class ActionContext(
   protected def create_value(data: Seq[(String, Any)]): Record = {
     Record(Field.create(data),
            principal = in.principal,
-           timestamp = in.timestamp)
+           timestamp = in.timestamp,
+           opaque = in.opaque)
   }
 
   def setMainId(id: Any): ActionContext = {

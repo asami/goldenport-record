@@ -63,7 +63,7 @@ class UrlWorkFile(url: URL) extends WorkFile {
 
   private def _ensure() {
     if (_file == null) {
-      _file = File.createTempFile("ef", "tmp")
+      _file = File.createTempFile("goldenport", "tmp")
       val in = url.openStream
       try {
         val out = new FileOutputStream(_file)
