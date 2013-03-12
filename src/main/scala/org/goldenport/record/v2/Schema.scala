@@ -154,8 +154,7 @@ case class Schema(
   }
 
   private def _validate_missing_fields(r: Record): ValidationResult = {
-    val a = columns.filter(x => x.multiplicity == MOne ||
-                           x.multiplicity == MOneMore).map(_.name)
+    val a = columns.filter(_requiredp).map(_.name)
     a.diff(r.fields.map(_.key.name)) match {
       case Nil => Valid
       case xs => {
@@ -163,6 +162,13 @@ case class Schema(
         a.asMA.sum
       }
     }
+  }
+
+  private def _requiredp(c: Column): Boolean = {
+    val sql = c.sql
+    (c.multiplicity == MOne || c.multiplicity == MOneMore) &&
+    (!sql.isDerived) && (!sql.isAutoId) && (!sql.isReadOnly) &&
+    (!sql.isAutoCreate) && (!sql.isAutoUpdate)
   }
 
   private def _validate_datatype(r: Record): ValidationResult = {
