@@ -11,7 +11,7 @@ import org.goldenport.Strings
  *  version Feb. 16, 2012
  *  version Jul. 28, 2012
  *  version Feb. 20, 2013
- * @version Mar.  7, 2013
+ * @version Mar. 12, 2013
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record]) {
@@ -78,6 +78,9 @@ case class Record(
     getOne(key).get.toString.toLong // XXX
   }
 
+  def exists(key: Symbol): Boolean = fields.exists(_.isMatch(key))
+  def exists(key: String): Boolean = exists(Symbol(key))
+
   def inputFiles: Seq[InputFile] = {
     fields.collect { case x: InputFile => x }
   }
@@ -101,6 +104,11 @@ case class Record(
 
   def :+(f: (String, Seq[Any])): Record = {
     copy(fields :+ Field.create(f))
+  }
+
+  def complements(f: Seq[(String, Any)]): Record = {
+    val a = f.filterNot(x => exists(x._1))
+    this ::++ a
   }
 }
 

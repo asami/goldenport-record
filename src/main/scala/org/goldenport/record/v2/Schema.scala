@@ -492,7 +492,7 @@ case class MissingFieldFailure(
   value: Seq[Any] = Nil,
   label: Option[String] = None,
   message: Option[String] = None) extends Invalid {
-  def descriptions = Vector(Description(label | key, message | "余分なフィールドです。", value))
+  def descriptions = Vector(Description(label | key, message | "フィールドがありません。", value))
 }
 
 trait Validator {
