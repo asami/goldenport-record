@@ -11,15 +11,19 @@ import org.goldenport.Strings
  *  version Feb. 16, 2012
  *  version Jul. 28, 2012
  *  version Feb. 20, 2013
- * @version Mar. 12, 2013
+ * @version Mar. 13, 2013
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record], opaque: AnyRef = null) {
+  def length(): Long = records.length
+  def isEmpty() = records.isEmpty
+  def nonEmpty() = records.nonEmpty
+
   def map(f: Record => Record): RecordSet = {
     RecordSet(records.map(f))
   }
 
-  def opaque(o: AnyRef): RecordSet = {
+  def withOpaque(o: AnyRef): RecordSet = {
     copy(opaque = o)
   }
 }
@@ -36,7 +40,10 @@ case class Record(
   }
 
   def getOne(key: Symbol): Option[Any] = {
-    get(key).map(_(0))
+    get(key).map(_ match {
+      case Nil => None
+      case x :: _ => x
+    })
 /*
     println("getOne = " + get(key))
     println("getOne 2 = " + get(key).headOption)
@@ -108,6 +115,14 @@ case class Record(
     copy(fields :+ Field.create(f))
   }
 
+  def update(fs: Seq[(String, Any)]): Record = {
+    val keys = fs.map(x => Symbol(x._1))
+    val a = fs.map(Field.create)
+//    val b = a ++ fields.filterNot(keys.contains)
+    val b = a ++ fields // XXX
+    copy(fields = b.toList)
+  }
+
   def complements(f: Seq[(String, Any)]): Record = {
     val a = f.filterNot(x => exists(x._1))
     this ::++ a
@@ -129,7 +144,7 @@ case class Record(
     }
   }
 
-  def opaque(o: AnyRef): Record = {
+  def withOpaque(o: AnyRef): Record = {
     copy(opaque = o)
   }
 }
@@ -219,6 +234,8 @@ object Record {
 object Field {
   def create(data: (String, Any)): Field = {
     data._2 match {
+      case Some(x) => Field(Symbol(data._1), List(x))
+      case None => Field(Symbol(data._1), Nil)
       case xs: Seq[_] => Field(Symbol(data._1), xs.toList)
       case x => Field(Symbol(data._1), List(x))
     }

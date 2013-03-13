@@ -6,7 +6,7 @@ import scalaz._, Scalaz._
  * Derived from SqlSchema.
  * 
  * @since   Jan.  5, 2013
- * @version Mar. 12, 2013
+ * @version Mar. 13, 2013
  * @author  ASAMI, Tomoharu
  */
 case class ActionContext(
@@ -14,7 +14,14 @@ case class ActionContext(
   outs: Map[String, Record] = Map.empty,
   params: Map[String, Seq[Any]] = Map.empty
 ) {
-  def outRecords: Seq[Record] = outs.values.toList
+  require (in != null && (in.fields == Nil || in.opaque != null), "in and record = " + in)
+
+  def outRecords: Seq[Record] = {
+    val a = outs.values.toList
+//    println("ActionContext in = " + in)
+//    println("ActionContext outs = " + a)
+    a.map(x => if (x.opaque == null) x.copy(opaque = in.opaque) else x)
+  }
 
   def addUploadFiles(columnName: String, files: Seq[UploadFile]): ActionContext = {
     val a = for (f <- files) yield {
@@ -75,6 +82,13 @@ case class ActionContext(
     }
 //    log_trace("ActionContext#buildMainReference = " + a)
     setOuts(a)
+  }
+
+  def updateIn(fs: Seq[(String, Any)]): ActionContext = {
+//    println("ActionContext = " + fs)
+    val a = copy(in = in.update(fs))
+//    println("ActionContext result = " + a)
+    a
   }
 
   def setOuts(rs: Seq[Record]): ActionContext = {
