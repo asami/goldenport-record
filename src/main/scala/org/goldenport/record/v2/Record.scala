@@ -11,7 +11,7 @@ import org.goldenport.Strings
  *  version Feb. 16, 2012
  *  version Jul. 28, 2012
  *  version Feb. 20, 2013
- * @version Mar. 13, 2013
+ * @version Mar. 14, 2013
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record], opaque: AnyRef = null) {
@@ -91,6 +91,10 @@ case class Record(
     getOne(key).get.toString.toLong // XXX
   }
 
+  def length(): Int = fields.length
+  def isEmpty() = fields.isEmpty
+  def nonEmpty() = fields.nonEmpty
+
   def exists(key: Symbol): Boolean = fields.exists(_.isMatch(key))
   def exists(key: String): Boolean = exists(Symbol(key))
 
@@ -115,12 +119,23 @@ case class Record(
     copy(fields :+ Field.create(f))
   }
 
+  def +(r: Record): Record = update(r)
+
+  def update(r: Record): Record = {
+    if (fields.isEmpty) r
+    else if (r.isEmpty) this
+    else {
+      val keys: List[Symbol] = r.fields.map(_.key)
+      val b = fields.filterNot(x => keys.contains(x.key))
+      copy(fields = b ++ r.fields)
+    }
+  }
+
   def update(fs: Seq[(String, Any)]): Record = {
-    val keys = fs.map(x => Symbol(x._1))
+    val keys: Seq[Symbol] = fs.map(x => Symbol(x._1))
     val a = fs.map(Field.create)
-//    val b = a ++ fields.filterNot(keys.contains)
-    val b = a ++ fields // XXX
-    copy(fields = b.toList)
+    val b = fields.filterNot(x => keys.contains(x.key))
+    copy(fields = b ++ a)
   }
 
   def complements(f: Seq[(String, Any)]): Record = {
@@ -218,6 +233,8 @@ object RecordSet {
 }
 
 object Record {
+  val empty = Record(Nil)
+
   def create(map: scala.collection.Map[String, Any]): Record = {
     create(map.toList)
   }
