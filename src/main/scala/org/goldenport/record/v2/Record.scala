@@ -11,7 +11,7 @@ import org.goldenport.Strings
  *  version Feb. 16, 2012
  *  version Jul. 28, 2012
  *  version Feb. 20, 2013
- * @version Mar. 14, 2013
+ * @version Mar. 28, 2013
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record], opaque: AnyRef = null) {
@@ -40,10 +40,11 @@ case class Record(
   }
 
   def getOne(key: Symbol): Option[Any] = {
-    get(key).map(_ match {
-      case Nil => None
-      case x :: _ => x
-    })
+    get(key) match {
+      case None => None
+      case Some(Nil) => None
+      case Some(x :: _) => Some(x)
+    }
 /*
     println("getOne = " + get(key))
     println("getOne 2 = " + get(key).headOption)
@@ -111,6 +112,12 @@ case class Record(
     copy(fields ++ f.map(Field.create))
   }
 
+/*
+  def ::++(f: Seq[(Symbol, Any)]): Record = {
+    copy(fields ++ f.map(Field.create))
+  }
+*/
+
   def +:(f: (String, Seq[Any])): Record = {
     copy(Field.create(f) +: fields)
   }
@@ -131,12 +138,28 @@ case class Record(
     }
   }
 
+/*
+  def update(fs: Seq[(Symbol, Any)]): Record = {
+    val keys: Seq[Symbol] = fs.map(_._1)
+    val a = fs.map(Field.create)
+    val b = fields.filterNot(x => keys.contains(x.key))
+    copy(fields = b ++ a)
+  }
+*/
+
   def update(fs: Seq[(String, Any)]): Record = {
     val keys: Seq[Symbol] = fs.map(x => Symbol(x._1))
     val a = fs.map(Field.create)
     val b = fields.filterNot(x => keys.contains(x.key))
     copy(fields = b ++ a)
   }
+
+/*
+  def complements(f: Seq[(Symbol, Any)]): Record = {
+    val a = f.filterNot(x => exists(x._1))
+    this ::++ a
+  }
+*/
 
   def complements(f: Seq[(String, Any)]): Record = {
     val a = f.filterNot(x => exists(x._1))
@@ -246,9 +269,24 @@ object Record {
   def createSingle(data: Seq[(String, Any)]): Record = {
     Record(data.map(Field.createSingle).toList)
   }
+
+  def data(data: (String, Any)*): Record = {
+    create(data)
+  }
 }
 
 object Field {
+/*
+  def create(data: (Symbol, Any)): Field = {
+    data._2 match {
+      case Some(x) => Field(data._1, List(x))
+      case None => Field(data._1, Nil)
+      case xs: Seq[_] => Field(data._1, xs.toList)
+      case x => Field(data._1, List(x))
+    }
+  }
+*/
+
   def create(data: (String, Any)): Field = {
     data._2 match {
       case Some(x) => Field(Symbol(data._1), List(x))

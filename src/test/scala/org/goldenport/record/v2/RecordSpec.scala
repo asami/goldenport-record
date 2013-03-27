@@ -7,7 +7,7 @@ import org.scalatest.matchers._
 
 /**
  * @since   Feb. 16, 2013
- * @version Mar. 14, 2013
+ * @version Mar. 28, 2013
  * @author  ASAMI, Tomoharu
  */
 @RunWith(classOf[JUnitRunner])
@@ -35,6 +35,12 @@ class PlainTableTest extends WordSpec with ShouldMatchers {
         val x = r.getOne("b")
         println("plain = " + x)
         x should be(Some("ab"))
+      }
+      "empty" in {
+        val r = Record(List(Field(Symbol("b"), List())))
+        val x = r.getOne("b")
+        println("empty = " + x)
+        x should be(None)
       }
     }
     "update" that {
