@@ -12,17 +12,19 @@ import java.text.SimpleDateFormat
  * @since   Nov. 24, 2012
  *  version Dec. 29, 2012
  *  version Jan. 16, 2013
- * @version Mar.  3, 2013
+ *  version Mar.  3, 2013
+ * @version Apr.  1, 2013
  * @author  ASAMI, Tomoharu
  */
 trait MutateDriver extends RecordConstants {
-  def insert(record: Record) {
-    insert(RecordSet(List(record)))
+  def insert(record: Record): Option[String] = {
+    val a = RecordSet(List(record))
+    insert(a).head
   }
-  def insert(records: RecordSet) {
+  def insert(records: RecordSet): List[Option[String]] = {
     throw new UnsupportedOperationException()
   }
-  def insertId(record: Record): Long = {
+  def insertId(record: Record): String = {
     throw new UnsupportedOperationException()
   }
 

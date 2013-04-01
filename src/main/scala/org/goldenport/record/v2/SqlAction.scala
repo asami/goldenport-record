@@ -7,7 +7,8 @@ import java.net.URI
  * Derived from SqlSchema.
  * 
  * @since   Jan.  9, 2013
- * @version Mar. 12, 2013
+ *  version Mar. 12, 2013
+ * @version Apr.  1, 2013
  * @author  ASAMI, Tomoharu
  */
 trait SqlAction {
@@ -89,7 +90,7 @@ trait SqlActionCommand {
     context.setParam(key, ids)
   }
 
-  protected final def insert_records_id_driver(driver: MutateDriver, records: Seq[Record]): Seq[Long] = {
+  protected final def insert_records_id_driver(driver: MutateDriver, records: Seq[Record]): Seq[String] = {
     for (r <- records) yield {
       driver.insertId(r)
     }

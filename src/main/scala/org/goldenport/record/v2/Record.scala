@@ -11,10 +11,13 @@ import org.goldenport.Strings
  *  version Feb. 16, 2012
  *  version Jul. 28, 2012
  *  version Feb. 20, 2013
- * @version Mar. 28, 2013
+ * @version Apr.  1, 2013
  * @author  ASAMI, Tomoharu
  */
-case class RecordSet(records: Seq[Record], opaque: AnyRef = null) {
+case class RecordSet(records: Seq[Record],
+  total: Option[Long] = None,
+  opaque: AnyRef = null
+) {
   def length(): Long = records.length
   def isEmpty() = records.isEmpty
   def nonEmpty() = records.nonEmpty
@@ -36,7 +39,7 @@ case class Record(
   opaque: AnyRef = null
 ) {
   def get(key: Symbol): Option[List[Any]] = {
-    fields.find(_.isMatch(key)).map(_.values)
+    fields.find(_.isMatchKey(key)).map(_.values)
   }
 
   def getOne(key: Symbol): Option[Any] = {
@@ -96,8 +99,30 @@ case class Record(
   def isEmpty() = fields.isEmpty
   def nonEmpty() = fields.nonEmpty
 
-  def exists(key: Symbol): Boolean = fields.exists(_.isMatch(key))
+  def exists(key: Symbol): Boolean = fields.exists(_.isMatchKey(key))
   def exists(key: String): Boolean = exists(Symbol(key))
+
+  /*
+   * This record is subset of the target record.
+   */
+  def isMatch(rhs: Record): Boolean = {
+    fields.forall(x =>
+      rhs.get(x.key) match {
+        case Some(s) => x.values == s
+        case None => false
+      }
+    )
+  }
+
+  def diff(rhs: Record): List[(Symbol, String, String)] = {
+    fields.foldLeft(List[(Symbol, List[Any], List[Any])]())((a, x) =>
+      rhs.get(x.key) match {
+        case Some(s) if x.values == s => a
+        case Some(s) => (x.key, x.values, s) :: a
+        case None => (x.key, x.values, Nil) :: a
+      }
+    ).map(x => (x._1, x._2.toString, x._3.toString))
+  }
 
   //
   def +::(f: (String, Any)): Record = {
@@ -188,7 +213,7 @@ case class Record(
 }
 
 case class Field(key: Symbol, values: List[Any]) {
-  def isMatch(k: Symbol): Boolean = {
+  def isMatchKey(k: Symbol): Boolean = {
     k == key ||
     {
       val i = key.name.lastIndexOf(".")
