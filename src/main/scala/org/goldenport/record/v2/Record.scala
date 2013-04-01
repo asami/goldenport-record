@@ -63,6 +63,13 @@ case class Record(
 */
   }
 
+  def getRecords(key: Symbol): List[Record] = {
+    get(key) match {
+      case None => Nil
+      case Some(xs) => xs.map(_.asInstanceOf[Record])
+    }
+  }
+
   def get(key: String): Option[List[Any]] = {
     get(Symbol(key))
   }
@@ -114,14 +121,21 @@ case class Record(
     )
   }
 
-  def diff(rhs: Record): List[(Symbol, String, String)] = {
+  /**
+   * String oriented compare.
+   */
+  def diffSubset(rhs: Record): List[(Symbol, String, String)] = {
     fields.foldLeft(List[(Symbol, List[Any], List[Any])]())((a, x) =>
       rhs.get(x.key) match {
-        case Some(s) if x.values == s => a
+        case Some(s) if _compare(x.values, s) => a
         case Some(s) => (x.key, x.values, s) :: a
         case None => (x.key, x.values, Nil) :: a
       }
     ).map(x => (x._1, x._2.toString, x._3.toString))
+  }
+
+  private def _compare(lhs: List[Any], rhs: List[Any]): Boolean = {
+    lhs.corresponds(rhs)((a, b) => a.toString == b.toString)
   }
 
   //
