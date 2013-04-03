@@ -7,7 +7,7 @@ import scalaz._, Scalaz._
  * 
  * @since   Jan.  5, 2013
  *  version Mar. 13, 2013
- * @version Apr.  3, 2013
+ * @version Apr.  4, 2013
  * @author  ASAMI, Tomoharu
  */
 case class ActionContext(
@@ -73,7 +73,7 @@ case class ActionContext(
   def getMainIds: Seq[Any] = {
     getProperty(ActionContext.KEY_MAIN_ID) match {
       case Some(s) => s
-      case None => sys.error("???")
+      case None => sys.error("Check inserted id. In case of auto id, use useId in SqlSchema.")
     }
   }
 

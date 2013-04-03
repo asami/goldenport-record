@@ -8,11 +8,14 @@ import java.net.URI
  * 
  * @since   Jan.  9, 2013
  *  version Mar. 12, 2013
- * @version Apr.  3, 2013
+ * @version Apr.  4, 2013
  * @author  ASAMI, Tomoharu
  */
 trait SqlAction {
   def id: String
+  /**
+   * Use inserted id
+   */
   def useId: Boolean = false
 
   def create(schema: Schema): SqlActionCommand = {

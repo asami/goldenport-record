@@ -11,7 +11,7 @@ import org.goldenport.Strings
  *  version Feb. 16, 2012
  *  version Jul. 28, 2012
  *  version Feb. 20, 2013
- * @version Apr.  1, 2013
+ * @version Apr.  4, 2013
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -63,6 +63,10 @@ case class Record(
 */
   }
 
+  def getList(key: Symbol): List[Any] = {
+    get(key) getOrElse Nil
+  }
+
   def getRecords(key: Symbol): List[Record] = {
     get(key) match {
       case None => Nil
@@ -76,6 +80,10 @@ case class Record(
 
   def getOne(key: String): Option[Any] = {
     getOne(Symbol(key))
+  }
+
+  def getList(key: String): List[Any] = {
+    getList(Symbol(key))
   }
 
   def asString(key: Symbol): String = {
@@ -124,14 +132,28 @@ case class Record(
   /**
    * String oriented compare.
    */
-  def diffSubset(rhs: Record): List[(Symbol, String, String)] = {
+  def diffSubset(
+    rhs: Record,
+    comp: Map[Symbol, (Symbol, Record, Record) => Boolean] = Map.empty
+  ): List[(Symbol, String, String)] = {
     fields.foldLeft(List[(Symbol, List[Any], List[Any])]())((a, x) =>
       rhs.get(x.key) match {
-        case Some(s) if _compare(x.values, s) => a
+        case Some(s) if _compare(comp, x.key, rhs) => a
         case Some(s) => (x.key, x.values, s) :: a
         case None => (x.key, x.values, Nil) :: a
       }
     ).map(x => (x._1, x._2.toString, x._3.toString))
+  }
+
+  private def _compare(
+    comp: Map[Symbol, (Symbol, Record, Record) => Boolean],
+    key: Symbol,
+    rhs: Record
+  ): Boolean = {
+    comp.get(key) match {
+      case Some(f) => f(key, this, rhs)
+      case None => _compare(this.getList(key), rhs.getList(key))
+    }
   }
 
   private def _compare(lhs: List[Any], rhs: List[Any]): Boolean = {
