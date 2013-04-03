@@ -6,13 +6,14 @@ import scalaz._, Scalaz._
  * Derived from SqlSchema.
  * 
  * @since   Jan.  5, 2013
- * @version Mar. 13, 2013
+ *  version Mar. 13, 2013
+ * @version Apr.  3, 2013
  * @author  ASAMI, Tomoharu
  */
 case class ActionContext(
   in: Record,
   outs: Map[String, Record] = Map.empty,
-  params: Map[String, Seq[Any]] = Map.empty
+  properties: Map[String, Seq[Any]] = Map.empty
 ) {
   require (in != null && (in.fields == Nil || in.opaque != null), "in and record = " + in)
 
@@ -43,33 +44,41 @@ case class ActionContext(
   }
 
   def setMainId(id: Any): ActionContext = {
-    setParam(ActionContext.KEY_MAIN_ID, id)
+    setProperty(ActionContext.KEY_MAIN_ID, id)
   }
 
   def setReferenceIds(ids: Seq[Any]): ActionContext = {
-    setParam(ActionContext.KEY_REFERENCE_IDS, ids)
+    setProperty(ActionContext.KEY_REFERENCE_IDS, ids)
   }
 
-  def setParam(key: String, value: Any): ActionContext = {
-    value match {
-      case x: Seq[_] => copy(params = params + (key -> x))
-      case x => copy(params = params + (key -> List(value)))
+  def setReferenceIdsByAttributeName(name: String): ActionContext = {
+    println("ActionContext#setReferenceIdsByAttributeName(%s) = %s".format(name, in.get(name)))
+    in.get(name) match {
+      case Some(s) => setReferenceIds(s)
+      case None => this
     }
   }
 
-  def getParam(key: String): Option[Seq[Any]] = {
-    params.get(key)
+  def setProperty(key: String, value: Any): ActionContext = {
+    value match {
+      case x: Seq[_] => copy(properties = properties + (key -> x))
+      case x => copy(properties = properties + (key -> List(value)))
+    }
+  }
+
+  def getProperty(key: String): Option[Seq[Any]] = {
+    properties.get(key)
   }
 
   def getMainIds: Seq[Any] = {
-    getParam(ActionContext.KEY_MAIN_ID) match {
+    getProperty(ActionContext.KEY_MAIN_ID) match {
       case Some(s) => s
       case None => sys.error("???")
     }
   }
 
   def getRefrenceIds: Seq[Any] = {
-    getParam(ActionContext.KEY_REFERENCE_IDS) match {
+    getProperty(ActionContext.KEY_REFERENCE_IDS) match {
       case Some(s) => s
       case None => sys.error("???")
     }

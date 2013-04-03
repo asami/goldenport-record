@@ -8,7 +8,7 @@ import java.net.URI
  * 
  * @since   Jan.  9, 2013
  *  version Mar. 12, 2013
- * @version Apr.  1, 2013
+ * @version Apr.  3, 2013
  * @author  ASAMI, Tomoharu
  */
 trait SqlAction {
@@ -87,7 +87,7 @@ trait SqlActionCommand {
 
   protected final def insert_records_id_driver(driver: MutateDriver, context: ActionContext, key: String = ActionContext.KEY_REFERENCE_IDS): ActionContext = {
     val ids = insert_records_id_driver(driver, context.outRecords)
-    context.setParam(key, ids)
+    context.setProperty(key, ids)
   }
 
   protected final def insert_records_id_driver(driver: MutateDriver, records: Seq[Record]): Seq[String] = {
@@ -110,7 +110,7 @@ trait SqlActionCommand {
 
   protected final def insert_records_id(f: Record => Any, context: ActionContext, key: String = ActionContext.KEY_REFERENCE_IDS): ActionContext = {
     val ids = insert_records_id(f, context.outRecords)
-    context.setParam(key, ids)
+    context.setProperty(key, ids)
   }
 
   protected final def insert_records_id(f: Record => Any, records: Seq[Record]): Seq[Any] = {
@@ -129,7 +129,7 @@ trait SqlActionCommand {
   }
 
   protected final def get_record_ids(context: ActionContext, key: String): Option[Seq[Any]] = {
-    context.getParam(key)
+    context.getProperty(key)
   }
 }
 
