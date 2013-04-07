@@ -11,7 +11,8 @@ import org.goldenport.Strings
  *  version Feb. 16, 2012
  *  version Jul. 28, 2012
  *  version Feb. 20, 2013
- * @version Apr.  4, 2013
+ *  version Mar. 28, 2013
+ * @version Apr.  7, 2013
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -114,8 +115,8 @@ case class Record(
   def isEmpty() = fields.isEmpty
   def nonEmpty() = fields.nonEmpty
 
-  def exists(key: Symbol): Boolean = fields.exists(_.isMatchKey(key))
-  def exists(key: String): Boolean = exists(Symbol(key))
+  def isDefined(key: Symbol): Boolean = fields.exists(_.isMatchKey(key))
+  def isDefined(key: String): Boolean = isDefined(Symbol(key))
 
   /*
    * This record is subset of the target record.
@@ -223,7 +224,7 @@ case class Record(
 */
 
   def complements(f: Seq[(String, Any)]): Record = {
-    val a = f.filterNot(x => exists(x._1))
+    val a = f.filterNot(x => isDefined(x._1))
     this ::++ a
   }
 
