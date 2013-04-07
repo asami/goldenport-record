@@ -11,7 +11,7 @@ import com.asamioffice.goldenport.text.UPathString
  * 
  *  since   Jun.  9, 2010
  * @since   Mar. 10, 2013
- * @version Mar. 12, 2013
+ * @version Apr.  7, 2013
  * @author  ASAMI, Tomoharu
  */
 trait InputFile {
@@ -56,6 +56,7 @@ trait WorkFile {
   def length: Long
   def openStream(): InputStream
   def dispose() {}
+  def getFile(): File
 }
 
 class UrlWorkFile(url: URL) extends WorkFile {
@@ -64,6 +65,7 @@ class UrlWorkFile(url: URL) extends WorkFile {
   private def _ensure() {
     if (_file == null) {
       _file = File.createTempFile("goldenport", "tmp")
+      _file.deleteOnExit()
       val in = url.openStream
       try {
         val out = new FileOutputStream(_file)
@@ -99,6 +101,11 @@ class UrlWorkFile(url: URL) extends WorkFile {
       _file = null
     }
   }
+
+  def getFile(): File = {
+    _ensure
+    _file
+  }
 }
 
 class FileWorkFile(file: File) extends WorkFile {
@@ -107,6 +114,8 @@ class FileWorkFile(file: File) extends WorkFile {
   def openStream() = {
     new FileInputStream(file)
   }
+
+  def getFile() = file
 }
 
 /*
