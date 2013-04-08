@@ -12,7 +12,7 @@ import org.goldenport.Strings
  *  version Jul. 28, 2012
  *  version Feb. 20, 2013
  *  version Mar. 28, 2013
- * @version Apr.  7, 2013
+ * @version Apr.  8, 2013
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -359,7 +359,12 @@ object Field {
   }
 
   def createSingle(data: (String, Any)): Field = {
-    Field(Symbol(data._1), List(data._2))
+    data._2 match {
+      case Some(x) => Field(Symbol(data._1), List(x))
+      case None => Field(Symbol(data._1), Nil)
+      case xs: Seq[_] => Field(Symbol(data._1), xs.toList) // TODO modify
+      case x => Field(Symbol(data._1), List(x))
+    }
   }
 
   def create(data: Seq[(String, Any)]): List[Field] = {
