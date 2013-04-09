@@ -7,7 +7,7 @@ import scalaz._, Scalaz._
  * 
  * @since   Jan.  5, 2013
  *  version Mar. 13, 2013
- * @version Apr.  4, 2013
+ * @version Apr.  9, 2013
  * @author  ASAMI, Tomoharu
  */
 case class ActionContext(
@@ -55,7 +55,7 @@ case class ActionContext(
 //    println("ActionContext#setReferenceIdsByAttributeName(%s) = %s".format(name, in.get(name)))
     in.get(name) match {
       case Some(s) => setReferenceIds(s)
-      case None => this
+      case None => setReferenceIds(Nil)
     }
   }
 
@@ -80,7 +80,7 @@ case class ActionContext(
   def getRefrenceIds: Seq[Any] = {
     getProperty(ActionContext.KEY_REFERENCE_IDS) match {
       case Some(s) => s
-      case None => sys.error("???")
+      case None => sys.error("KEY_REFERENCE_IDS does not set in ActionContext, use setReferenceIds in ActionContext")
     }
   }
 
