@@ -12,7 +12,7 @@ import org.goldenport.Strings
  *  version Jul. 28, 2012
  *  version Feb. 20, 2013
  *  version Mar. 28, 2013
- * @version Apr.  8, 2013
+ * @version Apr.  9, 2013
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -328,6 +328,9 @@ object Record {
     Record(data.map(Field.create).toList)
   }
 
+  /*
+   * Uses the method in case of List as single object.
+   */
   def createSingle(data: Seq[(String, Any)]): Record = {
     Record(data.map(Field.createSingle).toList)
   }
@@ -362,7 +365,7 @@ object Field {
     data._2 match {
       case Some(x) => Field(Symbol(data._1), List(x))
       case None => Field(Symbol(data._1), Nil)
-      case xs: Seq[_] => Field(Symbol(data._1), xs.toList) // TODO modify
+      case xs: Seq[_] => Field(Symbol(data._1), List(xs))
       case x => Field(Symbol(data._1), List(x))
     }
   }
