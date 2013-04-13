@@ -11,7 +11,8 @@ import Validator._
  * @snice   Nov. 23, 2012
  *  version Dec. 28, 2012
  *  version Jan. 30, 2013
- * @version Mar. 12, 2013
+ *  version Mar. 12, 2013
+ * @version Apr. 13, 2013
  * @author  ASAMI, Tomoharu
  */
 case class Schema(
@@ -245,6 +246,25 @@ case object OrderByAsc extends OrderBy {
 }
 case object OrderByDesc extends OrderBy {
   val sql = "DESC"
+}
+
+object OrderBy {
+  def get(orderby: String): Option[OrderBy] = {
+    if (orderby.equalsIgnoreCase("asc")) Some(OrderByAsc)
+    else if (orderby.equalsIgnoreCase("desc")) Some(OrderByDesc)
+    else None
+  }
+
+  def apply(orderby: Option[String], otherwise: OrderBy = OrderByAsc): OrderBy = {
+    orderby match {
+      case Some(s) => {
+        if (s.equalsIgnoreCase("asc")) OrderByAsc
+        else if (s.equalsIgnoreCase("desc")) OrderByDesc
+        else throw new IllegalArgumentException("order = " + orderby)
+      }
+      case None => otherwise
+    }
+  }
 }
 
 /*

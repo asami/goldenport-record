@@ -12,7 +12,7 @@ import org.goldenport.Strings
  *  version Jul. 28, 2012
  *  version Feb. 20, 2013
  *  version Mar. 28, 2013
- * @version Apr.  9, 2013
+ * @version Apr. 13, 2013
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -249,7 +249,7 @@ case class Record(
   }
 }
 
-case class Field(key: Symbol, values: List[Any]) {
+case class Field(key: Symbol, values: List[Any]) { // TODO introduce Value class
   def isMatchKey(k: Symbol): Boolean = {
     k == key ||
     {
