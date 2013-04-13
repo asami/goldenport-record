@@ -11,7 +11,7 @@ import com.asamioffice.goldenport.text.UPathString
  * 
  *  since   Jun.  9, 2010
  * @since   Mar. 10, 2013
- * @version Apr.  7, 2013
+ * @version Apr. 13, 2013
  * @author  ASAMI, Tomoharu
  */
 trait InputFile {
@@ -46,6 +46,14 @@ object InputFile {
     name: String,
     key: String,
     path: String): UrlInputFile = {
+    UrlInputFile(name, key, UURL.getURLFromFileOrURLName(path))
+  }
+
+  def createByUrlString(
+    key: String,
+    path: String
+  ): UrlInputFile = {
+    val name = UPathString.getLastComponent(path)
     UrlInputFile(name, key, UURL.getURLFromFileOrURLName(path))
   }
 }

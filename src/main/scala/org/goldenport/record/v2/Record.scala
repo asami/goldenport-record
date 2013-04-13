@@ -234,9 +234,7 @@ case class Record(
       case Some(f) => {
         val b = fields.filter(_.key != a)
         val c = for (x <- f.values) yield {
-          val n = "a"
-          val k = "a0"
-          InputFile.createByUrlString(n, k, x.toString)
+          InputFile.createByUrlString(fieldname, x.toString)
         }
         this.copy(b, inputFiles = c)
       }
