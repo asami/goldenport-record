@@ -1,5 +1,6 @@
 package org.goldenport.record.v2
 
+import java.sql.Timestamp
 import scalaz._, Scalaz._
 import Validator._
 
@@ -12,7 +13,7 @@ import Validator._
  *  version Dec. 28, 2012
  *  version Jan. 30, 2013
  *  version Mar. 12, 2013
- * @version Apr. 13, 2013
+ * @version Apr. 16, 2013
  * @author  ASAMI, Tomoharu
  */
 case class Schema(
@@ -240,12 +241,41 @@ case object MZeroMore extends Multiplicity
  */
 sealed trait OrderBy {
   val sql: String
+
+  def compare(lhs: String, rhs: String): Boolean
+  def compare(lhs: Long, rhs: Long): Boolean
+  def compare(lhs: Timestamp, rhs: Timestamp): Boolean
 }
+
 case object OrderByAsc extends OrderBy {
   val sql = "ASC"
+
+  def compare(lhs: String, rhs: String): Boolean = {
+    lhs.compareTo(rhs) < 0
+  }
+
+  def compare(lhs: Long, rhs: Long): Boolean = {
+    lhs.compareTo(rhs) < 0
+  }
+
+  def compare(lhs: Timestamp, rhs: Timestamp): Boolean = {
+    lhs.compareTo(rhs) < 0
+  }
 }
 case object OrderByDesc extends OrderBy {
   val sql = "DESC"
+
+  def compare(lhs: String, rhs: String): Boolean = {
+    lhs.compareTo(rhs) > 0
+  }
+
+  def compare(lhs: Long, rhs: Long): Boolean = {
+    lhs.compareTo(rhs) < 0
+  }
+
+  def compare(lhs: Timestamp, rhs: Timestamp): Boolean = {
+    lhs.compareTo(rhs) > 0
+  }
 }
 
 object OrderBy {
