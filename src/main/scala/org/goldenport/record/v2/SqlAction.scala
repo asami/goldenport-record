@@ -8,7 +8,7 @@ import java.net.URI
  * 
  * @since   Jan.  9, 2013
  *  version Mar. 12, 2013
- * @version Apr.  4, 2013
+ * @version Apr. 24, 2013
  * @author  ASAMI, Tomoharu
  */
 trait SqlAction {
@@ -59,10 +59,23 @@ trait SqlActionCommand {
     after_Insert(source)
   }
 
+  def beforeUpdate(source: ActionContext): ActionContext = {
+    before_Update(source)
+  }
+
+  def afterUpdate(source: ActionContext) {
+    after_Update(source)
+  }
+
   protected def before_Insert(source: ActionContext): ActionContext = {
     source
   }
   protected def after_Insert(source: ActionContext) {}
+
+  protected def before_Update(source: ActionContext): ActionContext = {
+    source
+  }
+  protected def after_Update(source: ActionContext) {}
 
   protected def before_records(source: ActionContext): ActionContext = {
     methods.foldLeft(source)((a, x) => {
@@ -141,12 +154,16 @@ case class SqlActionCommands(commands: Seq[SqlActionCommand]) {
     commands.foldLeft(ActionContext(record))((a, x) => x.beforeInsert(a))
   }
 
-//  def insert(record: Record, insertedid: Option[String]) {
-//    commands.foreach(_.insert(record, insertedid))
-//  }
-
   def afterInsert(record: ActionContext) {
     commands.foreach(_.afterInsert(record))
+  }
+
+  def beforeUpdate(record: Record): ActionContext = {
+    commands.foldLeft(ActionContext(record))((a, x) => x.beforeUpdate(a))
+  }
+
+  def afterUpdate(record: ActionContext) {
+    commands.foreach(_.afterUpdate(record))
   }
 }
 
