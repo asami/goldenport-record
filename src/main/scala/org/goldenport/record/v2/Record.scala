@@ -12,7 +12,7 @@ import org.goldenport.Strings
  *  version Jul. 28, 2012
  *  version Feb. 20, 2013
  *  version Mar. 28, 2013
- * @version Apr. 13, 2013
+ * @version Apr. 26, 2013
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -64,6 +64,14 @@ case class Record(
 */
   }
 
+  def getString(key: Symbol): Option[String] = {
+    getOne(key).map(_.toString)
+  }
+
+  def getLong(key: Symbol): Option[Long] = {
+    getOne(key).map(_.toString.toLong)
+  }
+
   def getList(key: Symbol): List[Any] = {
     get(key) getOrElse Nil
   }
@@ -81,6 +89,14 @@ case class Record(
 
   def getOne(key: String): Option[Any] = {
     getOne(Symbol(key))
+  }
+
+  def getString(key: String): Option[String] = {
+    getString(Symbol(key))
+  }
+
+  def getLong(key: String): Option[Long] = {
+    getLong(Symbol(key))
   }
 
   def getList(key: String): List[Any] = {

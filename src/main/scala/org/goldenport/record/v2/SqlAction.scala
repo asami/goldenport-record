@@ -8,7 +8,7 @@ import java.net.URI
  * 
  * @since   Jan.  9, 2013
  *  version Mar. 12, 2013
- * @version Apr. 24, 2013
+ * @version Apr. 26, 2013
  * @author  ASAMI, Tomoharu
  */
 trait SqlAction {
@@ -136,11 +136,15 @@ trait SqlActionCommand {
   }
 
   //
-  protected final def get_main_record_id(context: ActionContext) = {
-    get_record_ids(context, ActionContext.KEY_MAIN_ID)
+  protected final def get_main_record_id(context: ActionContext): Option[Any] = {
+    get_record_ids(context, ActionContext.KEY_MAIN_ID) match {
+      case Some(Nil) => None
+      case Some(x :: _) => Some(x)
+      case None => None
+    }
   }
 
-  protected final def get_reference_record_ids(context: ActionContext) = {
+  protected final def get_reference_record_ids(context: ActionContext): Option[Seq[Any]] = {
     get_record_ids(context, ActionContext.KEY_REFERENCE_IDS)
   }
 

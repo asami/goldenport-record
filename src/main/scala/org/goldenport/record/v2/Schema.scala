@@ -13,7 +13,7 @@ import Validator._
  *  version Dec. 28, 2012
  *  version Jan. 30, 2013
  *  version Mar. 12, 2013
- * @version Apr. 16, 2013
+ * @version Apr. 26, 2013
  * @author  ASAMI, Tomoharu
  */
 case class Schema(
@@ -36,7 +36,8 @@ case class Schema(
   }
 
   final def getIdColumn: Option[Column] = {
-    columns.find(_.kind == IdKind)
+    columns.find(_.kind == IdKind) orElse
+    columns.find(_.sql.isId)
   }
 
   final def idColumn: Column = {
@@ -46,11 +47,11 @@ case class Schema(
     }
   }
 
-  protected def mapRecord(record: Record): Record = {
+  protected def map_Record(record: Record): Record = {
     record
   }
 
-  protected def mapRecords(records: RecordSet): RecordSet = {
+  protected def map_Records(records: RecordSet): RecordSet = {
     records
   }
 
@@ -324,26 +325,26 @@ case object Filterable extends Operation {
  */
 case class Grouping(key: String = "group_field") {
   def convertField(field: Field) = {
-    mapField(field)
+    map_Field(field)
   }
 
   def convertRecord(record: Record) = {
-    mapRecord(record)
+    map_Record(record)
   }
 
   def convertRecords(records: RecordSet) = {
-    mapRecords(records)
+    map_Records(records)
   }
 
-  protected def mapField(implicit field: Field) = {
+  protected def map_Field(implicit field: Field) = {
     field
   }
 
-  protected def mapRecord(implicit record: Record) = {
+  protected def map_Record(implicit record: Record) = {
     record
   }
 
-  protected def mapRecords(implicit records: RecordSet) = {
+  protected def map_Records(implicit records: RecordSet) = {
     records
   }
 
