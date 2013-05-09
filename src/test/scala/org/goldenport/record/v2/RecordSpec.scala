@@ -8,7 +8,7 @@ import org.scalatest.matchers._
 /**
  * @since   Feb. 16, 2013
  *  version Mar. 28, 2013
- * @version May.  9, 2013
+ * @version May. 10, 2013
  * @author  ASAMI, Tomoharu
  */
 @RunWith(classOf[JUnitRunner])
@@ -63,12 +63,35 @@ class PlainTableTest extends WordSpec with ShouldMatchers {
     "normalize multiplicity" that {
       "typical" in {
         val a = Record.create(List(
+          "one" -> "1",
           "abc__1_xyz" -> "abc1xyz",
           "abc__1_mno" -> "abc1mno",
           "abc__2_xyz" -> "abc2xyz",
           "abc__2_mno" -> "abc2mno"))
         val b = a.normalizeMultiplicity
         println("RecordSet#normalizeMultiplicity = " + b)
+      }
+      "multiplicity only" in {
+        val a = Record.create(List(
+          "abc__1_xyz" -> "abc1xyz",
+          "abc__1_mno" -> "abc1mno",
+          "abc__2_xyz" -> "abc2xyz",
+          "abc__2_mno" -> "abc2mno"))
+        val b = a.normalizeMultiplicity
+        println("RecordSet#normalizeMultiplicity multiplicity only = " + b)
+      }
+      "nest" in {
+        val a = Record.create(List(
+          "abc__1_xyz__1_a" -> "abc1xyz1a",
+          "abc__1_xyz__2_b" -> "abc1xyz2b",
+          "abc__1_mno__1_a" -> "abc1mno1a",
+          "abc__1_mno__2_b" -> "abc1mno2b",
+          "abc__2_xyz__1_a" -> "abc2xyz1a",
+          "abc__2_xyz__2_b" -> "abc2xyz2b",
+          "abc__2_mno__1_a" -> "abc2mno1a",
+          "abc__2_mno__2_b" -> "abc2mno2b"))
+        val b = a.normalizeMultiplicity
+        println("RecordSet#normalizeMultiplicity nest = " + b)
       }
     }
   }

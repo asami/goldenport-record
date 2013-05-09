@@ -13,7 +13,7 @@ import org.goldenport.Strings
  *  version Feb. 20, 2013
  *  version Mar. 28, 2013
  *  version Apr. 26, 2013
- * @version May.  9, 2013
+ * @version May. 10, 2013
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -264,40 +264,7 @@ case class Record(
   }
 
   def normalizeMultiplicity(): Record = {
-    val (candidates, normal) = fields.span(_is_multiplicity)
-    copy(normal ++ _normalize_multiplicity(candidates))
-  }
-
-  private def _is_multiplicity(f: Field): Boolean = {
-    val regex = """__(\d+)_""".r
-    regex.findFirstMatchIn(f.key.name).isDefined
-  }
-
-  private def _normalize_multiplicity(fs: List[Field]): List[Field] = {
-    val a = fs.map(_normalize_multiplicity)
-    val a1 = a.groupBy(_._1).toList
-    val b = _aggregate_fields(a1)
-    b
-  }
-
-  private def _normalize_multiplicity(f: Field): (String, Int, String, Field) = {
-    val regex = """__(\d+)_""".r
-    val m = regex.findFirstMatchIn(f.key.name)
-    m.map(x => (x.before.toString, x.group(1).toInt, x.after.toString, f)).get
-  }
-
-  private def _aggregate_fields(a: List[(String, List[(String, Int, String, Field)])]): List[Field] = {
-    a.flatMap(_aggregate_field)
-  }
-
-  private def _aggregate_field(a: (String, List[(String, Int, String, Field)])): List[Field] = {
-    val attrname = a._1
-    val b: List[(Int, List[(String, Int, String, Field)])] = a._2.groupBy(_._2).toList.sortBy(_._1)
-    val d = for (c: List[(String, Int, String, Field)] <- b.map(_._2)) yield {
-      Record(
-        c.map(x => Field.create(x._3, x._4.values)))
-    }
-    List(Field.create(attrname, d))
+    copy(Record.normalizeMultiplicity(fields))
   }
 }
 
@@ -371,6 +338,7 @@ object RecordSet {
 
 object Record {
   val empty = Record(Nil)
+  val multiplicityRegex = """__(\d+)_""".r
 
   def create(map: scala.collection.Map[String, Any]): Record = {
     create(map.toList)
@@ -390,7 +358,80 @@ object Record {
   def data(data: (String, Any)*): Record = {
     create(data)
   }
+
+  def normalizeMultiplicity(fs: List[Field]): List[Field] = {
+    val (candidates, normal) = fs.partition(_is_multiplicity)
+//    println("Record#normalizeMultiplicity %s / %s".format(normal, candidates))
+    val r = normal ++ _normalize_multiplicity(candidates)
+//    println("Record#normalizeMultiplicity %s = %s".format(fs, r))
+    r
+  }
+
+  private def _is_multiplicity(f: Field): Boolean = {
+    val r = multiplicityRegex.findFirstMatchIn(f.key.name).isDefined
+//    println("Record#_is_multiplicity %s = %s".format(f, r))
+    r
+  }
+
+  private def _normalize_multiplicity(fs: List[Field]): List[Field] = {
+    val a = fs.map(_normalize_multiplicity)
+    _chunks_to_fields(a)
+  }
+
+  private def _normalize_multiplicity(f: Field): MultiplicityChunk = {
+    val m = multiplicityRegex.findFirstMatchIn(f.key.name)
+    m.map(x => MultiplicityChunk(x.before.toString, x.group(1).toInt, x.after.toString, f)).get
+  }
+
+  private def _chunks_to_fields(chunks: List[MultiplicityChunk]): List[Field] = {
+    val a = chunks.groupBy(_.attrname).toList
+    val b = _aggregate_fields(a)
+    b
+  }
+
+  private def _aggregate_fields(a: List[(String, List[MultiplicityChunk])]): List[Field] = {
+    a.flatMap(_aggregate_field)
+  }
+
+  private def _aggregate_field(a: (String, List[MultiplicityChunk])): List[Field] = {
+    val attrname = a._1
+    val b: List[(Int, List[MultiplicityChunk])] = a._2.groupBy(_.index).toList.sortBy(_._1)
+    val d = for (c: List[MultiplicityChunk] <- b.map(_._2)) yield {
+      Record(_normalize_multiplicity_chunks(c))
+    }
+    List(Field.create(attrname, d))
+  }
+
+  private def _normalize_multiplicity_chunks(fs: List[MultiplicityChunk]): List[Field] = {
+    val (candidates, normal) = fs.span(_is_multiplicity)
+    _to_fields(normal) ++ _normalize_multiplicity_chunk_candidates(candidates)
+  }
+
+  private def _is_multiplicity(chunk: MultiplicityChunk): Boolean = {
+    multiplicityRegex.findFirstMatchIn(chunk.remainder).isDefined
+  }
+
+  private def _to_fields(chunks: List[MultiplicityChunk]): List[Field] = {
+    chunks.map(x => Field.create(x.remainder, x.field.values))
+  }
+
+  private def _normalize_multiplicity_chunk_candidates(chunks: List[MultiplicityChunk]): List[Field] = {
+    val a = chunks.map(_normalize_multiplicity_chunk_candidate)
+    _chunks_to_fields(a)
+  }
+
+  private def _normalize_multiplicity_chunk_candidate(chunk: MultiplicityChunk): MultiplicityChunk = {
+    val m = multiplicityRegex.findFirstMatchIn(chunk.remainder)
+    m.map(x => MultiplicityChunk(x.before.toString, x.group(1).toInt, x.after.toString, chunk.field)).get
+  }
 }
+
+case class MultiplicityChunk(
+  attrname: String,
+  index: Int,
+  remainder: String,
+  field: Field
+)
 
 object Field {
 /*
