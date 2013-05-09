@@ -279,7 +279,10 @@ case class Record(
   }
 
   def normalizeMultiplicity(): Record = {
-    copy(Record.normalizeMultiplicity(fields))
+    val files = Record.files2Fields(inputFiles)
+    val multiplied = Record.normalizeMultiplicity(fields ++ files)
+    val (a, b) = Record.toFieldsAndFiles(multiplied)
+    copy(a, inputFiles = b)
   }
 }
 
@@ -412,7 +415,9 @@ object Record {
     val attrname = a._1
     val b: List[(Int, List[MultiplicityChunk])] = a._2.groupBy(_.index).toList.sortBy(_._1)
     val d = for (c: List[MultiplicityChunk] <- b.map(_._2)) yield {
-      Record(_normalize_multiplicity_chunks(c))
+      val multiplied = _normalize_multiplicity_chunks(c)
+      val (a, b) = Record.toFieldsAndFiles(multiplied)
+      Record(a, inputFiles = b)
     }
     List(Field.create(attrname, d))
   }
@@ -438,6 +443,19 @@ object Record {
   private def _normalize_multiplicity_chunk_candidate(chunk: MultiplicityChunk): MultiplicityChunk = {
     val m = multiplicityRegex.findFirstMatchIn(chunk.remainder)
     m.map(x => MultiplicityChunk(x.before.toString, x.group(1).toInt, x.after.toString, chunk.field)).get
+  }
+
+  def files2Fields(files: Seq[InputFile]): List[Field] = {
+    files.map(x => Field.create(x.key, x)).toList
+  }
+
+  def toFieldsAndFiles(fs: List[Field]): (List[Field], List[InputFile]) = {
+    fs.foldRight((List[Field](), List[InputFile]())) { (x, a) =>
+      x.values match {
+        case (f: InputFile) :: Nil => (a._1, f :: a._2)
+        case _ => (x :: a._1, a._2)
+      }
+    }
   }
 }
 
