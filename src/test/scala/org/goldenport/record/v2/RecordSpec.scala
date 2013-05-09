@@ -7,7 +7,8 @@ import org.scalatest.matchers._
 
 /**
  * @since   Feb. 16, 2013
- * @version Mar. 28, 2013
+ *  version Mar. 28, 2013
+ * @version May.  9, 2013
  * @author  ASAMI, Tomoharu
  */
 @RunWith(classOf[JUnitRunner])
@@ -57,6 +58,17 @@ class PlainTableTest extends WordSpec with ShouldMatchers {
         val r = a.update(x)
         r.fields.length should be (3)
         println("RecordSet#update = " + r)
+      }
+    }
+    "normalize multiplicity" that {
+      "typical" in {
+        val a = Record.create(List(
+          "abc__1_xyz" -> "abc1xyz",
+          "abc__1_mno" -> "abc1mno",
+          "abc__2_xyz" -> "abc2xyz",
+          "abc__2_mno" -> "abc2mno"))
+        val b = a.normalizeMultiplicity
+        println("RecordSet#normalizeMultiplicity = " + b)
       }
     }
   }

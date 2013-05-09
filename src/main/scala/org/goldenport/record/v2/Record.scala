@@ -12,7 +12,8 @@ import org.goldenport.Strings
  *  version Jul. 28, 2012
  *  version Feb. 20, 2013
  *  version Mar. 28, 2013
- * @version Apr. 26, 2013
+ *  version Apr. 26, 2013
+ * @version May.  9, 2013
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -260,6 +261,43 @@ case class Record(
 
   def withOpaque(o: AnyRef): Record = {
     copy(opaque = o)
+  }
+
+  def normalizeMultiplicity(): Record = {
+    val (candidates, normal) = fields.span(_is_multiplicity)
+    copy(normal ++ _normalize_multiplicity(candidates))
+  }
+
+  private def _is_multiplicity(f: Field): Boolean = {
+    val regex = """__(\d+)_""".r
+    regex.findFirstMatchIn(f.key.name).isDefined
+  }
+
+  private def _normalize_multiplicity(fs: List[Field]): List[Field] = {
+    val a = fs.map(_normalize_multiplicity)
+    val a1 = a.groupBy(_._1).toList
+    val b = _aggregate_fields(a1)
+    b
+  }
+
+  private def _normalize_multiplicity(f: Field): (String, Int, String, Field) = {
+    val regex = """__(\d+)_""".r
+    val m = regex.findFirstMatchIn(f.key.name)
+    m.map(x => (x.before.toString, x.group(1).toInt, x.after.toString, f)).get
+  }
+
+  private def _aggregate_fields(a: List[(String, List[(String, Int, String, Field)])]): List[Field] = {
+    a.flatMap(_aggregate_field)
+  }
+
+  private def _aggregate_field(a: (String, List[(String, Int, String, Field)])): List[Field] = {
+    val attrname = a._1
+    val b: List[(Int, List[(String, Int, String, Field)])] = a._2.groupBy(_._2).toList.sortBy(_._1)
+    val d = for (c: List[(String, Int, String, Field)] <- b.map(_._2)) yield {
+      Record(
+        c.map(x => Field.create(x._3, x._4.values)))
+    }
+    List(Field.create(attrname, d))
   }
 }
 
