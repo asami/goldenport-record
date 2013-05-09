@@ -260,7 +260,22 @@ case class Record(
   }
 
   def withOpaque(o: AnyRef): Record = {
-    copy(opaque = o)
+    copy(_with_opaque_fields(o), opaque = o)
+  }
+
+  private def _with_opaque_fields(o: AnyRef): List[Field] = {
+    for (f <- fields) yield {
+      if (f.values.exists(_.isInstanceOf[Record])) {
+        f.copy(values = _with_opqaue_values(o, f.values))
+      } else f
+    }
+  }
+
+  private def _with_opqaue_values(o: AnyRef, vs: List[Any]): List[Any] = {
+    vs.map {
+      case rec: Record => rec.withOpaque(o)
+      case v => v
+    }
   }
 
   def normalizeMultiplicity(): Record = {
