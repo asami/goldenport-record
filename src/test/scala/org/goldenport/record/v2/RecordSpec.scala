@@ -1,5 +1,6 @@
 package org.goldenport.record.v2
 
+import java.net.URL
 import org.scalatest.junit.JUnitRunner
 import org.junit.runner.RunWith
 import org.scalatest._
@@ -92,6 +93,18 @@ class PlainTableTest extends WordSpec with ShouldMatchers {
           "abc__2_mno__2_b" -> "abc2mno2b"))
         val b = a.normalizeMultiplicity
         println("RecordSet#normalizeMultiplicity nest = " + b)
+      }
+      "image" in {
+        val a = Record.create(List(
+          "one" -> "1",
+          "image_file__2_alt" -> "alt2",
+          "image_file__2_link_url" -> "link2")).
+          withInputFiles(
+            UrlInputFile("spec1", "image_file__1_file", new URL("http://example.com/1")),
+            UrlInputFile("spec2", "image_file__2_file", new URL("http://example.com/2"))
+          )
+        val b = a.normalizeMultiplicity
+        println("RecordSet#normalizeMultiplicity multi images = " + b)
       }
     }
   }

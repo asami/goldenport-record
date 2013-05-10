@@ -10,14 +10,17 @@ import com.asamioffice.goldenport.text.UPathString
  * derived from Record.
  * 
  *  since   Jun.  9, 2010
- * @since   Mar. 10, 2013
- * @version Apr. 13, 2013
+ *  version Mar. 10, 2013
+ *  version Apr. 13, 2013
+ * @version May. 10, 2013
  * @author  ASAMI, Tomoharu
  */
 trait InputFile {
   def name: String
   def key: String
   def filename: String
+  def alt: Option[String]
+  def link: Option[String]
   def getUrl: Option[URL] = None
   def createWorkFile(): WorkFile
   def contentType = {
@@ -29,32 +32,59 @@ trait InputFile {
       case _ => "application/octet-stream"
     }
   }
+
+  def withKey(key: Symbol): InputFile
+  def withAlt(a: Option[String]): InputFile
+  def withLink(a: Option[String]): InputFile
 } 
 
 case class UrlInputFile(
   name: String,
   key: String, 
-  url: URL
+  url: URL,
+  alt: Option[String] = None,
+  link: Option[String] = None
 ) extends InputFile {
   def filename = UPathString.getLastComponent(url.toString)
   override def getUrl = Some(url)
   def createWorkFile() = new UrlWorkFile(url)
+
+  def withKey(key: Symbol) = copy(key = key.name)
+  def withAlt(a: Option[String]) = copy(alt = a)
+  def withLink(a: Option[String]) = copy(link = a)
 }
 
 object InputFile {
   def createByUrlString(
     name: String,
     key: String,
-    path: String): UrlInputFile = {
-    UrlInputFile(name, key, UURL.getURLFromFileOrURLName(path))
+    path: String,
+    alt: String = null,
+    link: String = null
+  ): UrlInputFile = {
+    UrlInputFile(
+      name,
+      key,
+      UURL.getURLFromFileOrURLName(path),
+      Option(alt),
+      Option(link)
+    )
   }
 
-  def createByUrlString(
+  def createByUrlStringAutoName(
     key: String,
-    path: String
+    path: String,
+    alt: String = null,
+    link: String = null
   ): UrlInputFile = {
     val name = UPathString.getLastComponent(path)
-    UrlInputFile(name, key, UURL.getURLFromFileOrURLName(path))
+    UrlInputFile(
+      name,
+      key,
+      UURL.getURLFromFileOrURLName(path),
+      Option(alt),
+      Option(link)
+    )
   }
 }
 

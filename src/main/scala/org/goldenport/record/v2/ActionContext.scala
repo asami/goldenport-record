@@ -7,20 +7,21 @@ import scalaz._, Scalaz._
  * 
  * @since   Jan.  5, 2013
  *  version Mar. 13, 2013
- * @version Apr.  9, 2013
+ *  version Apr.  9, 2013
+ * @version May. 10, 2013
  * @author  ASAMI, Tomoharu
  */
 case class ActionContext(
   in: Record,
-  outs: Map[String, Record] = Map.empty,
+  outs: Map[String, Record] = Map.empty, // TODO sort by key
   properties: Map[String, Seq[Any]] = Map.empty
 ) {
   require (in != null && (in.fields == Nil || in.opaque != null), "in and record = " + in)
 
-  def outRecords: Seq[Record] = {
+  def outRecords: Seq[Record] = { // TODO sort problem (use key)
     val a = outs.values.toList
 //    println("ActionContext in = " + in)
-//    println("ActionContext outs = " + a)
+    println("ActionContext#outRecords outs = " + a)
     a.map(x => if (x.opaque == null) x.copy(opaque = in.opaque) else x)
   }
 
@@ -32,7 +33,7 @@ case class ActionContext(
       }
       (f.key, b)
     }
-//    log_trace("ActionContext#addUploadFiles(%s) = %s / %s".format(columnName, files, a))
+    println("ActionContext#addUploadFiles(%s) = %s / %s".format(columnName, files, a))
     copy(outs = outs ++ a)
   }
 
@@ -82,6 +83,10 @@ case class ActionContext(
       case Some(s) => s
       case None => sys.error("KEY_REFERENCE_IDS does not set in ActionContext, use setReferenceIds in ActionContext")
     }
+  }
+
+  def getInputFiles(attrname: String): Seq[InputFile] = {
+    in.inputFiles.filter(_.key == attrname)
   }
 
   def buildMainReference(maincolumnname: String, referencecolumnname: String): ActionContext = {

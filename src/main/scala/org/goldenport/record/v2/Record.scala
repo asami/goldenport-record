@@ -251,12 +251,16 @@ case class Record(
       case Some(f) => {
         val b = fields.filter(_.key != a)
         val c = for (x <- f.values) yield {
-          InputFile.createByUrlString(fieldname, x.toString)
+          InputFile.createByUrlStringAutoName(fieldname, x.toString)
         }
         this.copy(b, inputFiles = c)
       }
       case None => this
     }
+  }
+
+  def withInputFiles(files: InputFile*): Record = {
+    copy(inputFiles = files)
   }
 
   def withOpaque(o: AnyRef): Record = {
@@ -280,9 +284,16 @@ case class Record(
 
   def normalizeMultiplicity(): Record = {
     val files = Record.files2Fields(inputFiles)
+    println("Record#normalizeMultiplicity files = " + files)
     val multiplied = Record.normalizeMultiplicity(fields ++ files)
+    println("Record#normalizeMultiplicity multiplied = " + multiplied)
     val (a, b) = Record.toFieldsAndFiles(multiplied)
+    println("Record#normalizeMultiplicity a, b = " + a + "/" + b)
     copy(a, inputFiles = b)
+  }
+
+  override def toString(): String = {
+    "Record(" + fields + ", " + inputFiles + ")"
   }
 }
 
@@ -452,7 +463,7 @@ object Record {
   def toFieldsAndFiles(fs: List[Field]): (List[Field], List[InputFile]) = {
     fs.foldRight((List[Field](), List[InputFile]())) { (x, a) =>
       x.values match {
-        case (f: InputFile) :: Nil => (a._1, f :: a._2)
+        case (f: InputFile) :: Nil => (a._1, f.withKey(x.key) :: a._2)
         case _ => (x :: a._1, a._2)
       }
     }
