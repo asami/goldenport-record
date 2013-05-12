@@ -292,56 +292,6 @@ case class Record(
     copy(a, inputFiles = b)
   }
 
-  def normalizeGroup(key: Symbol, rs: Seq[Record]): Seq[Record] = {
-    val a = rs.groupBy(_.asString(key))
-    val b = _aggregate_in_group(a)
-    rs.flatMap(x => x.getString(key).map(y => b.get(y).get))
-  }
-
-  private def _aggregate_in_group(rs: Map[String, Seq[Record]]): Map[String, Record] = {
-    val a = rs.toList.map(_aggregate_in_group)
-    Map.empty ++ a
-  }
-
-  private def _aggregate_in_group(a: (String, Seq[Record])): (String, Record) = {
-    (a._1, _aggregate_in_group(a._2))
-  }
-
-  private def _aggregate_in_group(rs: Seq[Record]): Record = {
-    val fields = rs.headOption.get.fields.filterNot(_.key.name.contains("__"))
-    val a: Seq[Field] = rs flatMap { r =>
-      val b: Seq[(String, String, Field)] = r.fields flatMap { f =>
-        val m = Record.groupRegex.findFirstMatchIn(f.key.name)
-        m map { r =>
-          (r.before.toString, r.after.toString, f)
-        }
-      }
-      val c = b.groupBy(_._1)
-      _aggregate_in_group(c)
-    }
-    Record(a.toList)
-  }
-
-  private def _aggregate_in_group(
-    a: Map[String, Seq[(String, String, Field)]]
-  ): List[Field] = {
-    a.toList.map(_aggregate_in_group)
-  }
-
-  private def _aggregate_in_group(
-    a: (String, Seq[(String, String, Field)])
-  ): Field = {
-    Field(Symbol(a._1), List(_aggregate_in_group_record(a._2)))
-  }
-
-  private def _aggregate_in_group_record(
-    a: Seq[(String, String, Field)]
-  ): Record = {
-    Record.create(
-      a.map(kv => kv._2 -> kv._3.values)
-    )
-  }
-
   override def toString(): String = {
     "Record(" + fields + ", " + inputFiles + ")"
   }
@@ -518,6 +468,57 @@ object Record {
         case _ => (x :: a._1, a._2)
       }
     }
+  }
+
+  //
+  def normalizeGroup(key: Symbol, rs: Seq[Record]): Seq[Record] = {
+    val a = rs.groupBy(_.asString(key))
+    val b = _aggregate_in_group(a)
+    rs.flatMap(x => x.getString(key).map(y => b.get(y).get))
+  }
+
+  private def _aggregate_in_group(rs: Map[String, Seq[Record]]): Map[String, Record] = {
+    val a = rs.toList.map(_aggregate_in_group)
+    Map.empty ++ a
+  }
+
+  private def _aggregate_in_group(a: (String, Seq[Record])): (String, Record) = {
+    (a._1, _aggregate_in_group(a._2))
+  }
+
+  private def _aggregate_in_group(rs: Seq[Record]): Record = {
+    val fields = rs.headOption.get.fields.filterNot(_.key.name.contains("__"))
+    val a: Seq[Field] = rs flatMap { r =>
+      val b: Seq[(String, String, Field)] = r.fields flatMap { f =>
+        val m = Record.groupRegex.findFirstMatchIn(f.key.name)
+        m map { r =>
+          (r.before.toString, r.after.toString, f)
+        }
+      }
+      val c = b.groupBy(_._1)
+      _aggregate_in_group(c)
+    }
+    Record(a.toList)
+  }
+
+  private def _aggregate_in_group(
+    a: Map[String, Seq[(String, String, Field)]]
+  ): List[Field] = {
+    a.toList.map(_aggregate_in_group)
+  }
+
+  private def _aggregate_in_group(
+    a: (String, Seq[(String, String, Field)])
+  ): Field = {
+    Field(Symbol(a._1), List(_aggregate_in_group_record(a._2)))
+  }
+
+  private def _aggregate_in_group_record(
+    a: Seq[(String, String, Field)]
+  ): Record = {
+    Record.create(
+      a.map(kv => kv._2 -> kv._3.values)
+    )
   }
 }
 
