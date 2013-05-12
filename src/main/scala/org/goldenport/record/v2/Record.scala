@@ -13,7 +13,7 @@ import org.goldenport.Strings
  *  version Feb. 20, 2013
  *  version Mar. 28, 2013
  *  version Apr. 26, 2013
- * @version May. 12, 2013
+ * @version May. 13, 2013
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -487,6 +487,57 @@ object Record {
   }
 
   private def _aggregate_in_group(rs: Seq[Record]): Record = {
+    val fields = rs.headOption.get.fields.filterNot(f =>
+      Record.groupRegex.findFirstMatchIn(f.key.name).isDefined)
+    val a: Seq[(String, Record)] = rs flatMap { r =>
+      val b: Seq[GroupChunk] = r.fields flatMap { f =>
+        val m = Record.groupRegex.findFirstMatchIn(f.key.name)
+        m map (r => GroupChunk(r.before.toString, r.after.toString, f))
+      }
+      val c: Map[String, Seq[GroupChunk]] = b.groupBy(_.parent)
+      _aggregate_in_group(c)
+    }
+    val d: Map[String, Seq[(String, Record)]] = a.groupBy(_._1)
+    val e: Seq[(String, Seq[Record])] = _aggregate_in_group(d)
+    val f: Seq[Field] = e.map { x =>
+      Field(Symbol(x._1), List(x._2))
+    }
+    Record(fields ++ f)
+  }
+
+  private def _aggregate_in_group(a: Map[String, Seq[GroupChunk]]): Seq[(String, Record)] = {
+    for (k <- a.keys.toList) yield {
+      val rs = a.get(k) match {
+        case Some(s) => Record.create(s.map(x => (x.child, x.field.values)))
+        case None => sys.error("???")
+      }
+      (k, rs)
+    }
+  }
+
+  private def _aggregate_in_group(a: Map[String, Seq[(String, Record)]]): Seq[(String, Seq[Record])] = {
+    for (k <- a.keys.toList) yield {
+      val rs: Seq[Record] = a.get(k) match {
+        case Some(s) => {
+          val b = s.foldRight((List[Record](), Set.empty[String]))((x, a) => {
+            val rec = x._2
+            rec.getString("id") match {
+              case Some(id) => {
+                if (a._2.contains(id)) a
+                else (rec :: a._1, a._2 + id)
+              }
+              case None => sys.error("???")
+            }
+          })
+          b._1
+        }
+        case None => sys.error("???")
+      }
+      (k, rs)
+    }
+  }
+/*
+  private def _aggregate_in_group0(rs: Seq[Record]): Record = {
     val fields = rs.headOption.get.fields.filterNot(_.key.name.contains("__"))
     val a: Seq[Field] = rs flatMap { r =>
       val b: Seq[(String, String, Field)] = r.fields flatMap { f =>
@@ -498,7 +549,7 @@ object Record {
       val c = b.groupBy(_._1)
       _aggregate_in_group(c)
     }
-    Record(a.toList)
+    Record(fields ++ a)
   }
 
   private def _aggregate_in_group(
@@ -516,16 +567,24 @@ object Record {
   private def _aggregate_in_group_record(
     a: Seq[(String, String, Field)]
   ): Record = {
+    val b = a.groupBy(_._2)
     Record.create(
-      a.map(kv => kv._2 -> kv._3.values)
+      b.map(kv => kv._1 -> kv._3.values)
     )
   }
+*/
 }
 
 case class MultiplicityChunk(
   attrname: String,
   index: Int,
   remainder: String,
+  field: Field
+)
+
+case class GroupChunk(
+  parent: String,
+  child: String,
   field: Field
 )
 
