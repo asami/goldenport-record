@@ -13,7 +13,7 @@ import org.goldenport.Strings
  *  version Feb. 20, 2013
  *  version Mar. 28, 2013
  *  version Apr. 26, 2013
- * @version May. 10, 2013
+ * @version May. 12, 2013
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -284,12 +284,62 @@ case class Record(
 
   def normalizeMultiplicity(): Record = {
     val files = Record.files2Fields(inputFiles)
-    println("Record#normalizeMultiplicity files = " + files)
+//    println("Record#normalizeMultiplicity files = " + files)
     val multiplied = Record.normalizeMultiplicity(fields ++ files)
-    println("Record#normalizeMultiplicity multiplied = " + multiplied)
+//    println("Record#normalizeMultiplicity multiplied = " + multiplied)
     val (a, b) = Record.toFieldsAndFiles(multiplied)
-    println("Record#normalizeMultiplicity a, b = " + a + "/" + b)
+//    println("Record#normalizeMultiplicity a, b = " + a + "/" + b)
     copy(a, inputFiles = b)
+  }
+
+  def normalizeGroup(key: Symbol, rs: Seq[Record]): Seq[Record] = {
+    val a = rs.groupBy(_.asString(key))
+    val b = _aggregate_in_group(a)
+    rs.flatMap(x => x.getString(key).map(y => b.get(y).get))
+  }
+
+  private def _aggregate_in_group(rs: Map[String, Seq[Record]]): Map[String, Record] = {
+    val a = rs.toList.map(_aggregate_in_group)
+    Map.empty ++ a
+  }
+
+  private def _aggregate_in_group(a: (String, Seq[Record])): (String, Record) = {
+    (a._1, _aggregate_in_group(a._2))
+  }
+
+  private def _aggregate_in_group(rs: Seq[Record]): Record = {
+    val fields = rs.headOption.get.fields.filterNot(_.key.name.contains("__"))
+    val a: Seq[Field] = rs flatMap { r =>
+      val b: Seq[(String, String, Field)] = r.fields flatMap { f =>
+        val m = Record.groupRegex.findFirstMatchIn(f.key.name)
+        m map { r =>
+          (r.before.toString, r.after.toString, f)
+        }
+      }
+      val c = b.groupBy(_._1)
+      _aggregate_in_group(c)
+    }
+    Record(a.toList)
+  }
+
+  private def _aggregate_in_group(
+    a: Map[String, Seq[(String, String, Field)]]
+  ): List[Field] = {
+    a.toList.map(_aggregate_in_group)
+  }
+
+  private def _aggregate_in_group(
+    a: (String, Seq[(String, String, Field)])
+  ): Field = {
+    Field(Symbol(a._1), List(_aggregate_in_group_record(a._2)))
+  }
+
+  private def _aggregate_in_group_record(
+    a: Seq[(String, String, Field)]
+  ): Record = {
+    Record.create(
+      a.map(kv => kv._2 -> kv._3.values)
+    )
   }
 
   override def toString(): String = {
@@ -368,6 +418,7 @@ object RecordSet {
 object Record {
   val empty = Record(Nil)
   val multiplicityRegex = """__(\d+)_""".r
+  val groupRegex = """__""".r
 
   def create(map: scala.collection.Map[String, Any]): Record = {
     create(map.toList)
