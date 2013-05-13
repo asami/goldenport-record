@@ -368,7 +368,7 @@ object RecordSet {
 object Record {
   val empty = Record(Nil)
   val multiplicityRegex = """__(\d+)_""".r
-  val groupRegex = """__""".r
+  val groupRegex = """__G_""".r
 
   def create(map: scala.collection.Map[String, Any]): Record = {
     create(map.toList)
@@ -471,22 +471,30 @@ object Record {
   }
 
   //
-  def normalizeGroup(key: Symbol, rs: Seq[Record]): Seq[Record] = {
+  def normalizeGroup(rs: Seq[Record], key: Symbol = 'id): Seq[Record] = {
     val a = rs.groupBy(_.asString(key))
-    val b = _aggregate_in_group(a)
-    rs.flatMap(x => x.getString(key).map(y => b.get(y).get))
+    _aggregate_in_group(a)
   }
 
+  private def _aggregate_in_group(rs: Map[String, Seq[Record]]): Seq[Record] = {
+    val a = rs.toList.map(_aggregate_in_group)
+    println("Record._aggregate_in_group map2map = " + a)
+    a.map(_._2)
+  }
+
+/*
   private def _aggregate_in_group(rs: Map[String, Seq[Record]]): Map[String, Record] = {
     val a = rs.toList.map(_aggregate_in_group)
+    println("Record._aggregate_in_group map2map = " + a)
     Map.empty ++ a
   }
+*/
 
   private def _aggregate_in_group(a: (String, Seq[Record])): (String, Record) = {
-    (a._1, _aggregate_in_group(a._2))
+    (a._1, _aggregate_in_group_rs_to_record(a._2))
   }
 
-  private def _aggregate_in_group(rs: Seq[Record]): Record = {
+  private def _aggregate_in_group_rs_to_record(rs: Seq[Record]): Record = {
     val fields = rs.headOption.get.fields.filterNot(f =>
       Record.groupRegex.findFirstMatchIn(f.key.name).isDefined)
     val a: Seq[(String, Record)] = rs flatMap { r =>
@@ -495,27 +503,32 @@ object Record {
         m map (r => GroupChunk(r.before.toString, r.after.toString, f))
       }
       val c: Map[String, Seq[GroupChunk]] = b.groupBy(_.parent)
-      _aggregate_in_group(c)
+      _aggregate_in_group_chunk_to_record(c)
     }
+    println("Record#_aggregate_in_group a = " + a)
     val d: Map[String, Seq[(String, Record)]] = a.groupBy(_._1)
-    val e: Seq[(String, Seq[Record])] = _aggregate_in_group(d)
+    println("Record#_aggregate_in_group d = " + d)
+    val e: Seq[(String, Seq[Record])] = _aggregate_in_group_fold(d)
+    println("Record#_aggregate_in_group e = " + e)
     val f: Seq[Field] = e.map { x =>
-      Field(Symbol(x._1), List(x._2))
+      Field(Symbol(x._1), x._2.toList)
     }
+    println("Record#_aggregate_in_group f = " + f)
+    println("Record#_aggregate_in_group fields = " + fields)
     Record(fields ++ f)
   }
 
-  private def _aggregate_in_group(a: Map[String, Seq[GroupChunk]]): Seq[(String, Record)] = {
+  private def _aggregate_in_group_chunk_to_record(a: Map[String, Seq[GroupChunk]]): Seq[(String, Record)] = {
     for (k <- a.keys.toList) yield {
       val rs = a.get(k) match {
-        case Some(s) => Record.create(s.map(x => (x.child, x.field.values)))
+        case Some(s) => Record(s.toList.map(x => Field.create(x.child, x.field.values)))
         case None => sys.error("???")
       }
       (k, rs)
     }
   }
 
-  private def _aggregate_in_group(a: Map[String, Seq[(String, Record)]]): Seq[(String, Seq[Record])] = {
+  protected[v2] def _aggregate_in_group_fold(a: Map[String, Seq[(String, Record)]]): Seq[(String, Seq[Record])] = {
     for (k <- a.keys.toList) yield {
       val rs: Seq[Record] = a.get(k) match {
         case Some(s) => {

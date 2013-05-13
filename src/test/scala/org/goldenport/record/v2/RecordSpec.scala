@@ -9,7 +9,7 @@ import org.scalatest.matchers._
 /**
  * @since   Feb. 16, 2013
  *  version Mar. 28, 2013
- * @version May. 10, 2013
+ * @version May. 13, 2013
  * @author  ASAMI, Tomoharu
  */
 @RunWith(classOf[JUnitRunner])
@@ -105,6 +105,69 @@ class PlainTableTest extends WordSpec with ShouldMatchers {
           )
         val b = a.normalizeMultiplicity
         println("RecordSet#normalizeMultiplicity multi images = " + b)
+      }
+    }
+    "normalize group" that {
+      "typical" in {
+        val rec1 = Record.create(List(
+          "id" -> "1",
+          "one" -> "ONE",
+          "images__G_id" -> "11",
+          "images__G_url" -> "url11",
+          "links__G_id" -> "21",
+          "links__G_url" -> "url21"))
+        val rec2 = Record.create(List(
+          "id" -> "1",
+          "one" -> "ONE",
+          "images__G_id" -> "11",
+          "images__G_url" -> "url11",
+          "links__G_id" -> "22",
+          "links__G_url" -> "url22"))
+        val rec3 = Record.create(List(
+          "id" -> "1",
+          "one" -> "ONE",
+          "images__G_id" -> "12",
+          "images__G_url" -> "url12",
+          "links__G_id" -> "21",
+          "links__G_url" -> "url21"))
+        val rec4 = Record.create(List(
+          "id" -> "1",
+          "one" -> "ONE",
+          "images__G_id" -> "12",
+          "images__G_url" -> "url12",
+          "links__G_id" -> "22",
+          "links__G_url" -> "url22"))
+        val rs = List(rec1, rec2, rec3, rec4)
+        val r = Record.normalizeGroup(rs)
+        println("RecordSet#normalizeGroup = " + r)
+      }
+    }
+    "parts" that {
+      "_aggregate_in_group_fold" in {
+        val rec1 = Record.create(List(
+          "id" -> "11",
+          "url" -> "url11"))
+        val rec2 = Record.create(List(
+          "id" -> "21",
+          "url" -> "url21"))
+        val rec3 = Record.create(List(
+          "id" -> "11",
+          "url" -> "url11"))
+        val rec4 = Record.create(List(
+          "id" -> "21",
+          "url" -> "url21"))
+        val a = Map("a" -> (List(
+          "images" -> rec1,
+          "images" -> rec2,
+          "images" -> rec3,
+          "images" -> rec4)),
+          "b" -> (List(
+            "images" -> rec1,
+            "images" -> rec2,
+            "images" -> rec3,
+            "images" -> rec4)))
+        val b = Record._aggregate_in_group_fold(a)
+        println("RecordSet#_aggregate_in_group = " + b)
       }
     }
   }
