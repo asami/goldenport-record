@@ -12,7 +12,7 @@ import com.asamioffice.goldenport.text.UPathString
  *  since   Jun.  9, 2010
  *  version Mar. 10, 2013
  *  version Apr. 13, 2013
- * @version May. 10, 2013
+ * @version May. 17, 2013
  * @author  ASAMI, Tomoharu
  */
 trait InputFile {
@@ -24,7 +24,7 @@ trait InputFile {
   def getUrl: Option[URL] = None
   def createWorkFile(): WorkFile
   def contentType = {
-    UPathString.getSuffix(filename) match {
+    UPathString.getSuffix(filename).toLowerCase match {
       case "png" => "image/png"
       case "jpg" => "image/jpeg"
       case "jpeg" => "image/jpeg"
