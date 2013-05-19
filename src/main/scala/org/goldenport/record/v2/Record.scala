@@ -13,7 +13,7 @@ import org.goldenport.Strings
  *  version Feb. 20, 2013
  *  version Mar. 28, 2013
  *  version Apr. 26, 2013
- * @version May. 13, 2013
+ * @version May. 20, 2013
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -233,6 +233,13 @@ case class Record(
     copy(fields = b ++ a)
   }
 
+  def updateApp(fs: Seq[(String, Any)]): Record = {
+    val keys: Seq[Symbol] = fs.map(x => Symbol(x._1))
+    val a = fs.map(Field.createSingle)
+    val b = fields.filterNot(x => keys.contains(x.key))
+    copy(fields = b ++ a)
+  }
+
 /*
   def complements(f: Seq[(Symbol, Any)]): Record = {
     val a = f.filterNot(x => exists(x._1))
@@ -381,6 +388,11 @@ object Record {
   /*
    * Uses the method in case of List as single object.
    */
+  def createApp(data: Seq[(String, Any)]): Record = {
+    Record(data.map(Field.createSingle).toList)
+  }
+
+  @deprecated("Use createApp instead.", "0.2.22")
   def createSingle(data: Seq[(String, Any)]): Record = {
     Record(data.map(Field.createSingle).toList)
   }
