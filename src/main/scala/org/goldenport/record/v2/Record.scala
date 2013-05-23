@@ -13,7 +13,7 @@ import org.goldenport.Strings
  *  version Feb. 20, 2013
  *  version Mar. 28, 2013
  *  version Apr. 26, 2013
- * @version May. 20, 2013
+ * @version May. 24, 2013
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -69,12 +69,44 @@ case class Record(
     getOne(key).map(_.toString)
   }
 
+  def getInt(key: Symbol): Option[Int] = {
+    getOne(key).map(_.toString.toInt)
+  }
+
   def getLong(key: Symbol): Option[Long] = {
     getOne(key).map(_.toString.toLong)
   }
 
+  def getFloat(key: Symbol): Option[Float] = {
+    getOne(key).map(_.toString.toFloat)
+  }
+
+  def getDouble(key: Symbol): Option[Double] = {
+    getOne(key).map(_.toString.toDouble)
+  }
+
   def getList(key: Symbol): List[Any] = {
     get(key) getOrElse Nil
+  }
+
+  def getStringList(key: Symbol): List[String] = {
+    getList(key).map(_.toString)
+  }
+
+  def getIntList(key: Symbol): List[Int] = {
+    getList(key).map(_.toString.toInt)
+  }
+
+  def getLongList(key: Symbol): List[Long] = {
+    getList(key).map(_.toString.toLong)
+  }
+
+  def getFloatList(key: Symbol): List[Float] = {
+    getList(key).map(_.toString.toFloat)
+  }
+
+  def getDoubleList(key: Symbol): List[Double] = {
+    getList(key).map(_.toString.toDouble)
   }
 
   def getRecords(key: Symbol): List[Record] = {
@@ -96,12 +128,44 @@ case class Record(
     getString(Symbol(key))
   }
 
+  def getInt(key: String): Option[Int] = {
+    getInt(Symbol(key))
+  }
+
   def getLong(key: String): Option[Long] = {
     getLong(Symbol(key))
   }
 
+  def getFloat(key: String): Option[Float] = {
+    getFloat(Symbol(key))
+  }
+
+  def getDouble(key: String): Option[Double] = {
+    getDouble(Symbol(key))
+  }
+
   def getList(key: String): List[Any] = {
     getList(Symbol(key))
+  }
+
+  def getStringList(key: String): List[String] = {
+    getList(key).map(_.toString)
+  }
+
+  def getIntList(key: String): List[Int] = {
+    getList(key).map(_.toString.toInt)
+  }
+
+  def getLongList(key: String): List[Long] = {
+    getList(key).map(_.toString.toLong)
+  }
+
+  def getFloatList(key: String): List[Float] = {
+    getList(key).map(_.toString.toFloat)
+  }
+
+  def getDoubleList(key: String): List[Double] = {
+    getList(key).map(_.toString.toDouble)
   }
 
   def asString(key: Symbol): String = {
