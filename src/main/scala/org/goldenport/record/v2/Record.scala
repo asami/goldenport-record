@@ -13,7 +13,7 @@ import org.goldenport.Strings
  *  version Feb. 20, 2013
  *  version Mar. 28, 2013
  *  version Apr. 26, 2013
- * @version May. 24, 2013
+ * @version May. 30, 2013
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -69,20 +69,55 @@ case class Record(
     getOne(key).map(_.toString)
   }
 
+  def getFormString(key: Symbol): Option[String] = {
+    getOne(key) flatMap {
+      case "" => None
+      case x => Some(x.toString)
+    }
+  }
+
   def getInt(key: Symbol): Option[Int] = {
     getOne(key).map(_.toString.toInt)
+  }
+
+  def getFormInt(key: Symbol): Option[Int] = {
+    getOne(key) flatMap {
+      case "" => None
+      case x => Some(x.toString.toInt)
+    }
   }
 
   def getLong(key: Symbol): Option[Long] = {
     getOne(key).map(_.toString.toLong)
   }
 
+  def getFormLong(key: Symbol): Option[Long] = {
+    getOne(key) flatMap {
+      case "" => None
+      case x => Some(x.toString.toLong)
+    }
+  }
+
   def getFloat(key: Symbol): Option[Float] = {
     getOne(key).map(_.toString.toFloat)
   }
 
+  def getFormFloat(key: Symbol): Option[Float] = {
+    getOne(key) flatMap {
+      case "" => None
+      case x => Some(x.toString.toFloat)
+    }
+  }
+
   def getDouble(key: Symbol): Option[Double] = {
     getOne(key).map(_.toString.toDouble)
+  }
+
+  def getFormDouble(key: Symbol): Option[Double] = {
+    getOne(key) flatMap {
+      case "" => None
+      case x => Some(x.toString.toDouble)
+    }
   }
 
   def getList(key: Symbol): List[Any] = {
@@ -128,20 +163,40 @@ case class Record(
     getString(Symbol(key))
   }
 
+  def getFormString(key: String): Option[String] = {
+    getFormString(Symbol(key))
+  }
+
   def getInt(key: String): Option[Int] = {
     getInt(Symbol(key))
+  }
+
+  def getFormInt(key: String): Option[Int] = {
+    getFormInt(Symbol(key))
   }
 
   def getLong(key: String): Option[Long] = {
     getLong(Symbol(key))
   }
 
+  def getFormLong(key: String): Option[Long] = {
+    getFormLong(Symbol(key))
+  }
+
   def getFloat(key: String): Option[Float] = {
     getFloat(Symbol(key))
   }
 
+  def getFormFloat(key: String): Option[Float] = {
+    getFormFloat(Symbol(key))
+  }
+
   def getDouble(key: String): Option[Double] = {
     getDouble(Symbol(key))
+  }
+
+  def getFormDouble(key: String): Option[Double] = {
+    getFormDouble(Symbol(key))
   }
 
   def getList(key: String): List[Any] = {
