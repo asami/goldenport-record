@@ -8,7 +8,7 @@ import scalaz._, Scalaz._
  * @since   Jan.  5, 2013
  *  version Mar. 13, 2013
  *  version Apr.  9, 2013
- * @version May. 10, 2013
+ * @version May. 28, 2013
  * @author  ASAMI, Tomoharu
  */
 case class ActionContext(
@@ -21,7 +21,7 @@ case class ActionContext(
   def outRecords: Seq[Record] = { // TODO sort problem (use key)
     val a = outs.values.toList
 //    println("ActionContext in = " + in)
-    println("ActionContext#outRecords outs = " + a)
+//    println("ActionContext#outRecords outs = " + a)
     a.map(x => if (x.opaque == null) x.copy(opaque = in.opaque) else x)
   }
 
@@ -33,7 +33,7 @@ case class ActionContext(
       }
       (f.key, b)
     }
-    println("ActionContext#addUploadFiles(%s) = %s / %s".format(columnName, files, a))
+//    println("ActionContext#addUploadFiles(%s) = %s / %s".format(columnName, files, a))
     copy(outs = outs ++ a)
   }
 
