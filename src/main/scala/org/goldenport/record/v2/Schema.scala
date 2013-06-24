@@ -13,7 +13,8 @@ import Validator._
  *  version Dec. 28, 2012
  *  version Jan. 30, 2013
  *  version Mar. 12, 2013
- * @version Apr. 26, 2013
+ *  version Apr. 26, 2013
+ * @version Jun. 24, 2013
  * @author  ASAMI, Tomoharu
  */
 case class Schema(
@@ -200,6 +201,33 @@ case class Schema(
   def sqlCommands: SqlActionCommands = {
 //    val methods = columns.flatMap(x => x.sql.methods.map(_.create(x)))
     SqlActionCommands(sql.actions.map(_.create(this)))
+  }
+
+  /*
+   * SQL Utilities
+   */
+  def sqlLiteral(columnname: String, rec: Record): String = {
+    rec.getString(columnname) match {
+      case Some(s) => {
+        if (isSqlStringLiteral(columnname)) "'" + s + "'"
+        else s
+      }
+      case None => null
+    }
+  }
+
+  def getSqlLiteral(columnname: String, rec: Record): Option[String] = {
+    rec.getString(columnname).map(s =>
+      if (isSqlStringLiteral(columnname)) "'" + s + "'"
+      else s
+    )
+  }
+
+  def isSqlStringLiteral(columnname: String): Boolean = {
+    getColumn(Symbol(columnname)) match {
+      case Some(c) if c.datatype.isSqlString => true
+      case _ => false
+    }
   }
 }
 

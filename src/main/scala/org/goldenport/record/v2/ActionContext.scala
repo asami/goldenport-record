@@ -8,13 +8,15 @@ import scalaz._, Scalaz._
  * @since   Jan.  5, 2013
  *  version Mar. 13, 2013
  *  version Apr.  9, 2013
- * @version May. 28, 2013
+ *  version May. 28, 2013
+ * @version Jun. 24, 2013
  * @author  ASAMI, Tomoharu
  */
 case class ActionContext(
   in: Record,
   outs: Map[String, Record] = Map.empty, // TODO sort by key
-  properties: Map[String, Seq[Any]] = Map.empty
+  properties: Map[String, Seq[Any]] = Map.empty,
+  connection: Option[java.sql.Connection] = None
 ) {
   require (in != null && (in.fields == Nil || in.opaque != null), "in and record = " + in)
 
@@ -109,8 +111,14 @@ case class ActionContext(
     val a = Stream.from(1).map(_.toString) zip rs
     copy(outs = Map.empty ++ a)
   }
-}
 
+  def withConnection[T](implicit body: java.sql.Connection => T): T = {
+    connection match {
+      case Some(s) => body(s)
+      case None => throw new IllegalStateException("No connection")
+    }
+  }
+}
 
 object ActionContext {
   val KEY_MAIN_ID = "main_id"
