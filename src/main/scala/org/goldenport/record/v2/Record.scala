@@ -13,7 +13,8 @@ import org.goldenport.Strings
  *  version Feb. 20, 2013
  *  version Mar. 28, 2013
  *  version Apr. 26, 2013
- * @version May. 30, 2013
+ *  version May. 30, 2013
+ * @version Jul.  1, 2013
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -144,6 +145,8 @@ case class Record(
     getList(key).map(_.toString.toDouble)
   }
 
+  def getRecordList(key: Symbol): List[Record] = getRecords(key)
+
   def getRecords(key: Symbol): List[Record] = {
     get(key) match {
       case None => Nil
@@ -221,6 +224,10 @@ case class Record(
 
   def getDoubleList(key: String): List[Double] = {
     getList(key).map(_.toString.toDouble)
+  }
+
+  def getRecordList(key: String): List[Record] = {
+    getRecordList(Symbol(key))
   }
 
   def asString(key: Symbol): String = {
