@@ -14,7 +14,7 @@ import org.goldenport.Strings
  *  version Mar. 28, 2013
  *  version Apr. 26, 2013
  *  version May. 30, 2013
- * @version Jul.  1, 2013
+ * @version Jul. 22, 2013
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -74,6 +74,17 @@ case class Record(
     getOne(key) flatMap {
       case "" => None
       case x => Some(x.toString)
+    }
+  }
+
+  def getBoolean(key: Symbol): Option[Boolean] = {
+    getOne(key).map(_.toString.toBoolean)
+  }
+
+  def getFormBoolean(key: Symbol): Option[Boolean] = {
+    getOne(key) flatMap {
+      case "" => None
+      case x => Some(x.toString.toBoolean)
     }
   }
 
@@ -168,6 +179,14 @@ case class Record(
 
   def getFormString(key: String): Option[String] = {
     getFormString(Symbol(key))
+  }
+
+  def getBoolean(key: String): Option[Boolean] = {
+    getBoolean(Symbol(key))
+  }
+
+  def getFormBoolean(key: String): Option[Boolean] = {
+    getFormBoolean(Symbol(key))
   }
 
   def getInt(key: String): Option[Int] = {
