@@ -14,7 +14,8 @@ import org.goldenport.Strings
  *  version Mar. 28, 2013
  *  version Apr. 26, 2013
  *  version May. 30, 2013
- * @version Jul. 22, 2013
+ *  version Jul. 22, 2013
+ * @version Aug.  7, 2013
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -35,7 +36,7 @@ case class RecordSet(records: Seq[Record],
 }
 
 case class Record(
-  fields: List[Field],
+  fields: List[Field], // TODO Seq
   principal: Option[Principal] = None,
   timestamp: Long = System.currentTimeMillis,
   inputFiles: Seq[InputFile] = Nil,
@@ -447,8 +448,17 @@ case class Record(
   override def toString(): String = {
     "Record(" + fields + ", " + inputFiles + ")"
   }
+
+  def toMap: Map[String, Any] = {
+    Map.empty ++ fields.flatMap(f => f.effectiveValue.map(v => f.key.name -> v))
+  }
+
+  def toStringMap: Map[String, String] = {
+    Map.empty ++ fields.flatMap(f => f.effectiveValue.map(v => f.key.name -> v.toString)) // XXX
+  }
 }
 
+// TODO Seq
 case class Field(key: Symbol, values: List[Any]) { // TODO introduce Value class
   def isMatchKey(k: Symbol): Boolean = {
     k == key ||
@@ -507,6 +517,19 @@ case class Field(key: Symbol, values: List[Any]) { // TODO introduce Value class
     schema.columns.find(c => c.name == key && p(c)) match {
       case Some(c) => mapDecimal(f)
       case None => this
+    }
+  }
+
+  def effectiveValue: Option[Any] = {
+    values match {
+      case Nil => None
+      case x :: Nil => {
+        x match {
+          case y: List[_] => Some(y)
+          case _ => Some(x)
+        }
+      }
+      case xs => Some(xs)
     }
   }
 }
