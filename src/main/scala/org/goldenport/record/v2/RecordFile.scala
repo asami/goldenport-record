@@ -9,10 +9,11 @@ import com.asamioffice.goldenport.text.UPathString
 /**
  * derived from Record.
  * 
- *  since   Jun.  9, 2010
+ * @since   Jun.  9, 2010
  *  version Mar. 10, 2013
  *  version Apr. 13, 2013
- * @version May. 17, 2013
+ *  version May. 17, 2013
+ * @version Aug.  7, 2013
  * @author  ASAMI, Tomoharu
  */
 trait InputFile {
@@ -88,7 +89,7 @@ object InputFile {
   }
 }
 
-case class UploadFile(key: String, uri: String)
+case class UploadFile(key: String, uri: String, size: Long)
 
 trait WorkFile {
   def length: Long
