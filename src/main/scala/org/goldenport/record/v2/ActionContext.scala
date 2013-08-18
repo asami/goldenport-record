@@ -9,7 +9,8 @@ import scalaz._, Scalaz._
  *  version Mar. 13, 2013
  *  version Apr.  9, 2013
  *  version May. 28, 2013
- * @version Jun. 24, 2013
+ *  version Jun. 24, 2013
+ * @version Aug. 15, 2013
  * @author  ASAMI, Tomoharu
  */
 case class ActionContext(
@@ -105,6 +106,10 @@ case class ActionContext(
     val a = copy(in = in.update(fs))
 //    println("ActionContext result = " + a)
     a
+  }
+
+  def complementIn(fs: Seq[(String, Any)]): ActionContext = {
+    copy(in = in.complements(fs))
   }
 
   def setOuts(rs: Seq[Record]): ActionContext = {
