@@ -13,7 +13,8 @@ import com.asamioffice.goldenport.text.UPathString
  *  version Mar. 10, 2013
  *  version Apr. 13, 2013
  *  version May. 17, 2013
- * @version Aug.  7, 2013
+ *  version Aug.  7, 2013
+ * @version Oct.  3, 2013
  * @author  ASAMI, Tomoharu
  */
 trait InputFile {
@@ -22,6 +23,7 @@ trait InputFile {
   def filename: String
   def alt: Option[String]
   def link: Option[String]
+  def properties: Map[String, Any]
   def getUrl: Option[URL] = None
   def createWorkFile(): WorkFile
   def contentType = {
@@ -37,6 +39,8 @@ trait InputFile {
   def withKey(key: Symbol): InputFile
   def withAlt(a: Option[String]): InputFile
   def withLink(a: Option[String]): InputFile
+  def withProperty(name: String, value: Any): InputFile
+  def withProperties(props: Seq[(String, Any)]): InputFile
 } 
 
 case class UrlInputFile(
@@ -44,7 +48,8 @@ case class UrlInputFile(
   key: String, 
   url: URL,
   alt: Option[String] = None,
-  link: Option[String] = None
+  link: Option[String] = None,
+  properties: Map[String, Any] = Map.empty
 ) extends InputFile {
   def filename = UPathString.getLastComponent(url.toString)
   override def getUrl = Some(url)
@@ -53,6 +58,10 @@ case class UrlInputFile(
   def withKey(key: Symbol) = copy(key = key.name)
   def withAlt(a: Option[String]) = copy(alt = a)
   def withLink(a: Option[String]) = copy(link = a)
+  def withProperty(name: String, value: Any) = copy(properties = properties + (name -> value))
+  def withProperties(props: Seq[(String, Any)]) = {
+    copy(properties = properties ++ props)
+  }
 }
 
 object InputFile {
@@ -72,6 +81,7 @@ object InputFile {
     )
   }
 
+/*
   def createByUrlStringAutoName(
     key: String,
     path: String,
@@ -85,6 +95,25 @@ object InputFile {
       UURL.getURLFromFileOrURLName(path),
       Option(alt),
       Option(link)
+    )
+  }
+ */
+
+  def createByUrlStringAutoName(
+    key: String,
+    path: String,
+    alt: Option[String] = None,
+    link: Option[String] = None,
+    properties: Seq[(String, Any)] = Nil
+  ): UrlInputFile = {
+    val name = UPathString.getLastComponent(path)
+    UrlInputFile(
+      name,
+      key,
+      UURL.getURLFromFileOrURLName(path),
+      alt,
+      link,
+      Map.empty ++ properties
     )
   }
 }
