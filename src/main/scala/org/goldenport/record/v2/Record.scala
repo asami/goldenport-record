@@ -1,5 +1,6 @@
 package org.goldenport.record.v2
 
+import java.sql.Timestamp
 import org.goldenport.Strings
 
 /**
@@ -15,7 +16,9 @@ import org.goldenport.Strings
  *  version Apr. 26, 2013
  *  version May. 30, 2013
  *  version Jul. 22, 2013
- * @version Aug.  7, 2013
+ *  version Aug.  7, 2013
+ *  version Sep.  6, 2013
+ * @version Oct.  3, 2013
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -133,6 +136,21 @@ case class Record(
     }
   }
 
+  def getTimestamp(key: Symbol): Option[Timestamp] = {
+    getOne(key).map {
+      case x: Timestamp => x
+      case l: Long => new Timestamp(l)
+      case s: String => sys.error("???")
+    }
+  }
+
+  def getFormTimestamp(key: Symbol): Option[Timestamp] = {
+    getOne(key) flatMap {
+      case "" => None
+      case x => getTimestamp(key)
+    }
+  }
+
   def getList(key: Symbol): List[Any] = {
     get(key) getOrElse Nil
   }
@@ -220,6 +238,14 @@ case class Record(
 
   def getFormDouble(key: String): Option[Double] = {
     getFormDouble(Symbol(key))
+  }
+
+  def getTimestamp(key: String): Option[Timestamp] = {
+    getTimestamp(Symbol(key))
+  }
+
+  def getFormTimestamp(key: String): Option[Timestamp] = {
+    getFormTimestamp(Symbol(key))
   }
 
   def getList(key: String): List[Any] = {
