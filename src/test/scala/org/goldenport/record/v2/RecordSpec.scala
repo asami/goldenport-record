@@ -9,7 +9,8 @@ import org.scalatest.matchers._
 /**
  * @since   Feb. 16, 2013
  *  version Mar. 28, 2013
- * @version May. 13, 2013
+ *  version May. 13, 2013
+ * @version Oct. 22, 2013
  * @author  ASAMI, Tomoharu
  */
 @RunWith(classOf[JUnitRunner])
@@ -168,6 +169,24 @@ class PlainTableTest extends WordSpec with ShouldMatchers {
             "images" -> rec4)))
         val b = Record._aggregate_in_group_fold(a)
         println("RecordSet#_aggregate_in_group = " + b)
+      }
+    }
+  }
+  "Record.createApp" should {
+    "tuple" that {
+      "list" in {
+        val a = List(
+          "one" -> List("one-one" -> "one-one-value")
+        )
+        val r = Record.createApp(a)
+        println("Record.createApp list = " + r)
+      }
+      "vector" in {
+        val a = Vector(
+          "one" -> Vector("one-one" -> "one-one-value")
+        )
+        val r = Record.createApp(a)
+        println("Record.createApp vector = " + r)
       }
     }
   }

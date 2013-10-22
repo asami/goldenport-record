@@ -18,7 +18,7 @@ import org.goldenport.Strings
  *  version Jul. 22, 2013
  *  version Aug.  7, 2013
  *  version Sep.  6, 2013
- * @version Oct.  3, 2013
+ * @version Oct. 22, 2013
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -832,8 +832,44 @@ object Field {
     data._2 match {
       case Some(x) => Field(Symbol(data._1), List(x))
       case None => Field(Symbol(data._1), Nil)
-      case xs: Seq[_] => Field(Symbol(data._1), List(xs))
+      case xs: Seq[_] => {
+        if (_is_seq_seq_tuple2(xs)) {
+          val rs = _seq_seq_tuple2_to_records(xs)
+          Field(Symbol(data._1), List(rs))
+        } else if (_is_seq_tuple2(xs)) {
+          val r = _seq_tuple2_to_record(xs)
+          Field(Symbol(data._1), List(r))
+        } else {
+          Field(Symbol(data._1), List(xs))
+        }
+      }
       case x => Field(Symbol(data._1), List(x))
+    }
+  }
+
+  private def _seq_seq_tuple2_to_records(xs: Seq[_]): Seq[Record] = {
+    xs.map(x => _seq_tuple2_to_record(x.asInstanceOf[Seq[_]]))
+  }
+
+  private def _seq_tuple2_to_record(xs: Seq[_]): Record = {
+    val fs = xs collect {
+      case Tuple2(k, v) => createSingle(k.toString, v)
+    }
+    Record(fs.toList)
+  }
+
+  private def _is_seq_seq(xs: Seq[_]) = {
+    xs.forall(_.isInstanceOf[Seq[_]])
+  }
+
+  private def _is_seq_tuple2(xs: Seq[_]) = {
+    xs.forall(_.isInstanceOf[Tuple2[_, _]])
+  }
+
+  private def _is_seq_seq_tuple2(xs: Seq[_]) = {
+    xs forall {
+      case s: Seq[_] => _is_seq_tuple2(s)
+      case _ => false
     }
   }
 
