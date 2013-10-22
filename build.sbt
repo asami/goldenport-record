@@ -20,7 +20,7 @@ libraryDependencies += "org.goldenport" %% "goldenport-atom" % "0.1.0"
 
 // libraryDependencies += "org.goldenport" % "goldenport-java-lib" % "0.1.2"
 
-libraryDependencies += "org.goldenport" %% "goldenport-scala-lib" % "0.1.7"
+libraryDependencies += "org.goldenport" %% "goldenport-scala-lib" % "0.1.8-SNAPSHOT"
 
 libraryDependencies += "org.smartdox" %% "smartdox" % "0.3.3"
 

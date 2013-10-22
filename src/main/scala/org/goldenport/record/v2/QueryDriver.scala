@@ -12,17 +12,18 @@ import java.text.SimpleDateFormat
  * @since   Nov. 24, 2012
  *  version Dec. 29, 2012
  *  version Jan. 16, 2013
- * @version Mar. 31, 2013
+ *  version Mar. 31, 2013
+ * @version Oct. 23, 2013
  * @author  ASAMI, Tomoharu
  */
 trait QueryDriver extends RecordConstants {
   @throws(classOf[java.io.IOException])
   @throws(classOf[java.sql.SQLException])
-  def select(start: Option[Int], limit: Option[Int], orderby: Seq[(String, OrderBy)], props: Map[String, String]): RecordSet = {
+  def select(start: Option[Int], limit: Option[Int], orderby: Seq[(String, SqlOrder)], props: Map[String, String]): RecordSet = {
     select(QueryShallowJoin, start, limit, orderby, props)
   }
 
-  def select(kind: QueryKind, start: Option[Int], limit: Option[Int], orderby: Seq[(String, OrderBy)], props: Map[String, String]): RecordSet
+  def select(kind: QueryKind, start: Option[Int], limit: Option[Int], orderby: Seq[(String, SqlOrder)], props: Map[String, String]): RecordSet
 
   // XXX RestController
   protected final def prop_name(n: String) = {
@@ -31,7 +32,7 @@ trait QueryDriver extends RecordConstants {
 }
 
 object NullQueryDriver extends QueryDriver {
-  def select(kind: QueryKind, start: Option[Int], limit: Option[Int], orderby: Seq[(String, OrderBy)], props: Map[String, String]) = {
+  def select(kind: QueryKind, start: Option[Int], limit: Option[Int], orderby: Seq[(String, SqlOrder)], props: Map[String, String]) = {
     sys.error("driver not be specified.")
   }
 }

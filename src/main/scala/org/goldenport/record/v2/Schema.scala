@@ -14,7 +14,8 @@ import Validator._
  *  version Jan. 30, 2013
  *  version Mar. 12, 2013
  *  version Apr. 26, 2013
- * @version Jun. 24, 2013
+ *  version Jun. 24, 2013
+ * @version Oct. 23, 2013
  * @author  ASAMI, Tomoharu
  */
 case class Schema(
@@ -268,7 +269,7 @@ case object MZeroMore extends Multiplicity
 /*
  * Order
  */
-sealed trait OrderBy {
+sealed trait SqlOrder {
   val sql: String
 
   def compare(lhs: String, rhs: String): Boolean
@@ -276,7 +277,7 @@ sealed trait OrderBy {
   def compare(lhs: Timestamp, rhs: Timestamp): Boolean
 }
 
-case object OrderByAsc extends OrderBy {
+case object SqlOrderAsc extends SqlOrder {
   val sql = "ASC"
 
   def compare(lhs: String, rhs: String): Boolean = {
@@ -291,7 +292,7 @@ case object OrderByAsc extends OrderBy {
     lhs.compareTo(rhs) < 0
   }
 }
-case object OrderByDesc extends OrderBy {
+case object SqlOrderDesc extends SqlOrder {
   val sql = "DESC"
 
   def compare(lhs: String, rhs: String): Boolean = {
@@ -307,19 +308,19 @@ case object OrderByDesc extends OrderBy {
   }
 }
 
-object OrderBy {
-  def get(orderby: String): Option[OrderBy] = {
-    if (orderby.equalsIgnoreCase("asc")) Some(OrderByAsc)
-    else if (orderby.equalsIgnoreCase("desc")) Some(OrderByDesc)
+object SqlOrder {
+  def get(order: String): Option[SqlOrder] = {
+    if (order.equalsIgnoreCase("asc")) Some(SqlOrderAsc)
+    else if (order.equalsIgnoreCase("desc")) Some(SqlOrderDesc)
     else None
   }
 
-  def apply(orderby: Option[String], otherwise: OrderBy = OrderByAsc): OrderBy = {
-    orderby match {
+  def apply(order: Option[String], otherwise: SqlOrder = SqlOrderAsc): SqlOrder = {
+    order match {
       case Some(s) => {
-        if (s.equalsIgnoreCase("asc")) OrderByAsc
-        else if (s.equalsIgnoreCase("desc")) OrderByDesc
-        else throw new IllegalArgumentException("order = " + orderby)
+        if (s.equalsIgnoreCase("asc")) SqlOrderAsc
+        else if (s.equalsIgnoreCase("desc")) SqlOrderDesc
+        else throw new IllegalArgumentException("order = " + order)
       }
       case None => otherwise
     }
