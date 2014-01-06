@@ -15,7 +15,8 @@ import Validator._
  *  version Mar. 12, 2013
  *  version Apr. 26, 2013
  *  version Jun. 24, 2013
- * @version Oct. 23, 2013
+ *  version Oct. 23, 2013
+ * @version Jan.  6, 2014
  * @author  ASAMI, Tomoharu
  */
 case class Schema(
@@ -47,6 +48,10 @@ case class Schema(
       case Some(c) => c
       case None => throw new IllegalStateException("no id column")
     }
+  }
+
+  final def addColumns(cs: Seq[Column]): Schema = {
+    copy(columns = this.columns ++ cs)
   }
 
   protected def map_Record(record: Record): Record = {
@@ -416,7 +421,7 @@ case object Valid extends ValidationResult {
   }
 }
 
-case class Description(name: String, issue: String, value: Seq[Any] = Nil, label: Option[String] = None) {
+case class VDescription(name: String, issue: String, value: Seq[Any] = Nil, label: Option[String] = None) {
   def message = {
     value match {
       case Nil => "%s: %s".format(name, issue)
@@ -440,7 +445,7 @@ trait Warning extends ValidationResult {
   override def enlabel(key: String): Warning = this
 
   def asWarnings: Vector[Warning] = Vector(this)
-  def descriptions: Vector[Description]
+  def descriptions: Vector[VDescription]
   def messages: Vector[String] = descriptions.map(_.message)
 }
 
@@ -462,7 +467,7 @@ case class ValueDomainWarning(
   override def enkey(key: String) = this.copy(key = key.some)
   override def enlabel(label: String) = this.copy(label = label.some)
   def descriptions = {
-    Vector(Description((label orElse key) | "", message.format(value)))
+    Vector(VDescription((label orElse key) | "", message.format(value)))
   }
 }
 
@@ -473,7 +478,7 @@ case class DuplicateWarning(
   override def enkey(key: String) = this.copy(key = key.some)
   override def enlabel(label: String) = this.copy(label = label.some)
   def descriptions = {
-    Vector(Description((label orElse key) | "", message.format(value)))
+    Vector(VDescription((label orElse key) | "", message.format(value)))
   }
 }  
 
@@ -481,7 +486,7 @@ case class IllegalFieldWarning(key: String,
                                value: Seq[Any],
                                label: Option[String] = None,
                                message: Option[String] = None) extends Warning {
-  def descriptions = Vector(Description(label | key, message | "値が異常です。", value))
+  def descriptions = Vector(VDescription(label | key, message | "値が異常です。", value))
 }
 
 case class RedundancyFieldWarning(
@@ -489,7 +494,7 @@ case class RedundancyFieldWarning(
   value: Seq[Any] = Nil,
   label: Option[String] = None,
   message: Option[String] = None) extends Warning {
-  def descriptions = Vector(Description(label | key, message | "余分なフィールドです。", value))
+  def descriptions = Vector(VDescription(label | key, message | "余分なフィールドです。", value))
 }
 
 trait Invalid extends ValidationResult {
@@ -506,7 +511,7 @@ trait Invalid extends ValidationResult {
   override def enlabel(key: String): Invalid = this
 
   def asFailures: Vector[Invalid] = Vector(this)
-  def descriptions: Vector[Description]
+  def descriptions: Vector[VDescription]
   def getWarning(): Option[Warning] = None
   def messages: Vector[String] = descriptions.map(_.message)
 }
@@ -527,7 +532,7 @@ case class IllegalFieldFailure(key: String,
                                value: Seq[Any],
                                label: Option[String] = None,
                                message: Option[String] = None) extends Invalid {
-  def descriptions = Vector(Description(label | key, message + "値が異常です。", value))
+  def descriptions = Vector(VDescription(label | key, message + "値が異常です。", value))
 }
 
 case class MultiplicityFailure(multiplicity: Multiplicity, msg: String, key: Option[String] = None, label: Option[String] = None) extends Invalid {
@@ -536,10 +541,10 @@ case class MultiplicityFailure(multiplicity: Multiplicity, msg: String, key: Opt
   def descriptions = {
     val name = (label orElse key) | ""
     val a = multiplicity match {
-      case MOne => Description(name, "値が設定されていません。")
-      case MZeroOne => Description(name, "値が設定されていません。") // XXX
-      case MOneMore => Description(name, "値が一つも設定されていません。")
-      case MZeroMore => Description(name, "値が設定されていません。") // XXX
+      case MOne => VDescription(name, "値が設定されていません。")
+      case MZeroOne => VDescription(name, "値が設定されていません。") // XXX
+      case MOneMore => VDescription(name, "値が一つも設定されていません。")
+      case MZeroMore => VDescription(name, "値が設定されていません。") // XXX
     }
     Vector(a)
   }
@@ -557,7 +562,7 @@ case class DataTypeFailure(datatype: DataType, value: Seq[String], key: Option[S
   }
   protected final def message = value_label + "は" + datatype.label + "ではありません。"
   def descriptions = {
-    Vector(Description((label orElse key) | "", message, value))
+    Vector(VDescription((label orElse key) | "", message, value))
   }
 }
 
@@ -569,7 +574,7 @@ case class ValueDomainFailure(
   override def enkey(key: String) = this.copy(key = key.some)
   override def enlabel(label: String) = this.copy(label = label.some)
   def descriptions = {
-    Vector(Description((label orElse key) | "", message.format(value)))
+    Vector(VDescription((label orElse key) | "", message.format(value)))
   }
 }
 
@@ -578,7 +583,7 @@ case class MissingFieldFailure(
   value: Seq[Any] = Nil,
   label: Option[String] = None,
   message: Option[String] = None) extends Invalid {
-  def descriptions = Vector(Description(label | key, message | "フィールドがありません。", value))
+  def descriptions = Vector(VDescription(label | key, message | "フィールドがありません。", value))
 }
 
 trait Validator {

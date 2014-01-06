@@ -6,7 +6,7 @@ import Validator._
 /*
  * @snice   Nov. 23, 2012
  *  version Dec.  9, 2012
- * @version Feb. 20, 2013
+ * @version Dec. 31, 2013
  * @author  ASAMI, Tomoharu
  */
 trait Constraint {
@@ -217,5 +217,13 @@ case class CPercent(amount: String, total: String) extends Constraint {
       validation_equal_2(a * 100 / t, v, "パーセントの計算があっていません。")
     }
     r toOption
+  }
+}
+
+case class CEnumeration(values: Seq[String]) extends Constraint {
+  def validate(datatype: DataType, value: String, record: Record): Option[ValidationResult] = {
+    values.contains(value) option {
+      ValueDomainFailure("%sは%sで有効ではありません。".format(value, values.mkString(", ")), value)
+    }
   }
 }
