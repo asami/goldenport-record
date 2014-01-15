@@ -6,10 +6,12 @@ import Validator._
 /*
  * @snice   Nov. 23, 2012
  *  version Dec.  9, 2012
- * @version Dec. 31, 2013
+ *  version Dec. 31, 2013
+ * @version Jan. 15, 2014
  * @author  ASAMI, Tomoharu
  */
 trait Constraint {
+  def label: String = getClass.getSimpleName
   def validate(datatype: DataType, value: String, record: Record): Option[ValidationResult]
 
   protected final def validate_double(v: Option[_], msg: String): Validation[ValidationResult, Double] = {
@@ -131,6 +133,7 @@ case class CWRange(minimum: Double, maximum: Double) extends Constraint {
 }
 
 case object CPositiveZero extends Constraint {
+  override def label = "0以上"
   def validate(datatype: DataType, value: String, record: Record): Option[ValidationResult] = {
     datatype.toDouble(value) map {
       x => 
@@ -141,6 +144,7 @@ case object CPositiveZero extends Constraint {
 }
 
 case object CWNotZero extends Constraint {
+  override def label = "0以外"
   def validate(datatype: DataType, value: String, record: Record): Option[ValidationResult] = {
     datatype.toDouble(value) map {
       x =>
@@ -221,6 +225,7 @@ case class CPercent(amount: String, total: String) extends Constraint {
 }
 
 case class CEnumeration(values: Seq[String]) extends Constraint {
+  override def label = values.mkString("|")
   def validate(datatype: DataType, value: String, record: Record): Option[ValidationResult] = {
     values.contains(value) option {
       ValueDomainFailure("%sは%sで有効ではありません。".format(value, values.mkString(", ")), value)

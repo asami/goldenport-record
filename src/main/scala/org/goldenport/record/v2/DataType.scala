@@ -13,10 +13,11 @@ import Validator._
  *  version Feb. 20, 2013
  *  version Mar. 12, 2013
  *  version Dec. 31, 2013
- * @version Jan.  6, 2014
+ * @version Jan. 15, 2014
  * @author  ASAMI, Tomoharu
  */
 sealed trait DataType {
+  val name = getClass.getSimpleName.substring(1).filterNot(_ == '$').toLowerCase // eliminame 'X'
   def validate(d: Any): ValidationResult
   def label: String
   def mapData(s: String): String = s
@@ -316,6 +317,7 @@ case object XTime extends DataType {
 }
 
 case object XDateTime extends DataType {
+  override val name = "dateTime"
   def validate(d: Any): ValidationResult = {
     d match {
       case _: java.util.Date => Valid

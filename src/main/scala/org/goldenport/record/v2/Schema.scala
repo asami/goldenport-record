@@ -16,7 +16,7 @@ import Validator._
  *  version Apr. 26, 2013
  *  version Jun. 24, 2013
  *  version Oct. 23, 2013
- * @version Jan.  6, 2014
+ * @version Jan. 15, 2014
  * @author  ASAMI, Tomoharu
  */
 case class Schema(
@@ -265,11 +265,26 @@ case class ColumnGroup(label: String, columns: Seq[String]) {
 /*
  * Multiplicity
  */
-sealed trait Multiplicity
-case object MOne extends Multiplicity
-case object MZeroOne extends Multiplicity
-case object MOneMore extends Multiplicity
-case object MZeroMore extends Multiplicity
+sealed trait Multiplicity {
+  def mark: String
+  def label: String
+}
+case object MOne extends Multiplicity {
+  val mark = "1"
+  val label = "1"
+}
+case object MZeroOne extends Multiplicity {
+  val mark = "?"
+  val label = "0,1"
+}
+case object MOneMore extends Multiplicity {
+  val mark = "+"
+  val label = "1..*"
+}
+case object MZeroMore extends Multiplicity {
+  val mark = "*"
+  val label = "0..*"
+}
 
 /*
  * Order
