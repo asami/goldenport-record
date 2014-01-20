@@ -2,13 +2,15 @@ package org.goldenport.record.v2
 
 import scalaz._, Scalaz._
 import Validator._
+import org.smartdox.Description
 
 /*
  * @snice   Dec.  8, 2012
  *  version Dec. 12, 2012
  *  version Feb. 20, 2013
  *  version Mar.  3, 2013
- * @version Oct. 23, 2013
+ *  version Oct. 23, 2013
+ * @version Jan. 20, 2014
  * @author  ASAMI, Tomoharu
  */
 case class Column(
@@ -20,7 +22,8 @@ case class Column(
   orderBy: Option[SqlOrder] = None,
   visibility: Visibility = PlainVisibility,
   label: String = null,
-  sql: SqlColumn = NullSqlColumn
+  sql: SqlColumn = NullSqlColumn,
+  desc: Description = Description() // TODO .empty
 //  operations: Seq[Operation] = Nil,
 //  extjs: Map[String, Any] = Map.empty,
 //  isAvailableMode: ExecutionMode => Boolean = _ => true,

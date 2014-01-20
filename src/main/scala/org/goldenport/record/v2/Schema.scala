@@ -3,6 +3,7 @@ package org.goldenport.record.v2
 import java.sql.Timestamp
 import scalaz._, Scalaz._
 import Validator._
+import org.smartdox.Description
 
 /*
  * Add
@@ -16,7 +17,7 @@ import Validator._
  *  version Apr. 26, 2013
  *  version Jun. 24, 2013
  *  version Oct. 23, 2013
- * @version Jan. 15, 2014
+ * @version Jan. 20, 2014
  * @author  ASAMI, Tomoharu
  */
 case class Schema(
@@ -28,11 +29,12 @@ case class Schema(
 //  contexts: Seq[Context] = Nil,
 //  view: GuiView = ExtjsGridView(),
 //  charts: Seq[Chart] = Nil,
-  pageSize: Option[Int] = 100.some //,
+  pageSize: Option[Int] = 100.some,
 //  isAvailableMode: ExecutionMode => Boolean = _ => true,
 //  isCsvTitle: Option[Boolean] = None,
 //  comment: String = "",
 //  history: String = ""
+  desc: Description = Description() // TODO .empty
 ) {
   final def getColumn(key: Symbol) = {
     columns.find(_.name == key.name)

@@ -16,7 +16,8 @@ import org.smartdox._
  *  version Dec.  4, 2011
  *  version Feb. 29, 2012
  *  version Aug. 15, 2012
- * @version Mar.  3, 2013
+ *  version Mar.  3, 2013
+ * @version Jan. 20, 2014
  * @author  ASAMI, Tomoharu
  */
 object Schema {
@@ -119,7 +120,7 @@ object Field {
             summary: Dox = EmptyDox,
             content: Dox = EmptyDox) = {
     new RecordField(name, datatype, multiplicity, constraints, facets, properties,
-        Some(Description(name, title, summary, content)))
+        Some(Description(Some(name), title, summary, content)))
   }
 
   def apply(tuple: Tuple6[String, XDatatype, Multiplicity, List[Constraint], List[XFacet], List[Property]]) = {
