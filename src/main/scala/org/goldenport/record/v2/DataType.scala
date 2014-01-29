@@ -13,7 +13,7 @@ import Validator._
  *  version Feb. 20, 2013
  *  version Mar. 12, 2013
  *  version Dec. 31, 2013
- * @version Jan. 15, 2014
+ * @version Jan. 29, 2014
  * @author  ASAMI, Tomoharu
  */
 sealed trait DataType {
@@ -50,12 +50,18 @@ case object XBoolean extends DataType {
     d match {
       case _: Boolean => Valid
       case x: String => {
-        if (List("true", "false").contains(x.toLowerCase))
+        if (List("true", "false", "1", "0").contains(x.toLowerCase))
+          Valid
+        else {
+          ValueDomainFailure("Invalid boolean (%s)", d.toString)
+        }
+      }
+      case x => {
+        if (List("1", "0").contains(x.toString))
           Valid
         else
-          ValueDomainFailure("Invalid boolean", d.toString)
+          ValueDomainFailure("Invalid boolean (%s)", d.toString)
       }
-      case _ => ValueDomainFailure("Invalid boolean", d.toString)
     }
   }
   def label = "Bool値"
@@ -261,11 +267,12 @@ case object XToken extends DataType {
     d match {
       case x: String => try {
         if (x.contains('\n') || x.contains('\r') || x.contains('\t'))
-          ValueDomainFailure("Invalid token", d.toString)
+          ValueDomainFailure("Invalid token (%s)", d.toString)
         else
           Valid
       }
-      case _ => ValueDomainFailure("Invalid token", d.toString)
+      case _ => Valid // for status_id
+//      case _ => ValueDomainFailure("Invalid token (%s)", d.toString)
     }
   }
   def label = "トークン"

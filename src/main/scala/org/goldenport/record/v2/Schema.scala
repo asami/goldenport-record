@@ -17,7 +17,7 @@ import org.smartdox.Description
  *  version Apr. 26, 2013
  *  version Jun. 24, 2013
  *  version Oct. 23, 2013
- * @version Jan. 20, 2014
+ * @version Jan. 29, 2014
  * @author  ASAMI, Tomoharu
  */
 case class Schema(
@@ -147,6 +147,18 @@ case class Schema(
     rs.records.map(validate).asMA.sum
   }
 
+  def validate0(r: Record): ValidationResult = {
+    val a = _validate_redumental_fields(r)
+    if (a.isInstanceOf[Invalid]) throw sys.error("Schema#validate = " + a)
+    val b = _validate_missing_fields(r)
+    if (b.isInstanceOf[Invalid]) throw sys.error("Schema#validate = " + b)
+    val c = _validate_datatype(r)
+    if (c.isInstanceOf[Invalid]) throw sys.error("Schema#validate = " + c)
+    val d = _validate_validators(r)     
+    if (d.isInstanceOf[Invalid]) throw sys.error("Schema#validate = " + d)
+    List(a, b, c, d).asMA.sum
+  }
+
   def validate(r: Record): ValidationResult = {
     List(_validate_redumental_fields(r),
          _validate_missing_fields(r),
@@ -193,7 +205,7 @@ case class Schema(
     val a: Seq[ValidationResult] = f.values.map(
       _ match {
         case xs: Seq[_] => sys.error("???")
-        case x => c.datatype.validate(x)
+        case x => c.datatype.validate(x).enkey(f.key.name)
       }
     )
     a.asMA.sum
