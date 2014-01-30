@@ -2,6 +2,7 @@ package org.goldenport.record.v2
 
 import java.sql.Timestamp
 import org.goldenport.Strings
+import org.goldenport.Strings.notblankp
 
 /**
  * derived from org.goldenport.g3.message.
@@ -18,7 +19,7 @@ import org.goldenport.Strings
  *  version Jul. 22, 2013
  *  version Aug.  7, 2013
  *  version Sep.  6, 2013
- * @version Oct. 22, 2013
+ * @version Jan. 30, 2014
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -159,16 +160,32 @@ case class Record(
     getList(key).map(_.toString)
   }
 
+  def getFormStringList(key: Symbol): List[String] = {
+    getStringList(key).filter(notblankp)
+  }
+
   def getIntList(key: Symbol): List[Int] = {
     getList(key).map(_.toString.toInt)
+  }
+
+  def getFormIntList(key: Symbol): List[Int] = {
+    getFormStringList(key).map(_.toInt)
   }
 
   def getLongList(key: Symbol): List[Long] = {
     getList(key).map(_.toString.toLong)
   }
 
+  def getFormLongList(key: Symbol): List[Long] = {
+    getFormStringList(key).map(_.toLong)
+  }
+
   def getFloatList(key: Symbol): List[Float] = {
     getList(key).map(_.toString.toFloat)
+  }
+
+  def getFormDoubleList(key: Symbol): List[Double] = {
+    getFormStringList(key).map(_.toDouble)
   }
 
   def getDoubleList(key: Symbol): List[Double] = {
@@ -256,20 +273,40 @@ case class Record(
     getList(key).map(_.toString)
   }
 
+  def getFormStringList(key: String): List[String] = {
+    getStringList(key).filter(notblankp)
+  }
+
   def getIntList(key: String): List[Int] = {
     getList(key).map(_.toString.toInt)
+  }
+
+  def getFormIntList(key: String): List[Int] = {
+    getFormStringList(key).map(_.toInt)
   }
 
   def getLongList(key: String): List[Long] = {
     getList(key).map(_.toString.toLong)
   }
 
+  def getFormLongList(key: String): List[Long] = {
+    getFormStringList(key).map(_.toLong)
+  }
+
   def getFloatList(key: String): List[Float] = {
     getList(key).map(_.toString.toFloat)
   }
 
+  def getFormFloatList(key: String): List[Float] = {
+    getStringList(key).map(_.toFloat)
+  }
+
   def getDoubleList(key: String): List[Double] = {
     getList(key).map(_.toString.toDouble)
+  }
+
+  def getFormDoubleList(key: String): List[Double] = {
+    getStringList(key).map(_.toDouble)
   }
 
   def getRecordList(key: String): List[Record] = {
