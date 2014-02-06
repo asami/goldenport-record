@@ -1,6 +1,7 @@
 package org.goldenport.record.v2
 
 import java.sql.Timestamp
+import scala.util.control.NonFatal
 import org.goldenport.Strings
 
 /**
@@ -18,7 +19,8 @@ import org.goldenport.Strings
  *  version Jul. 22, 2013
  *  version Aug.  7, 2013
  *  version Sep.  6, 2013
- * @version Oct. 22, 2013
+ *  version Oct. 22, 2013
+ * @version Feb.  6, 2014
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -519,7 +521,7 @@ case class Field(key: Symbol, values: List[Any]) { // TODO introduce Value class
         }
       }
     } catch {
-      case e => this
+      case NonFatal(e) => this
     }
   }
 
@@ -533,7 +535,7 @@ case class Field(key: Symbol, values: List[Any]) { // TODO introduce Value class
         }
       }
     } catch {
-      case e => this
+      case NonFatal(e) => this
     }
   }
 

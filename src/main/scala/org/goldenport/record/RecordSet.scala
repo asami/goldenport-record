@@ -1,5 +1,6 @@
 package org.goldenport.record
 
+import scala.util.control.NonFatal
 import scala.collection.immutable.Stream
 import scala.collection.immutable.Stream.Empty
 import scala.collection.mutable.ArrayBuffer
@@ -14,7 +15,8 @@ import org.goldenport.atom._
  * 
  * @since   Jun.  9, 2010
  *  version Jul.  3, 2011
- * @version Feb. 14, 2012
+ *  version Feb. 14, 2012
+ * @version Feb.  5, 2014
  * @author  ASAMI, Tomoharu
  */
 // XXX RecordSet should not be Stream itself.
@@ -385,11 +387,11 @@ class RestRecordSet(val in: Stream[Record]) extends StreamRecordSet {
     try {
       string.toLong
     } catch {
-      case _ => {
+      case NonFatal(_) => {
         try {
           string.toDouble
         } catch {
-          case _ => string
+          case NonFatal(_) => string
         }
       }
     }

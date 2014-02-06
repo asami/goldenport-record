@@ -23,7 +23,8 @@ import scala.collection.mutable.LinkedHashMap
  *  version Jul.  3, 2011
  *  version Nov. 29, 2011
  *  version Feb. 16, 2012
- * @version Feb. 17, 2013
+ *  version Feb. 17, 2013
+ * @version Feb.  6, 2014
  * @author  ASAMI, Tomoharu
  */
 class Record(data: Traversable[(String, AnyRef)]) extends mutable.Map[String, AnyRef] {
@@ -375,6 +376,7 @@ class Record(data: Traversable[(String, AnyRef)]) extends mutable.Map[String, An
     fields.find(kv => atoms.contains(kv._1)) match {
       case Some((_, v: VDateTime)) => Some(v)
       case Some((_, v: java.util.Date)) => Some(VDateTime(v))
+      case Some(_) => ???
       case None => None
     }
   }

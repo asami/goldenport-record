@@ -2,7 +2,6 @@ package org.goldenport.record.v2
 
 import java.sql.Timestamp
 import scalaz._, Scalaz._
-import Validator._
 import org.smartdox.Description
 
 /*
@@ -17,7 +16,7 @@ import org.smartdox.Description
  *  version Apr. 26, 2013
  *  version Jun. 24, 2013
  *  version Oct. 23, 2013
- * @version Jan. 29, 2014
+ * @version Feb.  6, 2014
  * @author  ASAMI, Tomoharu
  */
 case class Schema(
@@ -36,6 +35,12 @@ case class Schema(
 //  history: String = ""
   desc: Description = Description() // TODO .empty
 ) {
+  import scalaz.syntax.foldable._
+  implicit object ValidationResultMonoid extends Monoid[ValidationResult] {
+    def append(f1: ValidationResult, f2: => ValidationResult) = f1 + f2
+    def zero: ValidationResult = Valid
+  } // TODO uses Validation.ValidationResultMonoid
+
   final def getColumn(key: Symbol) = {
     columns.find(_.name == key.name)
   }
@@ -144,10 +149,11 @@ case class Schema(
    * Validation
    */
   def validate(rs: RecordSet): ValidationResult = {
-    rs.records.map(validate).asMA.sum
+    rs.records.map(validate).toVector.suml
   }
 
   def validate0(r: Record): ValidationResult = {
+    import scalaz.syntax.foldable._
     val a = _validate_redumental_fields(r)
     if (a.isInstanceOf[Invalid]) throw sys.error("Schema#validate = " + a)
     val b = _validate_missing_fields(r)
@@ -156,7 +162,7 @@ case class Schema(
     if (c.isInstanceOf[Invalid]) throw sys.error("Schema#validate = " + c)
     val d = _validate_validators(r)     
     if (d.isInstanceOf[Invalid]) throw sys.error("Schema#validate = " + d)
-    List(a, b, c, d).asMA.sum
+    List(a, b, c, d).toVector.suml
   }
 
   def validate(r: Record): ValidationResult = {
@@ -164,7 +170,7 @@ case class Schema(
          _validate_missing_fields(r),
          _validate_datatype(r),
          _validate_validators(r)
-       ).asMA.sum
+       ).toVector.suml
   }
 
   private def _validate_redumental_fields(r: Record): ValidationResult = {
@@ -172,7 +178,7 @@ case class Schema(
       case Nil => Valid
       case xs => {
         val a: Seq[ValidationResult] = xs.map(x => RedundancyFieldWarning(x))
-        a.asMA.sum
+        a.toVector.suml
       }
     }
   }
@@ -183,7 +189,7 @@ case class Schema(
       case Nil => Valid
       case xs => {
         val a: Seq[ValidationResult] = xs.map(x => MissingFieldFailure(x))
-        a.asMA.sum
+        a.toVector.suml
       }
     }
   }
@@ -198,7 +204,7 @@ case class Schema(
   private def _validate_datatype(r: Record): ValidationResult = {
     r.fields.flatMap(
       f => getColumn(f.key).map(c => _validate_datatype_column(c, f))
-    ).asMA.sum
+    ).toVector.suml
   }
 
   private def _validate_datatype_column(c: Column, f: Field): ValidationResult = {
@@ -208,7 +214,7 @@ case class Schema(
         case x => c.datatype.validate(x).enkey(f.key.name)
       }
     )
-    a.asMA.sum
+    a.toVector.suml
   }
 
   private def _validate_validators(r: Record): ValidationResult = {
@@ -622,8 +628,12 @@ trait Validator {
 }
 
 trait Validations {
-  implicit def ValidationResultZero: Zero[ValidationResult] = zero(Valid)
-  implicit def ValidationResultSemigroup: Semigroup[ValidationResult] = semigroup((a, b) => a + b)
+//  implicit def ValidationResultZero: Zero[ValidationResult] = zero(Valid)
+//  implicit def ValidationResultSemigroup: Semigroup[ValidationResult] = semigroup((a, b) => a + b)
+  implicit object ValidationResultMonoid extends Monoid[ValidationResult] {
+    def append(f1: ValidationResult, f2: => ValidationResult) = f1 + f2
+    def zero: ValidationResult = Valid
+  }
 }
 
 case object Validator extends Validations {
