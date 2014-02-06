@@ -21,7 +21,10 @@ import org.goldenport.Strings.notblankp
  *  version Aug.  7, 2013
  *  version Sep.  6, 2013
  *  version Oct. 22, 2013
+<<<<<<< HEAD
  *  version Jan. 30, 2014
+=======
+>>>>>>> 09c36edd4d6fe25d53c268de4886a6b1b9bacd8e
  * @version Feb.  6, 2014
  * @author  ASAMI, Tomoharu
  */
