@@ -1,7 +1,7 @@
 package org.goldenport.record
 
-import scalaz._
-import Scalaz._
+import scala.language.implicitConversions
+import scalaz._, Scalaz._, NonEmptyList._
 import scala.collection.mutable.ArrayBuffer
 import java.io.InputStream
 import java.sql.ResultSet
@@ -17,7 +17,8 @@ import org.smartdox._
  *  version Feb. 29, 2012
  *  version Aug. 15, 2012
  *  version Mar.  3, 2013
- * @version Jan. 20, 2014
+ *  version Jan. 20, 2014
+ * @version Feb.  6, 2014
  * @author  ASAMI, Tomoharu
  */
 object Schema {
@@ -278,8 +279,8 @@ class RecordField(
     }
   }
 
-  def validate[T <: AnyRef](data: T, ctx: RecordContext): ValidationNEL[RecordFieldException, T] = {
-    def fv(v: T): ValidationNEL[RecordFieldException, T] = {
+  def validate[T <: AnyRef](data: T, ctx: RecordContext): ValidationNel[RecordFieldException, T] = {
+    def fv(v: T): ValidationNel[RecordFieldException, T] = {
       facets.flatMap(_.validateO(v, ctx)) match {
         case Nil => data.success
         case e :: es => nel(e, es).fail
@@ -295,7 +296,7 @@ class RecordField(
     def mv(v: T) = {
       v match {
         case col: Iterable[_] => col.foldLeft(
-          data.success : ValidationNEL[RecordFieldException, T]) {
+          data.success : ValidationNel[RecordFieldException, T]) {
           case (a, e) => {
             val x = fv(e.asInstanceOf[T])
             x <+> a // XXX
@@ -870,7 +871,7 @@ abstract class XFacet extends RecordSchemaElement {
     }
   }
 
-  def validate[T](data: T, ctx: RecordContext): ValidationNEL[RecordFieldException, T] = {
+  def validate[T](data: T, ctx: RecordContext): ValidationNel[RecordFieldException, T] = {
     validateO(data.asInstanceOf[AnyRef], ctx) match {
       case Some(e) => e.failNel
       case None => data.success

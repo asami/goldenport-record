@@ -2,6 +2,7 @@ package org.goldenport.record.v2
 
 import java.text.SimpleDateFormat
 import org.joda.time._
+import scala.util.control.NonFatal
 import scala.math._
 import scalaz._, Scalaz._
 import Validator._
@@ -13,7 +14,8 @@ import Validator._
  *  version Feb. 20, 2013
  *  version Mar. 12, 2013
  *  version Dec. 31, 2013
- * @version Jan. 29, 2014
+ *  version Jan. 29, 2014
+ * @version Feb.  6, 2014
  * @author  ASAMI, Tomoharu
  */
 sealed trait DataType {
@@ -26,7 +28,7 @@ sealed trait DataType {
     try {
       BigDecimal(s).success
     } catch {
-      case e => e.fail
+      case NonFatal(e) => e.fail
     }
   }
   def isValue: Boolean = true
@@ -77,7 +79,7 @@ case object XByte extends DataType {
         x.toByte
         Valid
       } catch {
-        case e => {
+        case NonFatal(e) => {
           ValueDomainFailure("Invalid byte (%s)".format(e.getMessage), d.toString)
         }
       }
@@ -97,7 +99,7 @@ case object XShort extends DataType {
         x.toShort
         Valid
       } catch {
-        case e => {
+        case NonFatal(e) => {
           ValueDomainFailure("Invalid short (%s)".format(e.getMessage), d.toString)
         }
       }
@@ -117,7 +119,7 @@ case object XInt extends DataType {
         x.toInt
         Valid
       } catch {
-        case e => {
+        case NonFatal(e) => {
           ValueDomainFailure("Invalid int (%s)".format(e.getMessage), d.toString)
         }
       }
@@ -139,7 +141,7 @@ case object XLong extends DataType {
         x.toLong
         Valid
       } catch {
-        case e => {
+        case NonFatal(e) => {
           ValueDomainFailure("Invalid long (%s)".format(e.getMessage), d.toString)
         }
       }
@@ -160,7 +162,7 @@ case object XFloat extends DataType {
         x.toFloat
         Valid
       } catch {
-        case e => {
+        case NonFatal(e) => {
           ValueDomainFailure("Invalid float (%s)".format(e.getMessage), d.toString)
         }
       }
@@ -181,7 +183,7 @@ case object XFloat1 extends DataType {
         x.toFloat
         Valid
       } catch {
-        case e => {
+        case NonFatal(e) => {
           ValueDomainFailure("Invalid float (%s)".format(e.getMessage), d.toString)
         }
       }
@@ -202,7 +204,7 @@ case object XDouble extends DataType {
         x.toDouble
         Valid
       } catch {
-        case e => {
+        case NonFatal(e) => {
           ValueDomainFailure("Invalid double (%s)".format(e.getMessage), d.toString)
         }
       }
@@ -224,7 +226,7 @@ case object XInteger extends DataType {
         new java.math.BigInteger(x)
         Valid
       } catch {
-        case e => {
+        case NonFatal(e) => {
           ValueDomainFailure("Invalid integer (%s)".format(e.getMessage), d.toString)
         }
       }
@@ -244,7 +246,7 @@ case object XDecimal extends DataType {
         new java.math.BigDecimal(x)
         Valid
       } catch {
-        case e => {
+        case NonFatal(e) => {
           ValueDomainFailure("Invalid decimal (%s)".format(e.getMessage), d.toString)
         }
       }
@@ -291,7 +293,7 @@ case object XDate extends DataType {
         df.parse(x)
         Valid
       } catch {
-        case e => {
+        case NonFatal(e) => {
           ValueDomainFailure("Invalid date (%s)".format(e.getMessage), d.toString)
         }
       }
@@ -311,7 +313,7 @@ case object XTime extends DataType {
         DateTime.parse(x) // XXX
         Valid
       } catch {
-        case e => {
+        case NonFatal(e) => {
           ValueDomainFailure("Invalid time (%s)".format(e.getMessage), d.toString)
         }
       }
@@ -333,7 +335,7 @@ case object XDateTime extends DataType {
         DateTime.parse(x)
         Valid
       } catch {
-        case e => {
+        case NonFatal(e) => {
           ValueDomainFailure("Invalid dateTime (%s)".format(e.getMessage), d.toString)
         }
       }

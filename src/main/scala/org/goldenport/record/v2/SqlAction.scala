@@ -9,7 +9,8 @@ import java.net.URI
  * @since   Jan.  9, 2013
  *  version Mar. 12, 2013
  *  version Apr. 26, 2013
- * @version Jun. 24, 2013
+ *  version Jun. 24, 2013
+ * @version Feb.  6, 2014
  * @author  ASAMI, Tomoharu
  */
 trait SqlAction {
@@ -140,7 +141,7 @@ trait SqlActionCommand {
   protected final def get_main_record_id(context: ActionContext): Option[Any] = {
     get_record_ids(context, ActionContext.KEY_MAIN_ID) match {
       case Some(Nil) => None
-      case Some(x :: _) => Some(x)
+      case Some(xs) => Some(xs.head)
       case None => None
     }
   }

@@ -10,7 +10,8 @@ import org.goldenport.record._
  * @since   Aug. 29, 2010
  *  version Jun. 26, 2011
  *  version Feb. 16, 2012
- * @version Feb. 17, 2013
+ *  version Feb. 17, 2013
+ * @version Feb.  6, 2014
  * @author  ASAMI, Tomoharu
  */
 class RecordQuery(val patterns: List[RecordQueryPattern], val slots: List[RecordQuerySlot], val context: RecordQueryContext) {
@@ -19,6 +20,7 @@ class RecordQuery(val patterns: List[RecordQueryPattern], val slots: List[Record
   private lazy val base_table = {
     patterns.find(_.isInstanceOf[IdPattern]) match {
       case Some(id: IdPattern) => id.uri
+      case Some(_) => ???
       case None => orP(slots) {
         case a: AllFieldSlot => a.uri
         case f: FieldSlot => f.uri

@@ -4,19 +4,19 @@ import java.net.URL
 import org.scalatest.junit.JUnitRunner
 import org.junit.runner.RunWith
 import org.scalatest._
-import org.scalatest.matchers._
 
 /**
  * @since   Feb. 16, 2013
  *  version Mar. 28, 2013
  *  version May. 13, 2013
- * @version Oct. 22, 2013
+ *  version Oct. 22, 2013
+ * @version Feb.  6, 2014
  * @author  ASAMI, Tomoharu
  */
 @RunWith(classOf[JUnitRunner])
-class PlainTableTest extends WordSpec with ShouldMatchers {
+class PlainTableTest extends WordSpec with Matchers {
   "Record" should {
-    "asString" that {
+    "asString" which {
       "plain" in {
         val r = Record(List(Field(Symbol("b"), List("ab"))))
         r.asString('b) should be ("ab")
@@ -26,13 +26,13 @@ class PlainTableTest extends WordSpec with ShouldMatchers {
         r.asString('b) should be ("ab")
       }
     }
-    "get" that {
+    "get" which {
       "plain" in {
         val r = Record(List(Field(Symbol("b"), List("ab"))))
         r.get("b") should be(Some(Seq("ab")))
       }
     }
-    "getOne" that {
+    "getOne" which {
       "plain" in {
         val r = Record(List(Field(Symbol("b"), List("ab"))))
         val x = r.getOne("b")
@@ -46,7 +46,7 @@ class PlainTableTest extends WordSpec with ShouldMatchers {
         x should be(None)
       }
     }
-    "update" that {
+    "update" which {
       "typical" in {
         val a = Record.create(List("a" -> 1, "b" -> 2))
         val x = Record.create(List("b" -> 20, "c" -> 30))
@@ -62,7 +62,7 @@ class PlainTableTest extends WordSpec with ShouldMatchers {
         println("RecordSet#update = " + r)
       }
     }
-    "normalize multiplicity" that {
+    "normalize multiplicity" which {
       "typical" in {
         val a = Record.create(List(
           "one" -> "1",
@@ -108,7 +108,7 @@ class PlainTableTest extends WordSpec with ShouldMatchers {
         println("RecordSet#normalizeMultiplicity multi images = " + b)
       }
     }
-    "normalize group" that {
+    "normalize group" which {
       "typical" in {
         val rec1 = Record.create(List(
           "id" -> "1",
@@ -143,7 +143,7 @@ class PlainTableTest extends WordSpec with ShouldMatchers {
         println("RecordSet#normalizeGroup = " + r)
       }
     }
-    "parts" that {
+    "parts" which {
       "_aggregate_in_group_fold" in {
         val rec1 = Record.create(List(
           "id" -> "11",
@@ -173,7 +173,7 @@ class PlainTableTest extends WordSpec with ShouldMatchers {
     }
   }
   "Record.createApp" should {
-    "tuple" that {
+    "tuple" which {
       "list" in {
         val a = List(
           "one" -> List("one-one" -> "one-one-value")

@@ -7,7 +7,8 @@ import Validator._
  * @snice   Nov. 23, 2012
  *  version Dec.  9, 2012
  *  version Dec. 31, 2013
- * @version Jan. 15, 2014
+ *  version Jan. 15, 2014
+ * @version Feb.  6, 2014
  * @author  ASAMI, Tomoharu
  */
 trait Constraint {
@@ -108,7 +109,9 @@ object Constraint {
       }
     }
     a match {
-      case Success(s) => s.foldMap(x => cs.foldMap(_.validate(datatype, x, record) | Valid))
+      case Success(s) => {
+        s.toVector.foldMap(x => cs.toVector.foldMap(_.validate(datatype, x, record) | Valid))
+      }
       case Failure(f) => f
     }
   }
@@ -122,35 +125,31 @@ case class DataTypeConstraint(datatype: DataType) extends Constraint {
 
 case class CWRange(minimum: Double, maximum: Double) extends Constraint {
   def validate(datatype: DataType, value: String, record: Record): Option[ValidationResult] = {
-    datatype.toDouble(value) map {
-      x => {
-        if (x < minimum) ValueDomainWarning("%sは${minimum}未満になっています。".replace("${minimum}", minimum.toString), value)
-        else if (x > maximum) ValueDomainWarning("%sは${maximum}より大きくなっています。".replace("${maximum}",  maximum.toString), value)
-        else Valid
-      }
-    } toOption
+    datatype.toDouble(value).map( x =>
+      if (x < minimum) ValueDomainWarning("%sは${minimum}未満になっています。".replace("${minimum}", minimum.toString), value)
+      else if (x > maximum) ValueDomainWarning("%sは${maximum}より大きくなっています。".replace("${maximum}",  maximum.toString), value)
+      else Valid
+    ).toOption
   }
 }
 
 case object CPositiveZero extends Constraint {
   override def label = "0以上"
   def validate(datatype: DataType, value: String, record: Record): Option[ValidationResult] = {
-    datatype.toDouble(value) map {
-      x => 
-        if (x >= 0) Valid
-        else ValueDomainFailure("%sは0未満になっています。", value)
-    } toOption
+    datatype.toDouble(value).map(x => 
+      if (x >= 0) Valid
+      else ValueDomainFailure("%sは0未満になっています。", value)
+    ).toOption
   }
 }
 
 case object CWNotZero extends Constraint {
   override def label = "0以外"
   def validate(datatype: DataType, value: String, record: Record): Option[ValidationResult] = {
-    datatype.toDouble(value) map {
-      x =>
-        if (x == 0) ValueDomainWarning("0になっています。", value)
-        else Valid
-    } toOption
+    datatype.toDouble(value).map(x =>
+      if (x == 0) ValueDomainWarning("0になっています。", value)
+      else Valid
+    ).toOption
   }
 }
 
@@ -175,7 +174,7 @@ case class CSum(xs: String*) extends Constraint {
     } yield {
       validation_equal_2(s, v, "合算の計算が合っていません。")
     }
-    a toOption
+    a.toOption
   }
 }
 
@@ -191,7 +190,7 @@ case class CSubtraction(lhs: String, rhs: String*) extends Constraint {
     } yield {
       validation_equal_2(l - r, v, "計算が合っていません。")
     }
-    a toOption
+    a.toOption
   }
 }
 
@@ -204,7 +203,7 @@ case class CSubtractions(lhs: List[String], rhs: List[String]) extends Constrain
     } yield {
       validation_equal_2(l - r, v, "計算が合っていません。")
     }
-    a toOption
+    a.toOption
   }
 }
 
@@ -220,7 +219,7 @@ case class CPercent(amount: String, total: String) extends Constraint {
     } yield {
       validation_equal_2(a * 100 / t, v, "パーセントの計算があっていません。")
     }
-    r toOption
+    r.toOption
   }
 }
 
