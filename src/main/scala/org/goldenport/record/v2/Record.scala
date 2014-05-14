@@ -22,7 +22,8 @@ import org.goldenport.Strings.notblankp
  *  version Sep.  6, 2013
  *  version Oct. 22, 2013
  *  version Jan. 30, 2014
- * @version Feb.  6, 2014
+ *  version Feb.  6, 2014
+ * @version May. 15, 2014
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -74,6 +75,13 @@ case class Record(
 */
   }
 
+  def getFormOne(key: Symbol): Option[Any] = {
+    getOne(key) filter {
+      case "" => false
+      case _ => true
+    }
+  }
+
   def getString(key: Symbol): Option[String] = {
     getOne(key).map(_.toString)
   }
@@ -86,13 +94,18 @@ case class Record(
   }
 
   def getBoolean(key: Symbol): Option[Boolean] = {
-    getOne(key).map(_.toString.toBoolean)
+    getOne(key).map { _.toString.toLowerCase match {
+      case "1" => true
+      case "0" => false
+      case "true" => true
+      case "false" => false
+    }}
   }
 
   def getFormBoolean(key: Symbol): Option[Boolean] = {
     getOne(key) flatMap {
       case "" => None
-      case x => Some(x.toString.toBoolean)
+      case x => getBoolean(key)
     }
   }
 
@@ -210,6 +223,10 @@ case class Record(
 
   def getOne(key: String): Option[Any] = {
     getOne(Symbol(key))
+  }
+
+  def getFormOne(key: String): Option[Any] = {
+    getFormOne(Symbol(key))
   }
 
   def getString(key: String): Option[String] = {
@@ -340,12 +357,36 @@ case class Record(
     getOne(key).get.toString.toLong // XXX
   }
 
+  def asTimestamp(key: Symbol): Timestamp = {
+    getTimestamp(key) getOrElse {
+      throw new IllegalArgumentException("bad timestamp = " + getOne(key))
+    }
+  }
+
+  def asTimestamp(name: String): Timestamp = {
+    asTimestamp(Symbol(name))
+  }
+
   def length(): Int = fields.length
   def isEmpty() = fields.isEmpty
   def nonEmpty() = fields.nonEmpty
 
   def isDefined(key: Symbol): Boolean = fields.exists(_.isMatchKey(key))
   def isDefined(key: String): Boolean = isDefined(Symbol(key))
+
+  def effectiveList(key: String): List[Any] = {
+    get(key) match {
+      case None => Nil
+      case Some(Nil) => Nil
+      case Some(List(Nil)) => Nil
+      case Some(List(xs: List[_])) => xs
+      case Some(xs) => xs
+    }
+  }
+
+  def keyStringValues: Seq[(String, Any)] = {
+    fields.flatMap(_.keyStringValue)
+  }
 
   /*
    * This record is subset of the target record.
@@ -511,6 +552,21 @@ case class Record(
     copy(a, inputFiles = b)
   }
 
+  def replaceKey(from: Symbol, to: Symbol) = {
+    copy(fields = fields.map {
+      case f if f.key == from => f.copy(key = to)
+      case f => f
+    })
+  }
+
+  def activateFields(keys: Seq[Symbol]) = {
+    copy(fields = fields.filter(keys.contains))
+  }
+
+  def removeFields(keys: Seq[Symbol]) = {
+    copy(fields = fields.filterNot(keys.contains))
+  }
+
   override def toString(): String = {
     "Record(" + fields + ", " + inputFiles + ")"
   }
@@ -521,6 +577,20 @@ case class Record(
 
   def toStringMap: Map[String, String] = {
     Map.empty ++ fields.flatMap(f => f.effectiveValue.map(v => f.key.name -> v.toString)) // XXX
+  }
+
+  def toVector: Vector[(String, Any)] = {
+    Vector.empty ++ fields.map { x =>
+      x.key.name -> to_natural_value(x.values)
+    }
+  }
+
+  protected def to_natural_value(v: List[Any]): Any = {
+    v match {
+      case Nil => None
+      case List(x) => x
+      case xs => xs // includes List[List[_]]. Addressed as List[_].
+    }
   }
 }
 
@@ -596,6 +666,21 @@ case class Field(key: Symbol, values: List[Any]) { // TODO introduce Value class
         }
       }
       case xs => Some(xs)
+    }
+  }
+
+  def keyValue: Option[(Symbol, Any)] = {
+    val data = values match {
+      case Nil => None
+      case x :: Nil => Some(x)
+      case xs => Some(xs)
+    }
+    data.map(x => key -> x)
+  }
+
+  def keyStringValue: Option[(String, Any)] = {
+    keyValue map {
+      case (k, v) => k.name -> v
     }
   }
 }
