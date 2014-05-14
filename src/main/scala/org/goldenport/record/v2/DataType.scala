@@ -15,7 +15,8 @@ import Validator._
  *  version Mar. 12, 2013
  *  version Dec. 31, 2013
  *  version Jan. 29, 2014
- * @version Feb.  6, 2014
+ *  version Feb.  6, 2014
+ * @version May. 15, 2014
  * @author  ASAMI, Tomoharu
  */
 sealed trait DataType {
@@ -75,6 +76,11 @@ case object XByte extends DataType {
   def validate(d: Any): ValidationResult = {
     d match {
       case _: Byte => Valid
+      case x: Short if Byte.MinValue <= x && x <= Byte.MaxValue => Valid
+      case x: Int if Byte.MinValue <= x && x <= Byte.MaxValue => Valid
+      case x: Long if Byte.MinValue <= x && x <= Byte.MaxValue => Valid
+      case x: BigInt if x.isValidByte => Valid
+      case x: BigDecimal if x.isValidByte => Valid
       case x: String => try {
         x.toByte
         Valid
@@ -94,7 +100,12 @@ case object XByte extends DataType {
 case object XShort extends DataType {
   def validate(d: Any): ValidationResult = {
     d match {
+      case _: Byte => Valid
       case _: Short => Valid
+      case x: Int if Short.MinValue <= x && x <= Short.MaxValue => Valid
+      case x: Long if Short.MinValue <= x && x <= Short.MaxValue => Valid
+      case x: BigInt if x.isValidShort => Valid
+      case x: BigDecimal if x.isValidShort => Valid
       case x: String => try {
         x.toShort
         Valid
@@ -114,7 +125,12 @@ case object XShort extends DataType {
 case object XInt extends DataType {
   def validate(d: Any): ValidationResult = {
     d match {
+      case _: Byte => Valid
+      case _: Short => Valid
       case _: Int => Valid
+      case x: Long if Int.MinValue <= x && x <= Int.MaxValue => Valid
+      case x: BigInt if x.isValidInt => Valid
+      case x: BigDecimal if x.isValidInt => Valid
       case x: String => try {
         x.toInt
         Valid
@@ -123,7 +139,7 @@ case object XInt extends DataType {
           ValueDomainFailure("Invalid int (%s)".format(e.getMessage), d.toString)
         }
       }
-      case _ => ValueDomainFailure("Invalid int", d.toString)
+      case _ => ValueDomainFailure(s"Invalid int ($d/${d.getClass})", d.toString)
     }
   }
   override def toDouble(s: String) = s.parseInt.map(_.toDouble)
@@ -136,7 +152,12 @@ case object XInt extends DataType {
 case object XLong extends DataType {
   def validate(d: Any): ValidationResult = {
     d match {
+      case _: Byte => Valid
+      case _: Short => Valid
+      case _: Int => Valid
       case _: Long => Valid
+      case x: BigInt if x.isValidLong => Valid
+      case x: BigDecimal if x.isValidLong => Valid
       case x: String => try {
         x.toLong
         Valid
@@ -157,7 +178,14 @@ case object XLong extends DataType {
 case object XFloat extends DataType {
   def validate(d: Any): ValidationResult = {
     d match {
+      case _: Byte => Valid
+      case _: Short => Valid
+      case _: Int => Valid
+      case _: Long => Valid
       case _: Float => Valid
+      case x: Double if Float.MinValue <= x && x <= Float.MaxValue => Valid
+      case x: BigInt if x.isValidFloat => Valid
+      case x: BigDecimal if x.isValidFloat => Valid
       case x: String => try {
         x.toFloat
         Valid
@@ -178,7 +206,14 @@ case object XFloat extends DataType {
 case object XFloat1 extends DataType {
   def validate(d: Any): ValidationResult = {
     d match {
+      case _: Byte => Valid
+      case _: Short => Valid
+      case _: Int => Valid
+      case _: Long => Valid
       case _: Float => Valid
+      case x: Double if Float.MinValue <= x && x <= Float.MaxValue => Valid
+      case x: BigInt if x.isValidFloat => Valid
+      case x: BigDecimal if x.isValidFloat => Valid
       case x: String => try {
         x.toFloat
         Valid
@@ -199,7 +234,10 @@ case object XFloat1 extends DataType {
 case object XDouble extends DataType {
   def validate(d: Any): ValidationResult = {
     d match {
+      case _: Float => Valid
       case _: Double => Valid
+      case x: BigInt if x.isValidDouble => Valid
+      case x: BigDecimal if x.isValidDouble => Valid
       case x: String => try {
         x.toDouble
         Valid
@@ -220,6 +258,10 @@ case object XDouble extends DataType {
 case object XInteger extends DataType {
   def validate(d: Any): ValidationResult = {
     d match {
+      case _: Byte => Valid
+      case _: Short => Valid
+      case _: Int => Valid
+      case _: Long => Valid
       case _: BigInt => Valid
       case _: java.math.BigInteger => Valid
       case x: String => try {
@@ -241,6 +283,14 @@ case object XInteger extends DataType {
 case object XDecimal extends DataType {
   def validate(d: Any): ValidationResult = {
     d match {
+      case _: Byte => Valid
+      case _: Short => Valid
+      case _: Int => Valid
+      case _: Long => Valid
+      case _: BigInt => Valid
+      case _: java.math.BigInteger => Valid
+      case _: Float => Valid
+      case _: Double => Valid
       case _: BigDecimal => Valid
       case x: String => try {
         new java.math.BigDecimal(x)
