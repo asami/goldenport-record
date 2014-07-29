@@ -16,7 +16,9 @@ import org.smartdox.Description
  *  version Apr. 26, 2013
  *  version Jun. 24, 2013
  *  version Oct. 23, 2013
- * @version Feb.  6, 2014
+ *  version Feb.  6, 2014
+ *  version Jun.  9, 2014
+ * @version Jul. 25, 2014
  * @author  ASAMI, Tomoharu
  */
 case class Schema(
@@ -28,6 +30,7 @@ case class Schema(
 //  contexts: Seq[Context] = Nil,
 //  view: GuiView = ExtjsGridView(),
 //  charts: Seq[Chart] = Nil,
+  formatter: Option[FormatterGroup] = None,
   pageSize: Option[Int] = 100.some,
 //  isAvailableMode: ExecutionMode => Boolean = _ => true,
 //  isCsvTitle: Option[Boolean] = None,
@@ -255,9 +258,25 @@ case class Schema(
       case _ => false
     }
   }
+
+  /*
+   * Formatter
+   */
+  def format(columnname: String, rec: Record): String = {
+    val v = rec.get(columnname)
+    columns.find(_.name == columnname) map { c =>
+      formatter.flatMap(_.format(c, v)) getOrElse c.format(v)
+    } getOrElse {
+      throw new IllegalArgumentException(s"Illegal column name = $columnname")
+    }
+  }
 }
 
 object NullSchema extends Schema(Nil)
+
+object Schema {
+  val empty = NullSchema
+}
 
 trait ColumnSlot {
 //  def toGridColumn: String

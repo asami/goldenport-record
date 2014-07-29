@@ -10,7 +10,8 @@ import org.smartdox.Description
  *  version Feb. 20, 2013
  *  version Mar.  3, 2013
  *  version Oct. 23, 2013
- * @version Jan. 20, 2014
+ *  version Jan. 20, 2014
+ * @version Jul. 25, 2014
  * @author  ASAMI, Tomoharu
  */
 case class Column(
@@ -21,8 +22,9 @@ case class Column(
   constraints: Seq[Constraint] = Nil,
   orderBy: Option[SqlOrder] = None,
   visibility: Visibility = PlainVisibility,
-  label: String = null,
+  label: Option[String] = None,
   sql: SqlColumn = NullSqlColumn,
+  formatter: Option[Formatter] = None,
   desc: Description = Description() // TODO .empty
 //  operations: Seq[Operation] = Nil,
 //  extjs: Map[String, Any] = Map.empty,
@@ -68,6 +70,23 @@ case class Column(
   }
 
   def isMulti = !isSingle
+
+  /*
+   * Formatter
+   */
+  def format(value: Option[List[Any]]): String = {
+    def otherwise = value match {
+      case None => ""
+      case Some(xs) => xs.map(datatype.format).mkString(",")
+    }
+    formatter match {
+      case Some(f) => f.format(this, value) getOrElse otherwise
+      case None => otherwise
+    }
+  }
+}
+
+object Column {
 }
 
 sealed trait ColumnKind {

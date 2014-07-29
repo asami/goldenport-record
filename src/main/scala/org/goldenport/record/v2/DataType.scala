@@ -1,11 +1,17 @@
 package org.goldenport.record.v2
 
+import java.util.UUID
+import java.sql.{Timestamp, Date, Time}
+import java.net.URL
 import java.text.SimpleDateFormat
+import com.asamioffice.goldenport.io.UURL
 import org.joda.time._
 import scala.util.control.NonFatal
 import scala.math._
 import scalaz._, Scalaz._
 import Validator._
+import org.goldenport.record.util.{
+  DateUtils, TimeUtils, TimestampUtils, DateTimeUtils}
 
 /*
  * @snice   Nov. 23, 2012
@@ -16,11 +22,14 @@ import Validator._
  *  version Dec. 31, 2013
  *  version Jan. 29, 2014
  *  version Feb.  6, 2014
- * @version May. 15, 2014
+ *  version May. 15, 2014
+ * @version Jul. 27, 2014
  * @author  ASAMI, Tomoharu
  */
 sealed trait DataType {
+  type InstanceType
   val name = getClass.getSimpleName.substring(1).filterNot(_ == '$').toLowerCase // eliminame 'X'
+  def toInstance(v: Any): InstanceType
   def validate(d: Any): ValidationResult
   def label: String
   def mapData(s: String): String = s
@@ -37,6 +46,8 @@ sealed trait DataType {
   def isSqlString: Boolean = true
   def getXmlDatatypeName: Option[String] = None
 
+  def format(value: Any): String = value.toString
+
   protected final def normalize_long(s: String): String = {
     val i = s.lastIndexOf(".")
     if (i == -1) s
@@ -49,6 +60,19 @@ sealed trait DataType {
 }
 
 case object XBoolean extends DataType {
+  type InstanceType = Boolean
+  def toInstance(x: Any): InstanceType = {
+    x match {
+      case v: Boolean => v
+      case v => v.toString.toLowerCase match {
+        case "1" => true
+        case "0" => false
+        case "true" => true
+        case "false" => false
+      }
+    }
+  }
+
   def validate(d: Any): ValidationResult = {
     d match {
       case _: Boolean => Valid
@@ -73,6 +97,14 @@ case object XBoolean extends DataType {
 }
 
 case object XByte extends DataType {
+  type InstanceType = Byte
+  def toInstance(x: Any): InstanceType = {
+    x match {
+      case v: Byte => v
+      case v => v.toString.toByte
+    }
+  }
+
   def validate(d: Any): ValidationResult = {
     d match {
       case _: Byte => Valid
@@ -98,6 +130,15 @@ case object XByte extends DataType {
 }
 
 case object XShort extends DataType {
+  type InstanceType = Short
+  def toInstance(x: Any): InstanceType = {
+    x match {
+      case v: Byte => v
+      case v: Short => v
+      case v => v.toString.toShort
+    }    
+  }
+
   def validate(d: Any): ValidationResult = {
     d match {
       case _: Byte => Valid
@@ -123,6 +164,16 @@ case object XShort extends DataType {
 }
 
 case object XInt extends DataType {
+  type InstanceType = Int
+  def toInstance(x: Any): InstanceType = {
+    x match {
+      case v: Byte => v
+      case v: Short => v
+      case v: Int => v
+      case v => v.toString.toInt
+    }
+  }
+
   def validate(d: Any): ValidationResult = {
     d match {
       case _: Byte => Valid
@@ -150,6 +201,17 @@ case object XInt extends DataType {
 }
 
 case object XLong extends DataType {
+  type InstanceType = Long
+  def toInstance(x: Any): InstanceType = {
+    x match {
+      case v: Byte => v
+      case v: Short => v
+      case v: Int => v
+      case v: Long => v
+      case v => v.toString.toLong
+    }
+  }
+
   def validate(d: Any): ValidationResult = {
     d match {
       case _: Byte => Valid
@@ -176,6 +238,14 @@ case object XLong extends DataType {
 }
 
 case object XFloat extends DataType {
+  type InstanceType = Float
+  def toInstance(x: Any): InstanceType = {
+    x match {
+      case v: Float => v
+      case v => v.toString.toFloat
+    }
+  }
+
   def validate(d: Any): ValidationResult = {
     d match {
       case _: Byte => Valid
@@ -204,6 +274,14 @@ case object XFloat extends DataType {
 }
 
 case object XFloat1 extends DataType {
+  type InstanceType = Float
+  def toInstance(x: Any): InstanceType = {
+    x match {
+      case v: Float => v
+      case v => v.toString.toFloat
+    }
+  }
+
   def validate(d: Any): ValidationResult = {
     d match {
       case _: Byte => Valid
@@ -232,6 +310,15 @@ case object XFloat1 extends DataType {
 }
 
 case object XDouble extends DataType {
+  type InstanceType = Double
+  def toInstance(x: Any): InstanceType = {
+    x match {
+      case v: Float => v
+      case v: Double => v
+      case v => v.toString.toDouble
+    }
+  }
+
   def validate(d: Any): ValidationResult = {
     d match {
       case _: Float => Valid
@@ -256,6 +343,18 @@ case object XDouble extends DataType {
 }
 
 case object XInteger extends DataType {
+  type InstanceType = BigInt
+  def toInstance(x: Any): InstanceType = {
+    x match {
+      case v: Byte => BigInt(v)
+      case v: Short => BigInt(v)
+      case v: Int => BigInt(v)
+      case v: Long => BigInt(v)
+      case v: BigInt => v
+      case v => BigInt(v.toString)
+    }
+  }
+
   def validate(d: Any): ValidationResult = {
     d match {
       case _: Byte => Valid
@@ -281,6 +380,21 @@ case object XInteger extends DataType {
 }
 
 case object XDecimal extends DataType {
+  type InstanceType = BigDecimal
+  def toInstance(x: Any): InstanceType = {
+    x match {
+      case v: Byte => BigDecimal(v)
+      case v: Short => BigDecimal(v)
+      case v: Int => BigDecimal(v)
+      case v: Long => BigDecimal(v)
+      case v: Float => BigDecimal(v)
+      case v: Double => BigDecimal(v)
+      case v: BigInt => BigDecimal(v)
+      case v: BigDecimal => v
+      case v => BigDecimal(v.toString)
+    }
+  }
+
   def validate(d: Any): ValidationResult = {
     d match {
       case _: Byte => Valid
@@ -309,12 +423,22 @@ case object XDecimal extends DataType {
 }
 
 case object XString extends DataType {
+  type InstanceType = String
+  def toInstance(x: Any): InstanceType = {
+    x.toString
+  }
+
   def validate(d: Any): ValidationResult = Valid
   def label = "文字列"
   override def getXmlDatatypeName = Some("string")
 }
 
 case object XToken extends DataType {
+  type InstanceType = String
+  def toInstance(x: Any): InstanceType = {
+    x.toString
+  }
+
   def validate(d: Any): ValidationResult = {
     d match {
       case x: String => try {
@@ -335,6 +459,15 @@ case object XToken extends DataType {
 }
 
 case object XDate extends DataType {
+  type InstanceType = Date
+  def toInstance(x: Any): InstanceType = {
+    x match {
+      case v: Date => v
+      case v: Long => new Date(v)
+      case s: String => new Date(DateUtils.parse(s).getTime)
+    }
+  }
+
   def validate(d: Any): ValidationResult = {
     d match {
       case _: java.util.Date => Valid
@@ -353,9 +486,22 @@ case object XDate extends DataType {
   def label = "日付"
   override def isSqlString = true
   override def getXmlDatatypeName = Some("date")
+
+  override def format(value: Any): String = {
+    DateUtils.toIsoDateString(toInstance(value))
+  }
 }
 
 case object XTime extends DataType {
+  type InstanceType = Time
+  def toInstance(x: Any): InstanceType = {
+    x match {
+      case v: Time => v
+      case v: Long => new Time(v)
+      case s: String => TimeUtils.parse(s)
+    }
+  }
+
   def validate(d: Any): ValidationResult = {
     d match {
       case _: java.util.Date => Valid
@@ -373,9 +519,22 @@ case object XTime extends DataType {
   def label = "時間"
   override def isSqlString = true
   override def getXmlDatatypeName = Some("time")
+
+  override def format(value: Any): String = {
+    TimeUtils.toIsoTimeString(toInstance(value))
+  }
 }
 
 case object XDateTime extends DataType {
+  type InstanceType = Timestamp
+  def toInstance(x: Any): InstanceType = {
+    x match {
+      case v: java.util.Date => new Timestamp(v.getTime)
+      case v: DateTime => new Timestamp(v.getMillis)
+      case v: String => TimestampUtils.parseIso(v)
+    }
+  }
+
   override val name = "dateTime"
   def validate(d: Any): ValidationResult = {
     d match {
@@ -395,25 +554,56 @@ case object XDateTime extends DataType {
   def label = "日時"
   override def isSqlString = true
   override def getXmlDatatypeName = Some("dateTime")
+
+  override def format(value: Any): String = {
+    TimestampUtils.toIsoDateTimeString(toInstance(value))
+  }
 }
 
 case object XText extends DataType {
+  type InstanceType = String
+  def toInstance(x: Any): InstanceType = {
+    x.toString
+  }
+
   def validate(d: Any): ValidationResult = Valid // TODO
   def label = "テキスト"
 }
 
 case object XLink extends DataType {
+  type InstanceType = URL
+  def toInstance(x: Any): InstanceType = {
+    x match {
+      case v: URL => v
+      case v: String => UURL.getURLFromFileOrURLName(v)
+    }
+  }
+
   def validate(d: Any): ValidationResult = Valid // TODO
   def label = "リンク"
   override def getXmlDatatypeName = Some("anyURI")
 }
 
 case object XEMail extends DataType {
+  type InstanceType = String
+  def toInstance(x: Any): InstanceType = {
+    x.toString
+  }
+
   def validate(d: Any): ValidationResult = Valid // TODO
   def label = "メール"
 }
 
 case object XMoney extends DataType {
+  type InstanceType = BigDecimal
+  def toInstance(x: Any): InstanceType = {
+    x match {
+      case v: BigDecimal => v
+      case v: BigInt => new BigDecimal(new java.math.BigDecimal(v.underlying))
+      case v => new BigDecimal(new java.math.BigDecimal(v.toString))
+    }
+  }
+
   def validate(d: Any): ValidationResult = Valid // TODO
   def label = "金額"
   override def isSqlString = false
@@ -421,6 +611,9 @@ case object XMoney extends DataType {
 }
 
 case object XPercent extends DataType {
+  type InstanceType = Double
+  def toInstance(x: Any): InstanceType = XDouble.toInstance(x)
+
   def validate(d: Any): ValidationResult = Valid // TODO
   override def toDouble(s: String) = s.parseDouble
   def label = "パーセント"
@@ -429,34 +622,67 @@ case object XPercent extends DataType {
 }
 
 case object XUnit extends DataType {
+  type InstanceType = String
+  def toInstance(x: Any): InstanceType = {
+    x.toString
+  }
+
   def validate(d: Any): ValidationResult = Valid
   def label = "単位"
   override def getXmlDatatypeName = Some("token")
 }
 
 case object XUuid extends DataType {
+  type InstanceType = UUID
+  def toInstance(x: Any): InstanceType = {
+    x match {
+      case v: UUID => v
+      case _ => UUID.fromString(x.toString)
+    }
+  }
+
   def validate(d: Any): ValidationResult = Valid
   def label = "UUID"
   override def getXmlDatatypeName = Some("token")
 }
 
 case object XEverforthid extends DataType {
+  type InstanceType = String
+  def toInstance(x: Any): InstanceType = {
+    x.toString
+  }
+
   def validate(d: Any): ValidationResult = Valid
   def label = "EverforthID"
   override def getXmlDatatypeName = Some("token")
 }
 
 case object XXml extends DataType {
+  type InstanceType = String
+  def toInstance(x: Any): InstanceType = {
+    x.toString
+  }
+
   def validate(d: Any): ValidationResult = Valid
   def label = "XML"
 }
 
 case object XHtml extends DataType {
+  type InstanceType = String
+  def toInstance(x: Any): InstanceType = {
+    x.toString
+  }
+
   def validate(d: Any): ValidationResult = Valid
   def label = "HTML"
 }
 
 case class XEntityReference(schema: Schema, reader: (java.sql.Connection, Schema, Record) => RecordSet) extends DataType {
+  type InstanceType = String
+  def toInstance(x: Any): InstanceType = {
+    x.toString
+  }
+
   def validate(d: Any): ValidationResult = Valid
   def label = "参照"
   override def isSqlString = false // typical case
@@ -464,6 +690,11 @@ case class XEntityReference(schema: Schema, reader: (java.sql.Connection, Schema
 }
 
 case class XValue(schema: Schema) extends DataType {
+  type InstanceType = String
+  def toInstance(x: Any): InstanceType = {
+    x.toString
+  }
+
   def validate(d: Any): ValidationResult = Valid // TODO
   def label = "埋込み値"
   override def isSqlString = false // typical case
@@ -472,6 +703,11 @@ case class XValue(schema: Schema) extends DataType {
 }
 
 case class XEverforthObjectReference(schema: Schema, reader: (java.sql.Connection, Schema, Record) => RecordSet) extends DataType {
+  type InstanceType = String
+  def toInstance(x: Any): InstanceType = {
+    x.toString
+  }
+
   def validate(d: Any): ValidationResult = Valid
   def label = "参照"
   override def isSqlString = true
@@ -479,21 +715,44 @@ case class XEverforthObjectReference(schema: Schema, reader: (java.sql.Connectio
 }
 
 case class XPowertype() extends DataType {
+  type InstanceType = String
+  def toInstance(x: Any): InstanceType = {
+    x.toString
+  }
+
   def validate(d: Any): ValidationResult = Valid
   def label = "区分"
 }
 
 case class XPowertypeReference() extends DataType {
+  type InstanceType = String
+  def toInstance(x: Any): InstanceType = {
+    x.toString
+  }
+
   def validate(d: Any): ValidationResult = Valid
   def label = "区分"
 }
 
 case class XStateMachine() extends DataType {
+  type InstanceType = String
+  def toInstance(x: Any): InstanceType = {
+    x.toString
+  }
+
   def validate(d: Any): ValidationResult = Valid
   def label = "ワークフロー"
 }
 
 case class XStateMachineReference() extends DataType {
+  type InstanceType = String
+  def toInstance(x: Any): InstanceType = {
+    x.toString
+  }
+
   def validate(d: Any): ValidationResult = Valid
   def label = "ワークフロー"
+}
+
+trait XExternalDataType extends DataType {
 }
