@@ -18,7 +18,8 @@ import org.smartdox.Description
  *  version Oct. 23, 2013
  *  version Feb.  6, 2014
  *  version Jun.  9, 2014
- * @version Jul. 25, 2014
+ *  version Jul. 25, 2014
+ * @version Aug.  6, 2014
  * @author  ASAMI, Tomoharu
  */
 case class Schema(
@@ -58,6 +59,11 @@ case class Schema(
       case Some(c) => c
       case None => throw new IllegalStateException("no id column")
     }
+  }
+
+  final def realAttributeColumns: Seq[Column] = {
+    def f(c: Column) = !c.sql.isDerived
+    columns.filter(f)
   }
 
   final def addColumns(cs: Seq[Column]): Schema = {
