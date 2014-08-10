@@ -11,7 +11,8 @@ import org.smartdox.Description
  *  version Mar.  3, 2013
  *  version Oct. 23, 2013
  *  version Jan. 20, 2014
- * @version Jul. 25, 2014
+ *  version Jul. 25, 2014
+ * @version Aug. 11, 2014
  * @author  ASAMI, Tomoharu
  */
 case class Column(
@@ -25,6 +26,7 @@ case class Column(
   label: Option[String] = None,
   sql: SqlColumn = NullSqlColumn,
   formatter: Option[Formatter] = None,
+  displaySequence: Option[Int] = None,
   desc: Description = Description() // TODO .empty
 //  operations: Seq[Operation] = Nil,
 //  extjs: Map[String, Any] = Map.empty,
@@ -70,6 +72,8 @@ case class Column(
   }
 
   def isMulti = !isSingle
+
+  def isDerived = sql.isDerived
 
   /*
    * Formatter
