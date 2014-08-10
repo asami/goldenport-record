@@ -1,9 +1,12 @@
 package org.goldenport.record.v2
 
+import java.util.Date
 import java.sql.Timestamp
 import scala.util.control.NonFatal
+import scala.math.{BigInt, BigDecimal}
 import org.goldenport.Strings
 import org.goldenport.Strings.notblankp
+import org.goldenport.record.util.{TimestampUtils, DateUtils}
 
 /**
  * derived from org.goldenport.g3.message.
@@ -23,7 +26,8 @@ import org.goldenport.Strings.notblankp
  *  version Oct. 22, 2013
  *  version Jan. 30, 2014
  *  version Feb.  6, 2014
- * @version May. 15, 2014
+ *  version May. 15, 2014
+ * @version Aug. 10, 2014
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -54,6 +58,7 @@ case class Record(
     fields.find(_.isMatchKey(key)).map(_.values)
   }
 
+  // TODO unify Field
   def getOne(key: Symbol): Option[Any] = {
     get(key) match {
       case None => None
@@ -82,6 +87,7 @@ case class Record(
     }
   }
 
+  // TODO unify Field
   def getString(key: Symbol): Option[String] = {
     getOne(key).map(_.toString)
   }
@@ -157,7 +163,7 @@ case class Record(
     getOne(key).map {
       case x: Timestamp => x
       case l: Long => new Timestamp(l)
-      case s: String => sys.error("???")
+      case s: String => TimestampUtils.parse(s)
     }
   }
 
@@ -165,6 +171,27 @@ case class Record(
     getOne(key) flatMap {
       case "" => None
       case x => getTimestamp(key)
+    }
+  }
+
+  def getDate(key: Symbol): Option[Date] = {
+    getOne(key).map {
+      case x: Date => x
+      case s: String => DateUtils.parse(s)
+    }
+  }
+
+  def getBigDecimal(key: Symbol): Option[BigDecimal] = {
+    getOne(key) map {
+      case v: Byte => BigDecimal(v)
+      case v: Short => BigDecimal(v)
+      case v: Int => BigDecimal(v)
+      case v: Long => BigDecimal(v)
+      case v: Float => BigDecimal(v)
+      case v: Double => BigDecimal(v)
+      case v: BigInt => BigDecimal(v)
+      case v: BigDecimal => v
+      case v => BigDecimal(v.toString)
     }
   }
 
@@ -285,6 +312,14 @@ case class Record(
     getFormTimestamp(Symbol(key))
   }
 
+  def getDate(key: String): Option[Date] = {
+    getDate(Symbol(key))
+  }
+
+  def getBigDecimal(key: String): Option[BigDecimal] = {
+    getBigDecimal(Symbol(key))
+  }
+
   def getList(key: String): List[Any] = {
     getList(Symbol(key))
   }
@@ -337,6 +372,10 @@ case class Record(
     getOne(key).get.toString
   }
 
+  def asBoolean(key: Symbol): Boolean = {
+    getBoolean(key).get
+  }
+
   def asInt(key: Symbol): Int = {
     getOne(key).get.toString.toInt // XXX
   }
@@ -345,8 +384,28 @@ case class Record(
     getOne(key).get.toString.toLong // XXX
   }
 
+  def asBigDecimal(key: Symbol): BigDecimal = {
+    getBigDecimal(key).get
+  }
+
+  def asTimestamp(key: Symbol): Timestamp = {
+    getTimestamp(key) getOrElse {
+      throw new IllegalArgumentException("bad timestamp = " + getOne(key))
+    }
+  }
+
+  def asDate(key: Symbol): Date = {
+    getDate(key) getOrElse {
+      throw new IllegalArgumentException("bad date = " + getOne(key))
+    }
+  }
+
   def asString(key: String): String = {
     getOne(key).get.toString
+  }
+
+  def asBoolean(key: String): Boolean = {
+    getBoolean(key).get
   }
 
   def asInt(key: String): Int = {
@@ -357,14 +416,16 @@ case class Record(
     getOne(key).get.toString.toLong // XXX
   }
 
-  def asTimestamp(key: Symbol): Timestamp = {
-    getTimestamp(key) getOrElse {
-      throw new IllegalArgumentException("bad timestamp = " + getOne(key))
-    }
+  def asBigDecimal(name: String): BigDecimal = {
+    asBigDecimal(Symbol(name))
   }
 
   def asTimestamp(name: String): Timestamp = {
     asTimestamp(Symbol(name))
+  }
+
+  def asDate(name: String): Date = {
+    asDate(Symbol(name))
   }
 
   def length(): Int = fields.length
@@ -458,6 +519,10 @@ case class Record(
     copy(fields :+ Field.create(f))
   }
 
+  def :+(f: Field): Record = {
+    copy(fields :+ f)
+  }
+
   def +(r: Record): Record = update(r)
 
   def update(r: Record): Record = {
@@ -470,14 +535,18 @@ case class Record(
     }
   }
 
-/*
-  def update(fs: Seq[(Symbol, Any)]): Record = {
+  def updateS(f: (Symbol, Any)): Record =
+    updateS(Vector(f))
+
+  def updateS(fs: Seq[(Symbol, Any)]): Record = {
     val keys: Seq[Symbol] = fs.map(_._1)
-    val a = fs.map(Field.create)
+    val a = fs.map(Field.createS)
     val b = fields.filterNot(x => keys.contains(x.key))
     copy(fields = b ++ a)
   }
-*/
+
+  def update(f: (String, Any)): Record =
+    update(Vector(f))
 
   def update(fs: Seq[(String, Any)]): Record = {
     val keys: Seq[Symbol] = fs.map(x => Symbol(x._1))
@@ -485,6 +554,19 @@ case class Record(
     val b = fields.filterNot(x => keys.contains(x.key))
     copy(fields = b ++ a)
   }
+
+  def updateAppS(f: (Symbol, Any)): Record =
+    updateAppS(Vector(f))
+
+  def updateAppS(fs: Seq[(Symbol, Any)]): Record = {
+    val keys: Seq[Symbol] = fs.map(_._1)
+    val a = fs.map(Field.createSingleS)
+    val b = fields.filterNot(x => keys.contains(x.key))
+    copy(fields = b ++ a)
+  }
+
+  def updateApp(f: (String, Any)): Record =
+    updateApp(Vector(f))
 
   def updateApp(fs: Seq[(String, Any)]): Record = {
     val keys: Seq[Symbol] = fs.map(x => Symbol(x._1))
@@ -557,6 +639,42 @@ case class Record(
       case f if f.key == from => f.copy(key = to)
       case f => f
     })
+  }
+
+  def replaceValueOne(key: String, f: Any => Any): Record = {
+    replaceValueOne(Symbol(key), f)
+  }
+
+  def replaceValueOne(key: Symbol, f: Any => Any): Record = {
+    fields.find(_.key == key) match {
+      case Some(s) =>
+        s.getOne match {
+          case Some(x) =>
+            val v = List(f(x))
+            val xs: List[Field] = fields.takeWhile(_ != s) ::: (Field(key, v) +: fields.dropWhile(_ != s).tail)
+          	copy(fields = xs)
+          case None => this
+        }
+      case None => this
+    }
+  }
+
+  def replaceValueString(key: String, f: String => String): Record = {
+    replaceValueString(Symbol(key), f)
+  }
+
+  def replaceValueString(key: Symbol, f: String => String): Record = {
+    fields.find(_.key == key) match {
+      case Some(s) =>
+        s.getString match {
+          case Some(x) =>
+            val v = List(f(x))
+            val xs = fields.takeWhile(_ != s) ::: (Field(key, v) :: fields.dropWhile(_ != s).tail)
+            copy(fields = xs)
+          case None => this
+        }
+      case None => this
+    }
   }
 
   def activateFields(keys: Seq[Symbol]) = {
@@ -682,6 +800,17 @@ case class Field(key: Symbol, values: List[Any]) { // TODO introduce Value class
     keyValue map {
       case (k, v) => k.name -> v
     }
+  }
+
+  def getOne: Option[Any] = {
+    values match {
+      case Nil => None
+      case x :: _ => Some(x)
+    }
+  }
+
+  def getString: Option[String] = {
+    getOne.map(_.toString)
   }
 }
 
@@ -933,8 +1062,7 @@ case class GroupChunk(
 )
 
 object Field {
-/*
-  def create(data: (Symbol, Any)): Field = {
+  def createS(data: (Symbol, Any)): Field = {
     data._2 match {
       case Some(x) => Field(data._1, List(x))
       case None => Field(data._1, Nil)
@@ -942,7 +1070,6 @@ object Field {
       case x => Field(data._1, List(x))
     }
   }
-*/
 
   def create(data: (String, Any)): Field = {
     data._2 match {
@@ -950,6 +1077,25 @@ object Field {
       case None => Field(Symbol(data._1), Nil)
       case xs: Seq[_] => Field(Symbol(data._1), xs.toList)
       case x => Field(Symbol(data._1), List(x))
+    }
+  }
+
+  def createSingleS(data: (Symbol, Any)): Field = {
+    data._2 match {
+      case Some(x) => Field(data._1, List(x))
+      case None => Field(data._1, Nil)
+      case xs: Seq[_] => {
+        if (_is_seq_seq_tuple2(xs)) {
+          val rs = _seq_seq_tuple2_to_records(xs)
+          Field(data._1, List(rs))
+        } else if (_is_seq_tuple2(xs)) {
+          val r = _seq_tuple2_to_record(xs)
+          Field(data._1, List(r))
+        } else {
+          Field(data._1, List(xs))
+        }
+      }
+      case x => Field(data._1, List(x))
     }
   }
 
