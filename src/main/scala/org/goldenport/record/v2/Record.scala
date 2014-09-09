@@ -27,7 +27,8 @@ import org.goldenport.record.util.{TimestampUtils, DateUtils}
  *  version Jan. 30, 2014
  *  version Feb.  6, 2014
  *  version May. 15, 2014
- * @version Aug. 10, 2014
+ *  version Aug. 10, 2014
+ * @version Sep. 10, 2014
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -428,6 +429,74 @@ case class Record(
     asDate(Symbol(name))
   }
 
+  def paramString(key: Symbol): String = {
+    getString(key) getOrElse {
+      throw new IllegalArgumentException(s"No parameter '${key.name}")
+    }
+  }
+
+  def paramBoolean(key: Symbol): Boolean = {
+    getBoolean(key).get
+  }
+
+  def paramInt(key: Symbol): Int = {
+    getInt(key) getOrElse {
+      throw new IllegalArgumentException(s"No parameter '${key.name}")
+    }
+  }
+
+  def paramLong(key: Symbol): Long = {
+    getLong(key) getOrElse {
+      throw new IllegalArgumentException(s"No parameter '${key.name}")
+    }
+  }
+
+  def paramBigDecimal(key: Symbol): BigDecimal = {
+    getBigDecimal(key) getOrElse {
+      throw new IllegalArgumentException(s"No parameter '${key.name}")
+    }
+  }
+
+  def paramTimestamp(key: Symbol): Timestamp = {
+    getTimestamp(key) getOrElse {
+      throw new IllegalArgumentException(s"No parameter '${key.name}")
+    }
+  }
+
+  def paramDate(key: Symbol): Date = {
+    getDate(key) getOrElse {
+      throw new IllegalArgumentException(s"No parameter '${key.name}")
+    }
+  }
+
+  def paramString(key: String): String = {
+    paramString(Symbol(key))
+  }
+
+  def paramBoolean(key: String): Boolean = {
+    paramBoolean(Symbol(key))
+  }
+
+  def paramInt(key: String): Int = {
+    paramInt(Symbol(key))
+  }
+
+  def paramLong(key: String): Long = {
+    paramLong(Symbol(key))
+  }
+
+  def paramBigDecimal(name: String): BigDecimal = {
+    paramBigDecimal(Symbol(name))
+  }
+
+  def paramTimestamp(name: String): Timestamp = {
+    paramTimestamp(Symbol(name))
+  }
+
+  def paramDate(name: String): Date = {
+    paramDate(Symbol(name))
+  }
+
   def length(): Int = fields.length
   def isEmpty() = fields.isEmpty
   def nonEmpty() = fields.nonEmpty
@@ -447,6 +516,18 @@ case class Record(
 
   def keyStringValues: Seq[(String, Any)] = {
     fields.flatMap(_.keyStringValue)
+  }
+
+  def isOnlyKeys(keys: Seq[String]): Boolean = {
+    val a = fields.map(_.key.name)
+    val b = a diff keys
+    b.isEmpty
+  }
+
+  def isOnlyKeys(f: String => Boolean): Boolean = {
+    val a = fields.map(_.key.name)
+    val b = a.filterNot(f)
+    b.isEmpty
   }
 
   /*
@@ -840,6 +921,14 @@ object Record {
     Record(data.map(Field.createSingle).toList)
   }
 
+  def createAppOption(data: Seq[(String, Option[Any])]): Record = {
+    val a = data.flatMap {
+      case (k, Some(v)) => Some(k -> v)
+      case (k, None) => None
+    }
+    createApp(a)
+  }
+
   @deprecated("Use createApp instead.", "0.2.22")
   def createSingle(data: Seq[(String, Any)]): Record = {
     Record(data.map(Field.createSingle).toList)
@@ -847,6 +936,14 @@ object Record {
 
   def data(data: (String, Any)*): Record = {
     create(data)
+  }
+
+  def dataApp(data: (String, Any)*): Record = {
+    createApp(data)
+  }
+
+  def dataAppOption(data: (String, Option[Any])*): Record = {
+    createAppOption(data)
   }
 
   def normalizeMultiplicity(fs: List[Field]): List[Field] = {
