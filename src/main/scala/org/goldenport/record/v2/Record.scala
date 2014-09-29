@@ -28,7 +28,7 @@ import org.goldenport.record.util.{TimestampUtils, DateUtils}
  *  version Feb.  6, 2014
  *  version May. 15, 2014
  *  version Aug. 10, 2014
- * @version Sep. 10, 2014
+ * @version Sep. 28, 2014
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -50,11 +50,20 @@ case class RecordSet(records: Seq[Record],
 
 case class Record(
   fields: List[Field], // TODO Seq
+  // context
   principal: Option[Principal] = None,
   timestamp: Long = System.currentTimeMillis,
   inputFiles: Seq[InputFile] = Nil,
   opaque: AnyRef = null
 ) {
+  override def equals(o: Any): Boolean = {
+    o match {
+      case rec: Record if length == rec.length =>
+        fields.forall(x => rec.get(x.key) == Some(x.values))
+      case _ => false
+    }
+  }
+
   def get(key: Symbol): Option[List[Any]] = {
     fields.find(_.isMatchKey(key)).map(_.values)
   }
@@ -431,7 +440,7 @@ case class Record(
 
   def paramString(key: Symbol): String = {
     getString(key) getOrElse {
-      throw new IllegalArgumentException(s"No parameter '${key.name}")
+      throw new IllegalArgumentException(s"Missing parameter '${key.name}'")
     }
   }
 
@@ -441,31 +450,31 @@ case class Record(
 
   def paramInt(key: Symbol): Int = {
     getInt(key) getOrElse {
-      throw new IllegalArgumentException(s"No parameter '${key.name}")
+      throw new IllegalArgumentException(s"Missing parameter '${key.name}'")
     }
   }
 
   def paramLong(key: Symbol): Long = {
     getLong(key) getOrElse {
-      throw new IllegalArgumentException(s"No parameter '${key.name}")
+      throw new IllegalArgumentException(s"Missing parameter '${key.name}'")
     }
   }
 
   def paramBigDecimal(key: Symbol): BigDecimal = {
     getBigDecimal(key) getOrElse {
-      throw new IllegalArgumentException(s"No parameter '${key.name}")
+      throw new IllegalArgumentException(s"Missing parameter '${key.name}'")
     }
   }
 
   def paramTimestamp(key: Symbol): Timestamp = {
     getTimestamp(key) getOrElse {
-      throw new IllegalArgumentException(s"No parameter '${key.name}")
+      throw new IllegalArgumentException(s"Missing parameter '${key.name}'")
     }
   }
 
   def paramDate(key: Symbol): Date = {
     getDate(key) getOrElse {
-      throw new IllegalArgumentException(s"No parameter '${key.name}")
+      throw new IllegalArgumentException(s"Missing parameter '${key.name}'")
     }
   }
 
@@ -759,11 +768,11 @@ case class Record(
   }
 
   def activateFields(keys: Seq[Symbol]) = {
-    copy(fields = fields.filter(keys.contains))
+    copy(fields = fields.filter(x => keys.contains(x.key)))
   }
 
   def removeFields(keys: Seq[Symbol]) = {
-    copy(fields = fields.filterNot(keys.contains))
+    copy(fields = fields.filterNot(x => keys.contains(x.key)))
   }
 
   override def toString(): String = {
