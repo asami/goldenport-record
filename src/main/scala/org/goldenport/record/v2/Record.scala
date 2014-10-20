@@ -28,7 +28,8 @@ import org.goldenport.record.util.{TimestampUtils, DateUtils}
  *  version Feb.  6, 2014
  *  version May. 15, 2014
  *  version Aug. 10, 2014
- * @version Sep. 28, 2014
+ *  version Sep. 28, 2014
+ * @version Oct.  2, 2014
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -952,6 +953,18 @@ object Record {
   }
 
   def dataAppOption(data: (String, Option[Any])*): Record = {
+    createAppOption(data)
+  }
+
+  def dataS(data: (String, Any)*): Record = {
+    create(data)
+  }
+
+  def dataAppS(data: (String, Any)*): Record = {
+    createApp(data)
+  }
+
+  def dataAppOptionS(data: (String, Option[Any])*): Record = {
     createAppOption(data)
   }
 
