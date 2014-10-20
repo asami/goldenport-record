@@ -3,7 +3,8 @@ package org.goldenport.record.v2
 /*
  * @snice   Nov. 26, 2012
  *  version Dec. 20, 2012
- * @version Feb. 20, 2013
+ *  version Feb. 20, 2013
+ * @version Oct. 20, 2014
  * @author  asami
  */
 sealed trait Visibility {
@@ -30,7 +31,7 @@ case object DetailVisibility extends Visibility {
   val update = true
   val delete = true
   val grid = false
-  val dataview = false
+  val dataview = true
 }
 
 case object ReadVisibility extends Visibility {
@@ -41,3 +42,21 @@ case object ReadVisibility extends Visibility {
   val grid = true
   val dataview = true
 }
+
+case object HiddenVisibility extends Visibility {
+  val create = false
+  val read = false
+  val update = false
+  val delete = false
+  val grid = false
+  val dataview = false
+}
+
+case class CustomVisibility(
+  create: Boolean,
+  read: Boolean,
+  update: Boolean,
+  delete: Boolean,
+  grid: Boolean,
+  dataview: Boolean
+)
