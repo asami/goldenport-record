@@ -14,7 +14,8 @@ import com.asamioffice.goldenport.text.UPathString
  *  version Apr. 13, 2013
  *  version May. 17, 2013
  *  version Aug.  7, 2013
- * @version Oct.  3, 2013
+ *  version Oct.  3, 2013
+ * @version Nov. 29, 2014
  * @author  ASAMI, Tomoharu
  */
 trait InputFile {
@@ -32,7 +33,31 @@ trait InputFile {
       case "jpg" => "image/jpeg"
       case "jpeg" => "image/jpeg"
       case "gif" => "image/gif"
+      case "css" => "text/css"
+      case "csv" => "text/csv"
+      case "html" => "text/html"
+      case "plain" => "text/plain"
+      case "xml" => "text/xml"
+      case "json" => "application/json"
+      case "js" => "application/javascript"
+      case "pdf" => "application/pdf"
+      case "zip" => "application/zip"
+      case "gzip" => "application/x-zip"
+      case "xls" => "application/vnd.ms-excel"
+      case "xlsx" => "application/vnd.ms-excel"
       case _ => "application/octet-stream"
+    }
+  }
+
+  def openStream(): InputStream = {
+    getUrl.map( _.openStream()) getOrElse {
+      val work = createWorkFile()
+      new FilterInputStream(work.openStream()) {
+        override def close() {
+          super.close()
+          work.dispose()
+        }
+      }
     }
   }
 
