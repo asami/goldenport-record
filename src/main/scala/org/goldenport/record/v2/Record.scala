@@ -29,7 +29,9 @@ import org.goldenport.record.util.{TimestampUtils, DateUtils}
  *  version May. 15, 2014
  *  version Aug. 10, 2014
  *  version Sep. 28, 2014
- * @version Oct.  2, 2014
+ *  version Oct.  2, 2014
+ *  version Nov. 29, 2014
+ * @version Dec.  1, 2014
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -63,6 +65,14 @@ case class Record(
         fields.forall(x => rec.get(x.key) == Some(x.values))
       case _ => false
     }
+  }
+
+  def getField(key: Symbol): Option[Field] = {
+    fields.find(_.isMatchKey(key))
+  }
+
+  def getField(key: String): Option[Field] = {
+    getField(Symbol(key))
   }
 
   def get(key: Symbol): Option[List[Any]] = {
@@ -108,6 +118,10 @@ case class Record(
       case "" => None
       case x => Some(x.toString)
     }
+  }
+
+  def getConcreteString(key: Symbol): Option[String] = {
+    getField(key).flatMap(_.getConcreteString)
   }
 
   def getBoolean(key: Symbol): Option[Boolean] = {
@@ -273,6 +287,10 @@ case class Record(
 
   def getFormString(key: String): Option[String] = {
     getFormString(Symbol(key))
+  }
+
+  def getConcreteString(key: String): Option[String] = {
+    getConcreteString(Symbol(key))
   }
 
   def getBoolean(key: String): Option[Boolean] = {
@@ -616,6 +634,7 @@ case class Record(
 
   def +(r: Record): Record = update(r)
 
+  // updatePreserve
   def update(r: Record): Record = {
     if (fields.isEmpty) r
     else if (r.isEmpty) this
@@ -626,9 +645,11 @@ case class Record(
     }
   }
 
+  // updatePreserve
   def updateS(f: (Symbol, Any)): Record =
     updateS(Vector(f))
 
+  // updatePreserve
   def updateS(fs: Seq[(Symbol, Any)]): Record = {
     val keys: Seq[Symbol] = fs.map(_._1)
     val a = fs.map(Field.createS)
@@ -636,9 +657,11 @@ case class Record(
     copy(fields = b ++ a)
   }
 
+  // updatePreserve
   def update(f: (String, Any)): Record =
     update(Vector(f))
 
+  // updatePreserve
   def update(fs: Seq[(String, Any)]): Record = {
     val keys: Seq[Symbol] = fs.map(x => Symbol(x._1))
     val a = fs.map(Field.create)
@@ -646,9 +669,11 @@ case class Record(
     copy(fields = b ++ a)
   }
 
+  // updatePreserve
   def updateAppS(f: (Symbol, Any)): Record =
     updateAppS(Vector(f))
 
+  // updatePreserve
   def updateAppS(fs: Seq[(Symbol, Any)]): Record = {
     val keys: Seq[Symbol] = fs.map(_._1)
     val a = fs.map(Field.createSingleS)
@@ -656,14 +681,40 @@ case class Record(
     copy(fields = b ++ a)
   }
 
+  // updatePreserve
   def updateApp(f: (String, Any)): Record =
     updateApp(Vector(f))
 
+  // updatePreserve
   def updateApp(fs: Seq[(String, Any)]): Record = {
     val keys: Seq[Symbol] = fs.map(x => Symbol(x._1))
     val a = fs.map(Field.createSingle)
     val b = fields.filterNot(x => keys.contains(x.key))
     copy(fields = b ++ a)
+  }
+
+  def updatePreserve(f: (String, Any)): Record = {
+    updatePreserveS(f.copy(_1 = Symbol(f._1)))
+  }
+
+  def updatePreserveS(f: (Symbol, Any)): Record = {
+    val (prefix, suffix) = fields.span(_.key != f._1) // XXX isMatch?
+    val r = suffix match {
+      case Nil => prefix :+ Field.createS(f)
+      case x :: xs => prefix ::: (Field.createS(f) :: xs)
+    }
+    copy(fields = r)
+  }
+
+  def isActive(key: Symbol): Boolean = {
+    getOne(key).map {
+      case x: String => Strings.notblankp(x)
+      case _ => true
+    } getOrElse false
+  }
+
+  def isActive(key: String): Boolean = {
+    isActive(Symbol(key))
   }
 
 /*
@@ -902,6 +953,13 @@ case class Field(key: Symbol, values: List[Any]) { // TODO introduce Value class
 
   def getString: Option[String] = {
     getOne.map(_.toString)
+  }
+
+  def getConcreteString: Option[String] = {
+    getOne flatMap {
+      case s: String if Strings.blankp(s) => None
+      case x => Some(x.toString)
+    }
   }
 }
 
