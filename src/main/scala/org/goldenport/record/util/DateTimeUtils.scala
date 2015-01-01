@@ -5,7 +5,7 @@ import org.joda.time.format.ISODateTimeFormat
 
 /*
  * @since   Jul. 25, 2014
- * @version Jul. 27, 2014
+ * @version Jan.  1, 2015
  * @author  ASAMI, Tomoharu
  */
 object DateTimeUtils {
@@ -31,5 +31,17 @@ object DateTimeUtils {
     else
       isoFormatter.withZone(tz)
     fmt.print(dt)
+  }
+
+  def toIsoDateTimeStringJst(dt: DateTime): String = {
+    toIsoDateTimeString(dt, jodajst)
+  }
+
+  def toIsoDateTimeStringJst(dt: java.sql.Timestamp): String = {
+    toIsoDateTimeString(dt, jodajst)
+  }
+
+  def toIsoDateTimeStringJst(dt: Long): String = {
+    toIsoDateTimeString(dt, jodajst)
   }
 }

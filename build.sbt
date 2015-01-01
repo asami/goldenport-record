@@ -2,7 +2,7 @@ organization := "org.goldenport"
 
 name := "goldenport-record"
 
-version := "1.0.9"
+version := "1.0.10-SNAPSHOT"
 
 scalaVersion := "2.10.3"
 // crossScalaVersions := Seq("2.9.2", "2.9.1")
@@ -12,6 +12,8 @@ scalacOptions += "-deprecation"
 scalacOptions += "-unchecked"
 
 scalacOptions += "-feature"
+
+resolvers += "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases"
 
 resolvers += "Asami Maven Repository" at "http://www.asamioffice.com/maven"
 
@@ -23,7 +25,7 @@ libraryDependencies += "org.goldenport" %% "goldenport-atom" % "1.0.1"
 
 // libraryDependencies += "org.goldenport" %% "goldenport-scala-lib" % "1.0.0"
 
-libraryDependencies += "org.smartdox" %% "smartdox" % "1.0.2"
+libraryDependencies += "org.smartdox" %% "smartdox" % "1.0.3-SNAPSHOT"
 
 libraryDependencies += "org.scalatest" %% "scalatest" % "2.0" % "test"
 
