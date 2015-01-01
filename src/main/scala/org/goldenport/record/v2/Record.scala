@@ -31,7 +31,7 @@ import org.goldenport.record.util.{TimestampUtils, DateUtils}
  *  version Sep. 28, 2014
  *  version Oct.  2, 2014
  *  version Nov. 29, 2014
- * @version Dec.  1, 2014
+ * @version Dec. 30, 2014
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -634,6 +634,10 @@ case class Record(
 
   def +(r: Record): Record = update(r)
 
+  def monoidAppend(rhs: Record): Record = {
+    this + rhs // TODO associative law
+  }
+
   // updatePreserve
   def update(r: Record): Record = {
     if (fields.isEmpty) r
@@ -982,11 +986,19 @@ object Record {
     Record(data.map(Field.create).toList)
   }
 
+  def createS(data: Seq[(Symbol, Any)]): Record = {
+    Record(data.map(Field.createS).toList)
+  }
+
   /*
    * Uses the method in case of List as single object.
    */
   def createApp(data: Seq[(String, Any)]): Record = {
     Record(data.map(Field.createSingle).toList)
+  }
+
+  def createAppS(data: Seq[(Symbol, Any)]): Record = {
+    Record(data.map(Field.createSingleS).toList)
   }
 
   def createAppOption(data: Seq[(String, Option[Any])]): Record = {
@@ -995,6 +1007,14 @@ object Record {
       case (k, None) => None
     }
     createApp(a)
+  }
+
+  def createAppOptionS(data: Seq[(Symbol, Option[Any])]): Record = {
+    val a = data.flatMap {
+      case (k, Some(v)) => Some(k -> v)
+      case (k, None) => None
+    }
+    createAppS(a)
   }
 
   @deprecated("Use createApp instead.", "0.2.22")
@@ -1014,16 +1034,16 @@ object Record {
     createAppOption(data)
   }
 
-  def dataS(data: (String, Any)*): Record = {
-    create(data)
+  def dataS(data: (Symbol, Any)*): Record = {
+    createS(data)
   }
 
-  def dataAppS(data: (String, Any)*): Record = {
-    createApp(data)
+  def dataAppS(data: (Symbol, Any)*): Record = {
+    createAppS(data)
   }
 
-  def dataAppOptionS(data: (String, Option[Any])*): Record = {
-    createAppOption(data)
+  def dataAppOptionS(data: (Symbol, Option[Any])*): Record = {
+    createAppOptionS(data)
   }
 
   def normalizeMultiplicity(fs: List[Field]): List[Field] = {
