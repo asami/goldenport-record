@@ -2,13 +2,17 @@ package org.goldenport.record.v2
 
 import scalaz._, Scalaz._
 import Validator._
+// TODO Validation already has not been Monad. Use Disjunction or use it as Applicative.
+// http://stackoverflow.com/questions/22635033/validation-implicit-scalaz-bind-not-found
+import scalaz.Validation.FlatMap._
 
 /*
  * @snice   Nov. 23, 2012
  *  version Dec.  9, 2012
  *  version Dec. 31, 2013
  *  version Jan. 15, 2014
- * @version Feb.  6, 2014
+ *  version Feb.  6, 2014
+ * @version Jan.  5, 2015
  * @author  ASAMI, Tomoharu
  */
 trait Constraint {
@@ -17,19 +21,19 @@ trait Constraint {
 
   protected final def validate_double(v: Option[_], msg: String): Validation[ValidationResult, Double] = {
     v match {
-      case None => ValueDomainFailure(msg, "???").fail // XXX
-      case Some(Nil) => ValueDomainFailure(msg, "???").fail // XXX
+      case None => ValueDomainFailure(msg, "???").failure // XXX
+      case Some(Nil) => ValueDomainFailure(msg, "???").failure // XXX
       case Some(x: String) => validate_double(x, msg)
       case Some((x: String) :: Nil) => validate_double(x, msg)
-      case Some(xs) => ValueDomainFailure(msg, "???").fail // XXX
+      case Some(xs) => ValueDomainFailure(msg, "???").failure // XXX
     }
   }
 
   protected final def validate_double(v: Seq[String], msg: String): Validation[ValidationResult, Double] = {
     v match {
-      case Nil => ValueDomainFailure(msg, "???").fail // XXX
+      case Nil => ValueDomainFailure(msg, "???").failure // XXX
       case x :: Nil => validate_double(x, msg)
-      case xs => ValueDomainFailure(msg, "???").fail // XXX
+      case xs => ValueDomainFailure(msg, "???").failure // XXX
     }
   }
 
@@ -81,8 +85,8 @@ object Constraint {
     val a: Validation[Invalid, Seq[String]] = multiplicity match {
       case MOne => {
         value match {
-          case null => MultiplicityFailure(MOne, MESSAGE_NO_DATA).fail
-          case Nil => MultiplicityFailure(MOne, MESSAGE_EMPTY_DATA).fail
+          case null => MultiplicityFailure(MOne, MESSAGE_NO_DATA).failure
+          case Nil => MultiplicityFailure(MOne, MESSAGE_EMPTY_DATA).failure
           case v => v.success
         }
       }
@@ -95,8 +99,8 @@ object Constraint {
       }
       case MOneMore => {
         value match {
-          case null => MultiplicityFailure(MOne, MESSAGE_NO_DATA).fail
-          case Nil => MultiplicityFailure(MOne, MESSAGE_EMPTY_DATA).fail
+          case null => MultiplicityFailure(MOne, MESSAGE_NO_DATA).failure
+          case Nil => MultiplicityFailure(MOne, MESSAGE_EMPTY_DATA).failure
           case v => v.success
         }
       }
