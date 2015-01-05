@@ -2,6 +2,7 @@ package org.goldenport.record.v3
 
 import java.sql.Timestamp
 import org.goldenport.record.util.TimestampUtils
+import org.joda.time.DateTime
 
 /*
  * derived from org.goldenport.g3.message.
@@ -27,13 +28,15 @@ import org.goldenport.record.util.TimestampUtils
  *  version Oct.  2, 2014
  *  version Nov. 29, 2014
  *  version Dec. 31, 2014
- * @version Jan.  1, 2015
+ * @version Jan.  2, 2015
  * @author  ASAMI, Tomoharu
  */
 sealed abstract class FieldValue {
   def asString: String
+  def asInt: Int = asString.toInt
   def asLong: Long = asString.toLong
   def asTimestamp: Timestamp = sys.error("???")
+  def asDateTime: DateTime = sys.error("???")
   def getValue: Option[Any]
 }
 

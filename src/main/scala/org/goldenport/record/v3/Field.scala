@@ -1,6 +1,7 @@
 package org.goldenport.record.v3
 
 import java.sql.Timestamp
+import org.joda.time.DateTime
 
 /*
  * derived from org.goldenport.g3.message.
@@ -26,13 +27,15 @@ import java.sql.Timestamp
  *  version Oct.  2, 2014
  *  version Nov. 29, 2014
  *  version Dec. 31, 2014
- * @version Jan.  1, 2015
+ * @version Jan.  2, 2015
  * @author  ASAMI, Tomoharu
  */
 case class Field(key: Symbol, value: FieldValue) {
   def asString: String = value.asString
+  def asInt: Int = value.asInt
   def asLong: Long = value.asLong
   def asTimestamp: Timestamp = value.asTimestamp
+  def asDateTime: DateTime = value.asDateTime
 
   def keyValue: Option[(Symbol, Any)] = {
     val data = value.getValue

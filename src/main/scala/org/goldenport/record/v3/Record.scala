@@ -3,6 +3,7 @@ package org.goldenport.record.v3
 import java.sql.Timestamp
 import org.goldenport.record.util.StringUtils
 import org.goldenport.record.util.JsonUtils
+import org.joda.time.DateTime
 
 /*
  * derived from org.goldenport.g3.message.
@@ -28,12 +29,20 @@ import org.goldenport.record.util.JsonUtils
  *  version Oct.  2, 2014
  *  version Nov. 29, 2014
  *  version Dec. 31, 2014
- * @version Jan.  1, 2015
+ * @version Jan.  2, 2015
  * @author  ASAMI, Tomoharu
  */
 case class Record(
   fields: Seq[Field]
 ) {
+  def isDefined(key: Symbol): Boolean = {
+    fields.exists(_.key == key)
+  }
+
+  def nonDefinded(key: Symbol): Boolean = {
+    !isDefined(key)
+  }
+
   def getField(key: Symbol): Option[Field] = {
     fields.find(_.key == key)
   }
@@ -46,12 +55,44 @@ case class Record(
     getField(key).map(_.asString)
   }
 
+  def getInt(key: Symbol): Option[Int] = {
+    getField(key).map(_.asInt)
+  }
+
   def getLong(key: Symbol): Option[Long] = {
     getField(key).map(_.asLong)
   }
 
   def getTimestamp(key: Symbol): Option[Timestamp] = {
     getField(key).map(_.asTimestamp)
+  }
+
+  def getDateTime(key: Symbol): Option[DateTime] = {
+    getField(key).map(_.asDateTime)
+  }
+
+  def asString(key: Symbol): String = {
+    getString(key) getOrElse {
+      throw new IllegalArgumentException(s"Missing string '$key.name'")
+    }
+  }
+
+  def asInt(key: Symbol): Int = {
+    getInt(key) getOrElse {
+      throw new IllegalArgumentException(s"Missing int '$key.name'")
+    }
+  }
+
+  def asLong(key: Symbol): Long = {
+    getLong(key) getOrElse {
+      throw new IllegalArgumentException(s"Missing int '$key.name'")
+    }
+  }
+
+  def asDateTime(key: Symbol): DateTime = {
+    getDateTime(key) getOrElse {
+      throw new IllegalArgumentException(s"Missing datetime '$key.name'")
+    }
   }
 
   def getString(key: String): Option[String] = {
