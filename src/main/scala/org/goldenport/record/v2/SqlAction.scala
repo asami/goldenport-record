@@ -10,7 +10,8 @@ import java.net.URI
  *  version Mar. 12, 2013
  *  version Apr. 26, 2013
  *  version Jun. 24, 2013
- * @version Feb.  6, 2014
+ *  version Feb.  6, 2014
+ * @version Jan. 16, 2015
  * @author  ASAMI, Tomoharu
  */
 trait SqlAction {
@@ -57,27 +58,61 @@ trait SqlActionCommand {
     before_Insert(source)
   }
 
+  def beforeInsert(xs: Seq[ActionContext]): Seq[ActionContext] = {
+    before_Insert(xs)
+  }
+
   def afterInsert(source: ActionContext) {
     after_Insert(source)
+  }
+
+  def afterInsert(xs: Seq[ActionContext]) {
+    after_Insert(xs)
   }
 
   def beforeUpdate(source: ActionContext): ActionContext = {
     before_Update(source)
   }
 
+  def beforeUpdate(xs: Seq[ActionContext]): Seq[ActionContext] = {
+    before_Update(xs)
+  }
+
   def afterUpdate(source: ActionContext) {
     after_Update(source)
+  }
+
+  def afterUpdate(xs: Seq[ActionContext]) {
+    after_Update(xs)
   }
 
   protected def before_Insert(source: ActionContext): ActionContext = {
     source
   }
+
+  protected def before_Insert(xs: Seq[ActionContext]): Seq[ActionContext] = {
+    xs.map(before_Insert(_))
+  }
+
   protected def after_Insert(source: ActionContext) {}
+
+  protected def after_Insert(xs: Seq[ActionContext]) {
+    xs.foreach(after_Insert(_))
+  }
 
   protected def before_Update(source: ActionContext): ActionContext = {
     source
   }
+
+  protected def before_Update(xs: Seq[ActionContext]): Seq[ActionContext] = {
+    xs.map(before_Update(_))
+  }
+
   protected def after_Update(source: ActionContext) {}
+
+  protected def after_Update(xs: Seq[ActionContext]) {
+    xs.foreach(after_Update(_))
+  }
 
   protected def before_records(source: ActionContext): ActionContext = {
     methods.foldLeft(source)((a, x) => {
@@ -163,8 +198,20 @@ case class SqlActionCommands(commands: Seq[SqlActionCommand]) {
     commands.foldLeft(ActionContext(record, connection = conn))((a, x) => x.beforeInsert(a))
   }
 
+  def beforeInsert(
+    rs: Seq[Record],
+    conn: Option[java.sql.Connection]
+  ): Seq[ActionContext] = {
+    val acs = rs.map(ActionContext(_, connection = conn))
+    commands.foldLeft(acs)((a, x) => x.beforeInsert(a))
+  }
+
   def afterInsert(record: ActionContext) {
     commands.foreach(_.afterInsert(record))
+  }
+
+  def afterInsert(rs: Seq[ActionContext]) {
+    commands.foreach(_.afterInsert(rs))
   }
 
   def beforeUpdate(
@@ -174,8 +221,20 @@ case class SqlActionCommands(commands: Seq[SqlActionCommand]) {
     commands.foldLeft(ActionContext(record, connection = conn))((a, x) => x.beforeUpdate(a))
   }
 
+  def beforeUpdate(
+    rs: Seq[Record],
+    conn: Option[java.sql.Connection]
+  ): Seq[ActionContext] = {
+    val acs = rs.map(ActionContext(_, connection = conn))
+    commands.foldLeft(acs)((a, x) => x.beforeUpdate(a))
+  }
+
   def afterUpdate(record: ActionContext) {
     commands.foreach(_.afterUpdate(record))
+  }
+
+  def afterUpdate(rs: Seq[ActionContext]) {
+    commands.foreach(_.afterUpdate(rs))
   }
 }
 
