@@ -11,7 +11,7 @@ import java.net.URI
  *  version Apr. 26, 2013
  *  version Jun. 24, 2013
  *  version Feb.  6, 2014
- * @version Jan. 16, 2015
+ * @version Jan. 27, 2015
  * @author  ASAMI, Tomoharu
  */
 trait SqlAction {
@@ -86,6 +86,22 @@ trait SqlActionCommand {
     after_Update(xs)
   }
 
+  def beforeDelete(source: ActionContext): ActionContext = {
+    before_Delete(source)
+  }
+
+  def beforeDelete(xs: Seq[ActionContext]): Seq[ActionContext] = {
+    before_Delete(xs)
+  }
+
+  def afterDelete(source: ActionContext) {
+    after_Delete(source)
+  }
+
+  def afterDelete(xs: Seq[ActionContext]) {
+    after_Delete(xs)
+  }
+
   protected def before_Insert(source: ActionContext): ActionContext = {
     source
   }
@@ -112,6 +128,20 @@ trait SqlActionCommand {
 
   protected def after_Update(xs: Seq[ActionContext]) {
     xs.foreach(after_Update(_))
+  }
+
+  protected def before_Delete(source: ActionContext): ActionContext = {
+    source
+  }
+
+  protected def before_Delete(xs: Seq[ActionContext]): Seq[ActionContext] = {
+    xs.map(before_Delete(_))
+  }
+
+  protected def after_Delete(source: ActionContext) {}
+
+  protected def after_Delete(xs: Seq[ActionContext]) {
+    xs.foreach(after_Delete(_))
   }
 
   protected def before_records(source: ActionContext): ActionContext = {
@@ -235,6 +265,29 @@ case class SqlActionCommands(commands: Seq[SqlActionCommand]) {
 
   def afterUpdate(rs: Seq[ActionContext]) {
     commands.foreach(_.afterUpdate(rs))
+  }
+
+  def beforeDelete(
+    record: Record,
+    conn: Option[java.sql.Connection]
+  ): ActionContext = {
+    commands.foldLeft(ActionContext(record, connection = conn))((a, x) => x.beforeDelete(a))
+  }
+
+  def beforeDelete(
+    rs: Seq[Record],
+    conn: Option[java.sql.Connection]
+  ): Seq[ActionContext] = {
+    val acs = rs.map(ActionContext(_, connection = conn))
+    commands.foldLeft(acs)((a, x) => x.beforeDelete(a))
+  }
+
+  def afterDelete(record: ActionContext) {
+    commands.foreach(_.afterDelete(record))
+  }
+
+  def afterDelete(rs: Seq[ActionContext]) {
+    commands.foreach(_.afterDelete(rs))
   }
 }
 

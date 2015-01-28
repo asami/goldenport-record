@@ -7,6 +7,7 @@ import scala.math.{BigInt, BigDecimal}
 import org.goldenport.Strings
 import org.goldenport.Strings.notblankp
 import org.goldenport.record.util.{TimestampUtils, DateUtils}
+import org.goldenport.record.util.{AnyUtils}
 
 /**
  * derived from org.goldenport.g3.message.
@@ -31,7 +32,7 @@ import org.goldenport.record.util.{TimestampUtils, DateUtils}
  *  version Sep. 28, 2014
  *  version Oct.  2, 2014
  *  version Nov. 29, 2014
- * @version Dec. 30, 2014
+ * @version Jan. 28, 2015
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -110,13 +111,13 @@ case class Record(
 
   // TODO unify Field
   def getString(key: Symbol): Option[String] = {
-    getOne(key).map(_.toString)
+    getOne(key).map(AnyUtils.toString)
   }
 
   def getFormString(key: Symbol): Option[String] = {
     getOne(key) flatMap {
       case "" => None
-      case x => Some(x.toString)
+      case x => Some(AnyUtils.toString(x))
     }
   }
 
@@ -141,46 +142,46 @@ case class Record(
   }
 
   def getInt(key: Symbol): Option[Int] = {
-    getOne(key).map(_.toString.toInt)
+    getOne(key).map(AnyUtils.toInt)
   }
 
   def getFormInt(key: Symbol): Option[Int] = {
     getOne(key) flatMap {
       case "" => None
-      case x => Some(x.toString.toInt)
+      case x => Some(AnyUtils.toInt(x))
     }
   }
 
   def getLong(key: Symbol): Option[Long] = {
-    getOne(key).map(_.toString.toLong)
+    getOne(key).map(AnyUtils.toLong)
   }
 
   def getFormLong(key: Symbol): Option[Long] = {
     getOne(key) flatMap {
       case "" => None
-      case x => Some(x.toString.toLong)
+      case x => Some(AnyUtils.toLong(x))
     }
   }
 
   def getFloat(key: Symbol): Option[Float] = {
-    getOne(key).map(_.toString.toFloat)
+    getOne(key).map(AnyUtils.toFloat)
   }
 
   def getFormFloat(key: Symbol): Option[Float] = {
     getOne(key) flatMap {
       case "" => None
-      case x => Some(x.toString.toFloat)
+      case x => Some(AnyUtils.toFloat(x))
     }
   }
 
   def getDouble(key: Symbol): Option[Double] = {
-    getOne(key).map(_.toString.toDouble)
+    getOne(key).map(AnyUtils.toDouble)
   }
 
   def getFormDouble(key: Symbol): Option[Double] = {
     getOne(key) flatMap {
       case "" => None
-      case x => Some(x.toString.toDouble)
+      case x => Some(AnyUtils.toDouble(x))
     }
   }
 
@@ -225,7 +226,7 @@ case class Record(
   }
 
   def getStringList(key: Symbol): List[String] = {
-    getList(key).map(_.toString)
+    getList(key).map(AnyUtils.toString)
   }
 
   def getFormStringList(key: Symbol): List[String] = {
@@ -233,15 +234,15 @@ case class Record(
   }
 
   def getIntList(key: Symbol): List[Int] = {
-    getList(key).map(_.toString.toInt)
+    getList(key).map(AnyUtils.toInt)
   }
 
   def getFormIntList(key: Symbol): List[Int] = {
-    getFormStringList(key).map(_.toInt)
+    getFormStringList(key).map(AnyUtils.toInt)
   }
 
   def getLongList(key: Symbol): List[Long] = {
-    getList(key).map(_.toString.toLong)
+    getList(key).map(AnyUtils.toLong)
   }
 
   def getFormLongList(key: Symbol): List[Long] = {
@@ -249,15 +250,15 @@ case class Record(
   }
 
   def getFloatList(key: Symbol): List[Float] = {
-    getList(key).map(_.toString.toFloat)
+    getList(key).map(AnyUtils.toFloat)
   }
 
   def getFormDoubleList(key: Symbol): List[Double] = {
-    getFormStringList(key).map(_.toDouble)
+    getFormStringList(key).map(AnyUtils.toDouble)
   }
 
   def getDoubleList(key: Symbol): List[Double] = {
-    getList(key).map(_.toString.toDouble)
+    getList(key).map(AnyUtils.toDouble)
   }
 
   def getRecordList(key: Symbol): List[Record] = getRecords(key)
@@ -354,7 +355,7 @@ case class Record(
   }
 
   def getStringList(key: String): List[String] = {
-    getList(key).map(_.toString)
+    getList(key).map(AnyUtils.toString)
   }
 
   def getFormStringList(key: String): List[String] = {
@@ -362,7 +363,7 @@ case class Record(
   }
 
   def getIntList(key: String): List[Int] = {
-    getList(key).map(_.toString.toInt)
+    getList(key).map(AnyUtils.toInt)
   }
 
   def getFormIntList(key: String): List[Int] = {
@@ -370,27 +371,27 @@ case class Record(
   }
 
   def getLongList(key: String): List[Long] = {
-    getList(key).map(_.toString.toLong)
+    getList(key).map(AnyUtils.toLong)
   }
 
   def getFormLongList(key: String): List[Long] = {
-    getFormStringList(key).map(_.toLong)
+    getFormStringList(key).map(AnyUtils.toLong)
   }
 
   def getFloatList(key: String): List[Float] = {
-    getList(key).map(_.toString.toFloat)
+    getList(key).map(AnyUtils.toFloat)
   }
 
   def getFormFloatList(key: String): List[Float] = {
-    getStringList(key).map(_.toFloat)
+    getStringList(key).map(AnyUtils.toFloat)
   }
 
   def getDoubleList(key: String): List[Double] = {
-    getList(key).map(_.toString.toDouble)
+    getList(key).map(AnyUtils.toDouble)
   }
 
   def getFormDoubleList(key: String): List[Double] = {
-    getStringList(key).map(_.toDouble)
+    getStringList(key).map(AnyUtils.toDouble)
   }
 
   def getRecordList(key: String): List[Record] = {
@@ -398,7 +399,7 @@ case class Record(
   }
 
   def asString(key: Symbol): String = {
-    getOne(key).get.toString
+    AnyUtils.toString(getOne(key).get)
   }
 
   def asBoolean(key: Symbol): Boolean = {
@@ -406,11 +407,11 @@ case class Record(
   }
 
   def asInt(key: Symbol): Int = {
-    getOne(key).get.toString.toInt // XXX
+    AnyUtils.toInt(getOne(key).get)
   }
 
   def asLong(key: Symbol): Long = {
-    getOne(key).get.toString.toLong // XXX
+    AnyUtils.toLong(getOne(key).get)
   }
 
   def asBigDecimal(key: Symbol): BigDecimal = {
@@ -430,7 +431,7 @@ case class Record(
   }
 
   def asString(key: String): String = {
-    getOne(key).get.toString
+    AnyUtils.toString(getOne(key).get)
   }
 
   def asBoolean(key: String): Boolean = {
@@ -438,11 +439,11 @@ case class Record(
   }
 
   def asInt(key: String): Int = {
-    getOne(key).get.toString.toInt // XXX
+    AnyUtils.toInt(getOne(key).get)
   }
 
   def asLong(key: String): Long = {
-    getOne(key).get.toString.toLong // XXX
+    AnyUtils.toLong(getOne(key).get)
   }
 
   def asBigDecimal(name: String): BigDecimal = {
@@ -840,7 +841,7 @@ case class Record(
   }
 
   def toStringMap: Map[String, String] = {
-    Map.empty ++ fields.flatMap(f => f.effectiveValue.map(v => f.key.name -> v.toString)) // XXX
+    Map.empty ++ fields.flatMap(f => f.effectiveValue.map(v => f.key.name -> AnyUtils.toString(v)))
   }
 
   def toVector: Vector[(String, Any)] = {
@@ -888,7 +889,7 @@ case class Field(key: Symbol, values: List[Any]) { // TODO introduce Value class
       values match {
         case Nil => this
         case v => {
-          val a = v.map(x => f(x.toString.toDouble))
+          val a = v.map(x => f(AnyUtils.toDouble(x)))
           Field(key, a)
         }
       }
@@ -902,7 +903,7 @@ case class Field(key: Symbol, values: List[Any]) { // TODO introduce Value class
       values match {
         case Nil => this
         case v => {
-          val a = v.map(x => f(scala.math.BigDecimal(x.toString)))
+          val a = v.map(x => f(AnyUtils.toBigDecimal(x)))
           Field(key, a)
         }
       }
@@ -956,13 +957,13 @@ case class Field(key: Symbol, values: List[Any]) { // TODO introduce Value class
   }
 
   def getString: Option[String] = {
-    getOne.map(_.toString)
+    getOne.map(AnyUtils.toString)
   }
 
   def getConcreteString: Option[String] = {
     getOne flatMap {
       case s: String if Strings.blankp(s) => None
-      case x => Some(x.toString)
+      case x => Some(AnyUtils.toString)
     }
   }
 }
