@@ -963,7 +963,7 @@ case class Field(key: Symbol, values: List[Any]) { // TODO introduce Value class
   def getConcreteString: Option[String] = {
     getOne flatMap {
       case s: String if Strings.blankp(s) => None
-      case x => Some(AnyUtils.toString)
+      case x => Some(AnyUtils.toString(x))
     }
   }
 }
