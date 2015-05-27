@@ -2,7 +2,7 @@ organization := "org.goldenport"
 
 name := "goldenport-record"
 
-version := "2.0.2F"
+version := "2.0.2G"
 
 scalaVersion := "2.11.6"
 
@@ -21,6 +21,7 @@ resolvers += "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases"
 resolvers += "Asami Maven Repository" at "http://www.asamioffice.com/maven"
 
 libraryDependencies += "org.goldenport" %% "goldenport-atom" % "2.0.0"
+<<<<<<< HEAD
 
 libraryDependencies += "org.smartdox" %% "smartdox" % "2.0.0"
 
@@ -29,6 +30,12 @@ libraryDependencies += "org.scalikejdbc" %% "scalikejdbc" % "2.2.6" % "provided"
 libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.4" % "test"
 
 libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.12.3" % "test"
+=======
+
+libraryDependencies += "org.smartdox" %% "smartdox" % "2.0.0"
+
+libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.4" % "test"
+>>>>>>> Version 2.0.0 (20150527)
 
 libraryDependencies += "junit" % "junit" % "4.12" % "test"
 
