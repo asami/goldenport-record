@@ -29,7 +29,8 @@ import org.joda.time.DateTime
  *  version Oct.  2, 2014
  *  version Nov. 29, 2014
  *  version Dec. 31, 2014
- * @version Jan.  2, 2015
+ *  version Jan.  2, 2015
+ * @version May. 29, 2015
  * @author  ASAMI, Tomoharu
  */
 case class Record(
@@ -115,6 +116,10 @@ case class Record(
     copy(fields = r)
   }
 
+  def removeFields(keys: Seq[Symbol]) = {
+    copy(fields = fields.filterNot(x => keys.contains(x.key)))
+  }
+
   /*
    * LTSV
    */
@@ -134,7 +139,6 @@ case class Record(
     buildJsonString(buf)
     buf.toString
   }
-
 
   def buildJsonString(buf: StringBuilder) {
     def buildfield(kv: (String, Any)) {
@@ -163,6 +167,10 @@ case class Record(
 
 object Record {
   val empty = Record(Vector.empty)
+
+  def data(xs: (Symbol, Any)*): Record = {
+    Record(xs.map(Field.create).toList)
+  }
 
   def fromDataSeq(data: Seq[(String, Any)]): Record = {
     Record(data.map(Field.fromData).toList)
