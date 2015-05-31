@@ -37,7 +37,8 @@ import org.goldenport.record.v2.{
  *  version May. 29, 2015
  *  version Jun. 21, 2015
  *  version Jul. 31, 2015
- * @version Aug. 10, 2015
+ *  version Aug. 10, 2015
+ * @version Nov. 10, 2015
  * @author  ASAMI, Tomoharu
  */
 case class Record(
@@ -279,6 +280,10 @@ case class Record(
 
   def toStrings(schema: Schema): Vector[String] = {
     schema.columns.toVector.map(c => getString(c.name) getOrElse "")
+  }
+
+  def removeFields(keys: Seq[Symbol]) = {
+    copy(fields = fields.filterNot(x => keys.contains(x.key)))
   }
 
   /*
