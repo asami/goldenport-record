@@ -1,11 +1,11 @@
-package org.goldenport.record
+package org.goldenport.record.v1
 
 import scala.language.implicitConversions
 import scalaz._, Scalaz._, NonEmptyList._
 import scala.collection.mutable.ArrayBuffer
 import java.io.InputStream
 import java.sql.ResultSet
-import org.goldenport.record.sql.SqlDatatype
+import org.goldenport.record.v1.sql.SqlDatatype
 import org.smartdox._
 
 /**
@@ -18,7 +18,8 @@ import org.smartdox._
  *  version Aug. 15, 2012
  *  version Mar.  3, 2013
  *  version Jan. 20, 2014
- * @version Feb.  6, 2014
+ *  version Feb.  6, 2014
+ * @version May. 31, 2015
  * @author  ASAMI, Tomoharu
  */
 object Schema {
