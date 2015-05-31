@@ -1,11 +1,12 @@
-package org.goldenport.record.sql
+package org.goldenport.record.v1.sql
 
 /**
  * derived from org.goldenport.g3.messages.sql.SqlDatatype
  * 
  * @since   Apr. 12, 2010
  *  version Jun. 26, 2011
- * @version Feb. 14, 2012
+ *  version Feb. 14, 2012
+ * @version May. 31, 2015
  * @author  ASAMI, Tomoharu
  */
 abstract class SqlDatatype() {

@@ -1,17 +1,18 @@
-package org.goldenport.record.query
+package org.goldenport.record.v1.query
 
 import java.net.URI
 import scala.collection.mutable.HashMap
 import org.goldenport.util.Control.orP
-import org.goldenport.record.sql.SqlU.{symbol2name => to_name, value2literal => to_literal}
-import org.goldenport.record._
+import org.goldenport.record.v1.sql.SqlU.{symbol2name => to_name, value2literal => to_literal}
+import org.goldenport.record.v1._
 
 /**
  * @since   Aug. 29, 2010
  *  version Jun. 26, 2011
  *  version Feb. 16, 2012
  *  version Feb. 17, 2013
- * @version Feb.  6, 2014
+ *  version Feb.  6, 2014
+ * @version May. 31, 2015
  * @author  ASAMI, Tomoharu
  */
 class RecordQuery(val patterns: List[RecordQueryPattern], val slots: List[RecordQuerySlot], val context: RecordQueryContext) {

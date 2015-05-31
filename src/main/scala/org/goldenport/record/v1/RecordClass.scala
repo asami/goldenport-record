@@ -1,4 +1,4 @@
-package org.goldenport.record
+package org.goldenport.record.v1
 
 import org.goldenport.util.QSymbol
 
@@ -7,7 +7,8 @@ import org.goldenport.util.QSymbol
  * 
  * @since   Aug. 29, 2010
  *  version Oct.  5, 2010
- * @version Feb. 14, 2012
+ *  version Feb. 14, 2012
+ * @version May. 31, 2015
  * @author  ASAMI, Tomoharu
  */
 class RecordClass(val uri: QSymbol, val schema: RecordSchema, val kindMap: Map[String, String] = Map.empty) {
