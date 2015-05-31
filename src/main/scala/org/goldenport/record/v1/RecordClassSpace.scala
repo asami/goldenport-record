@@ -1,4 +1,4 @@
-package org.goldenport.record
+package org.goldenport.record.v1
 
 import scala.collection.immutable.Stream
 import scala.collection.immutable.Stream.Empty
@@ -10,7 +10,8 @@ import org.goldenport.util.QSymbol
  * 
  * @since   Aug. 29, 2010
  *  version Jul.  3, 2011
- * @version Feb. 14, 2012
+ *  version Feb. 14, 2012
+ * @version May. 31, 2015
  * @author  ASAMI, Tomoharu
  */
 class RecordClassSpace(val classes: List[RecordClass])  {

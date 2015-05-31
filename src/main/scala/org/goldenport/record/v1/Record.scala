@@ -1,4 +1,4 @@
-package org.goldenport.record
+package org.goldenport.record.v1
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -24,7 +24,8 @@ import scala.collection.mutable.LinkedHashMap
  *  version Nov. 29, 2011
  *  version Feb. 16, 2012
  *  version Feb. 17, 2013
- * @version Feb.  6, 2014
+ *  version Feb.  6, 2014
+ * @version May. 31, 2015
  * @author  ASAMI, Tomoharu
  */
 class Record(data: Traversable[(String, AnyRef)]) extends mutable.Map[String, AnyRef] {

@@ -1,11 +1,12 @@
-package org.goldenport.record
+package org.goldenport.record.v1
 
 /**
  * derived from org.goldenport.g3.message.
  * 
  * @since   Jan.  9, 2011
  *  version Jun. 27, 2011
- * @version Feb. 14, 2012
+ *  version Feb. 14, 2012
+ * @version May. 31, 2015
  * @author  ASAMI, Tomoharu
  */
 abstract class RecordFieldException(cause: Exception = null) extends RuntimeException {

@@ -1,13 +1,14 @@
-package org.goldenport.record.sql
+package org.goldenport.record.v1.sql
 
-import org.goldenport.record._
+import org.goldenport.record.v1._
 import org.goldenport.util._
 
 /**
  * @since   Aug. 17, 2010
  *  version Jun. 26, 2011
  *  version Feb. 16, 2012
- * @version Feb. 17, 2013
+ *  version Feb. 17, 2013
+ * @version May. 31, 2015
  * @author  ASAMI, Tomoharu
  */
 object SqlU {

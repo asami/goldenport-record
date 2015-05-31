@@ -1,8 +1,8 @@
-package org.goldenport.record
+package org.goldenport.record.v1
 
 /**
  * @since   Sep.  8, 2010
- * @version Sep.  8, 2010
+ * @version May. 31, 2015
  * @author  ASAMI, Tomoharu
  */
 package object query {
