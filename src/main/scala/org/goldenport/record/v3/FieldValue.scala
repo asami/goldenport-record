@@ -28,7 +28,8 @@ import org.joda.time.DateTime
  *  version Oct.  2, 2014
  *  version Nov. 29, 2014
  *  version Dec. 31, 2014
- * @version Jan.  2, 2015
+ *  version Jan.  2, 2015
+ * @version Jul. 14, 2015
  * @author  ASAMI, Tomoharu
  */
 sealed abstract class FieldValue {
@@ -38,6 +39,12 @@ sealed abstract class FieldValue {
   def asTimestamp: Timestamp = sys.error("???")
   def asDateTime: DateTime = sys.error("???")
   def getValue: Option[Any]
+
+  def string: String = asString
+  def int: Int = asInt
+  def long: Long = asLong
+  def timestamp: Timestamp = asTimestamp
+  def datetime: DateTime = asDateTime
 }
 
 case class SingleValue(value: Any) extends FieldValue {
@@ -61,4 +68,7 @@ case object EmptyValue extends FieldValue {
 }
 
 object FieldValue {
+  def create(v: Any): FieldValue = {
+    SingleValue(v)
+  }
 }

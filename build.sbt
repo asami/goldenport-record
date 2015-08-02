@@ -2,7 +2,7 @@ organization := "org.goldenport"
 
 name := "goldenport-record"
 
-version := "2.0.1"
+version := "2.0.2-SNAPSHOT"
 
 scalaVersion := "2.11.6"
 
@@ -27,6 +27,8 @@ libraryDependencies += "org.smartdox" %% "smartdox" % "2.0.0"
 libraryDependencies += "org.scalikejdbc" %% "scalikejdbc" % "2.2.6" % "provided"
 
 libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.4" % "test"
+
+libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.12.3" % "test"
 
 libraryDependencies += "junit" % "junit" % "4.12" % "test"
 
