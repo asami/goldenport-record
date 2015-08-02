@@ -233,6 +233,7 @@ case class Record(
     validation: ValidationResult
   ): Record = {
     updateValueOne(Symbol(key), value, validation)
+<<<<<<< HEAD
   }
 
   def removeFields(keys: Seq[Symbol]) = {
@@ -280,10 +281,55 @@ case class Record(
 
   def toStrings(schema: Schema): Vector[String] = {
     schema.columns.toVector.map(c => getString(c.name) getOrElse "")
+=======
+>>>>>>> Adds transformer feature.
   }
 
   def removeFields(keys: Seq[Symbol]) = {
-    copy(fields = fields.filterNot(x => keys.contains(x.key)))
+    copy(timestamp = System.currentTimeMillis, fields = fields.filterNot(x => keys.contains(x.key)))
+  }
+
+  def removeFields(keys: Set[Symbol]) = {
+    copy(timestamp = System.currentTimeMillis, fields = fields.filterNot(x => keys.contains(x.key)))
+  }
+
+  def withException(e: Throwable) = {
+    copy(timestamp = System.currentTimeMillis, exception = Some(e))
+  }
+
+  def withException(e: Throwable, source: Record) = {
+//    assert (source.isEmpty, "Source should not be overwrited.")
+    copy(timestamp = System.currentTimeMillis, exception = Some(e), source = this.source :+ source)
+  }
+
+  def withValidation(v: ValidationResult) = {
+    copy(timestamp = System.currentTimeMillis, validation = validation + v)
+  }
+
+  def withSource(s: Record) = {
+    copy(timestamp = System.currentTimeMillis, source = Vector(s))
+  }
+
+  def addSource(s: Record) = {
+    copy(timestamp = System.currentTimeMillis, source = source :+ s)
+  }
+
+  def addSourceAtMostOnce(s: Record) = {
+    if (source.contains(s))
+      this
+    else
+      copy(timestamp = System.currentTimeMillis, source = source :+ s)
+  }
+
+  /*
+   * String Vector
+   */
+  def toStrings: Vector[String] = {
+    fields.map(_.asString).toVector
+  }
+
+  def toStrings(schema: Schema): Vector[String] = {
+    schema.columns.toVector.map(c => getString(c.name) getOrElse "")
   }
 
   /*
@@ -372,6 +418,7 @@ object Record {
 
   def data(xs: (Symbol, Any)*): Record = {
     Record(xs.map(Field.create).toVector)
+<<<<<<< HEAD
   }
 
   def dataOption(xs: (Symbol, Option[Any])*): Record = {
@@ -380,10 +427,13 @@ object Record {
       case (k, None) => None
     }
     data(a: _*)
+=======
+>>>>>>> Adds transformer feature.
   }
 
   def fromDataSeq(data: Seq[(String, Any)]): Record = {
     Record(data.map(Field.fromData).toVector)
+<<<<<<< HEAD
   }
 
   def fromDataOptionSeq(data: Seq[(String, Any)]): Record = {
@@ -392,6 +442,8 @@ object Record {
       case (k, None) => None
     }
     fromDataSeq(a)
+=======
+>>>>>>> Adds transformer feature.
   }
 
   def fromLtsv(ltsv: String): Record = {
