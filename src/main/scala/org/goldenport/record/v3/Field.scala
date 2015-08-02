@@ -2,6 +2,7 @@ package org.goldenport.record.v3
 
 import java.sql.Timestamp
 import org.joda.time.DateTime
+import org.goldenport.record.v2.{ValidationResult, Valid, Warning, Invalid}
 
 /*
  * derived from org.goldenport.g3.message.
@@ -27,15 +28,35 @@ import org.joda.time.DateTime
  *  version Oct.  2, 2014
  *  version Nov. 29, 2014
  *  version Dec. 31, 2014
- * @version Jan.  2, 2015
+ *  version Jan.  2, 2015
+ *  version Jun. 21, 2015
+ * @version Jul. 14, 2015
  * @author  ASAMI, Tomoharu
  */
-case class Field(key: Symbol, value: FieldValue) {
+case class Field(
+  key: Symbol,
+  value: FieldValue,
+  validation: ValidationResult = Valid
+) {
+  def isValid: Boolean = validation == Valid
+  def isValidOrWarning: Boolean = validation match {
+    case Valid => true
+    case _: Warning => true
+    case _ => false
+  }
+  def isInvalid: Boolean = validation.isInstanceOf[Invalid]
+
   def asString: String = value.asString
   def asInt: Int = value.asInt
   def asLong: Long = value.asLong
   def asTimestamp: Timestamp = value.asTimestamp
   def asDateTime: DateTime = value.asDateTime
+
+  def string: String = value.string
+  def int: Int = value.int
+  def long: Long = value.long
+  def timestamp: Timestamp = value.timestamp
+  def datetime: DateTime = value.datetime
 
   def keyValue: Option[(Symbol, Any)] = {
     val data = value.getValue
