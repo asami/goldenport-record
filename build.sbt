@@ -2,7 +2,7 @@ organization := "org.goldenport"
 
 name := "goldenport-record"
 
-version := "2.0.2H"
+version := "2.0.2I"
 
 scalaVersion := "2.11.6"
 
