@@ -37,7 +37,7 @@ import org.goldenport.record.v2.{
  *  version May. 29, 2015
  *  version Jun. 21, 2015
  *  version Jul. 31, 2015
- * @version Aug.  2, 2015
+ * @version Aug. 10, 2015
  * @author  ASAMI, Tomoharu
  */
 case class Record(
@@ -369,8 +369,24 @@ object Record {
     Record(xs.map(Field.create).toVector)
   }
 
+  def dataOption(xs: (Symbol, Option[Any])*): Record = {
+    val a = xs flatMap {
+      case (k, Some(v)) => Some(k -> v)
+      case (k, None) => None
+    }
+    data(a: _*)
+  }
+
   def fromDataSeq(data: Seq[(String, Any)]): Record = {
     Record(data.map(Field.fromData).toVector)
+  }
+
+  def fromDataOptionSeq(data: Seq[(String, Any)]): Record = {
+    val a = data flatMap {
+      case (k, Some(v)) => Some(k -> v)
+      case (k, None) => None
+    }
+    fromDataSeq(a)
   }
 
   def fromLtsv(ltsv: String): Record = {
