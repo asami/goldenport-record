@@ -281,8 +281,6 @@ case class Record(
 
   def toStrings(schema: Schema): Vector[String] = {
     schema.columns.toVector.map(c => getString(c.name) getOrElse "")
-=======
->>>>>>> Adds transformer feature.
   }
 
   def removeFields(keys: Seq[Symbol]) = {
@@ -418,7 +416,6 @@ object Record {
 
   def data(xs: (Symbol, Any)*): Record = {
     Record(xs.map(Field.create).toVector)
-<<<<<<< HEAD
   }
 
   def dataOption(xs: (Symbol, Option[Any])*): Record = {
@@ -427,13 +424,10 @@ object Record {
       case (k, None) => None
     }
     data(a: _*)
-=======
->>>>>>> Adds transformer feature.
   }
 
   def fromDataSeq(data: Seq[(String, Any)]): Record = {
     Record(data.map(Field.fromData).toVector)
-<<<<<<< HEAD
   }
 
   def fromDataOptionSeq(data: Seq[(String, Any)]): Record = {
@@ -442,8 +436,6 @@ object Record {
       case (k, None) => None
     }
     fromDataSeq(a)
-=======
->>>>>>> Adds transformer feature.
   }
 
   def fromLtsv(ltsv: String): Record = {
