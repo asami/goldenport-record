@@ -32,7 +32,8 @@ import org.goldenport.record.util.{AnyUtils}
  *  version Sep. 28, 2014
  *  version Oct.  2, 2014
  *  version Nov. 29, 2014
- * @version Jan. 28, 2015
+ *  version Jan. 28, 2015
+ * @version Aug. 28, 2015
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -58,7 +59,8 @@ case class Record(
   principal: Option[Principal] = None,
   timestamp: Long = System.currentTimeMillis,
   inputFiles: Seq[InputFile] = Nil,
-  opaque: AnyRef = null
+  opaque: AnyRef = null,
+  source: Option[Record] = None
 ) {
   override def equals(o: Any): Boolean = {
     o match {
@@ -533,6 +535,11 @@ case class Record(
   def isDefined(key: Symbol): Boolean = fields.exists(_.isMatchKey(key))
   def isDefined(key: String): Boolean = isDefined(Symbol(key))
 
+  def isSourceDefined(key: Symbol): Boolean = {
+    source.map(x => x.isDefined(key) || x.isSourceDefined(key)) getOrElse false
+  }
+  def isSourceDefined(key: String): Boolean = isSourceDefined(Symbol(key))
+
   def effectiveList(key: String): List[Any] = {
     get(key) match {
       case None => Nil
@@ -769,6 +776,10 @@ case class Record(
       case rec: Record => rec.withOpaque(o)
       case v => v
     }
+  }
+
+  def withSource(source: Record): Record = {
+    copy(source = Some(source))
   }
 
   def normalizeMultiplicity(): Record = {
