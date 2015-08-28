@@ -11,7 +11,8 @@ import scalaz._, Scalaz._
  *  version May. 28, 2013
  *  version Jun. 24, 2013
  *  version Aug. 15, 2013
- * @version Sep. 10, 2014
+ *  version Sep. 10, 2014
+ * @version Feb.  5, 2015
  * @author  ASAMI, Tomoharu
  */
 case class ActionContext(
@@ -20,7 +21,7 @@ case class ActionContext(
   properties: Map[String, Seq[Any]] = Map.empty,
   connection: Option[java.sql.Connection] = None
 ) {
-  require (in != null && (in.fields == Nil || in.opaque != null), "in and record = " + in)
+  require (in != null && (in.fields == Nil || in.opaque != null), s"org.goldenport.record.v2.ActionContext in=$in, in.fields=${Option(in).map(_.fields)}, in.opaque=${Option(in).map(_.opaque)}")
 
   def outRecords: Seq[Record] = { // TODO sort problem (use key)
     val a = outs.values.toList
