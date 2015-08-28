@@ -35,7 +35,8 @@ import org.goldenport.record.util.{AnyUtils}
  *  version Jan. 28, 2015
  *  version Aug. 28, 2015
  *  version Sep. 17, 2015
- * @version Oct.  9, 2015
+ *  version Oct.  9, 2015
+ * @version Nov. 10, 2015
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
