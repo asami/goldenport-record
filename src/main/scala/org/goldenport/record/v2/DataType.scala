@@ -24,7 +24,8 @@ import org.goldenport.record.util.{
  *  version Feb.  6, 2014
  *  version May. 15, 2014
  *  version Jul. 27, 2014
- * @version Sep. 25, 2015
+ *  version Sep. 25, 2015
+ * @version Nov. 10, 2015
  * @author  ASAMI, Tomoharu
  */
 sealed trait DataType {
