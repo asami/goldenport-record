@@ -23,7 +23,8 @@ import org.goldenport.record.util.{
  *  version Jan. 29, 2014
  *  version Feb.  6, 2014
  *  version May. 15, 2014
- * @version Jul. 27, 2014
+ *  version Jul. 27, 2014
+ * @version Sep. 17, 2015
  * @author  ASAMI, Tomoharu
  */
 sealed trait DataType {
@@ -33,12 +34,12 @@ sealed trait DataType {
   def validate(d: Any): ValidationResult
   def label: String
   def mapData(s: String): String = s
-  def toDouble(s: String): Validation[Throwable, Double] = new NumberFormatException(s).fail
+  def toDouble(s: String): Validation[Throwable, Double] = new NumberFormatException(s).failure
   def toDecimal(s: String): Validation[Throwable, BigDecimal] = {
     try {
       BigDecimal(s).success
     } catch {
-      case NonFatal(e) => e.fail
+      case NonFatal(e) => e.failure
     }
   }
   def isValue: Boolean = true
