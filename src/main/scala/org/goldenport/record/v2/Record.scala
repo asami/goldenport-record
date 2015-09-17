@@ -9,7 +9,7 @@ import org.goldenport.Strings.notblankp
 import org.goldenport.record.util.{TimestampUtils, DateUtils}
 import org.goldenport.record.util.{AnyUtils}
 
-/**
+/*
  * derived from org.goldenport.g3.message.
  * 
  * @since   Jun.  9, 2010
@@ -33,7 +33,8 @@ import org.goldenport.record.util.{AnyUtils}
  *  version Oct.  2, 2014
  *  version Nov. 29, 2014
  *  version Jan. 28, 2015
- * @version Aug. 28, 2015
+ *  version Aug. 28, 2015
+ * @version Sep. 17, 2015
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -61,7 +62,7 @@ case class Record(
   inputFiles: Seq[InputFile] = Nil,
   opaque: AnyRef = null,
   source: Option[Record] = None
-) {
+) extends CommandPart with EagerListPart {
   override def equals(o: Any): Boolean = {
     o match {
       case rec: Record if length == rec.length =>
