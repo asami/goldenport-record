@@ -23,7 +23,8 @@ import com.asamioffice.goldenport.text.UString
  *  version Jul. 25, 2014
  *  version Aug.  6, 2014
  *  version Sep. 25, 2015
- * @version Oct. 15, 2015
+ *  version Oct. 15, 2015
+ * @version Nov. 10, 2015
  * @author  ASAMI, Tomoharu
  */
 case class Schema(
