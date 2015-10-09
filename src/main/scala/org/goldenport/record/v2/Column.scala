@@ -12,7 +12,8 @@ import org.smartdox.Description
  *  version Oct. 23, 2013
  *  version Jan. 20, 2014
  *  version Jul. 25, 2014
- * @version Aug. 11, 2014
+ *  version Aug. 11, 2014
+ * @version Oct.  9, 2015
  * @author  ASAMI, Tomoharu
  */
 case class Column(
@@ -20,10 +21,11 @@ case class Column(
   datatype: DataType = XString,
   multiplicity: Multiplicity = MOne,
   kind: ColumnKind = PlainKind,
-  constraints: Seq[Constraint] = Nil,
+  constraints: List[Constraint] = Nil,
   orderBy: Option[SqlOrder] = None,
   visibility: Visibility = PlainVisibility,
   label: Option[String] = None,
+  aliases: List[String] = Nil,
   sql: SqlColumn = NullSqlColumn,
   formatter: Option[Formatter] = None,
   displaySequence: Option[Int] = None,

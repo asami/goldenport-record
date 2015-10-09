@@ -34,7 +34,8 @@ import org.goldenport.record.util.{AnyUtils}
  *  version Nov. 29, 2014
  *  version Jan. 28, 2015
  *  version Aug. 28, 2015
- * @version Sep. 17, 2015
+ *  version Sep. 17, 2015
+ * @version Oct.  9, 2015
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -871,8 +872,7 @@ case class Record(
   }
 }
 
-// TODO Seq
-case class Field(key: Symbol, values: List[Any]) { // TODO introduce Value class
+case class Field(key: Symbol, values: List[Any]) {
   def isMatchKey(k: Symbol): Boolean = {
     k == key ||
     {
@@ -978,9 +978,19 @@ case class Field(key: Symbol, values: List[Any]) { // TODO introduce Value class
       case x => Some(AnyUtils.toString(x))
     }
   }
+
+  def updateKey(key: String): Field = {
+    updateKey(Symbol(key))
+  }
+
+  def updateKey(k: Symbol): Field = {
+    if (key == k) this else copy(key = k)
+  }
 }
 
 object RecordSet {
+  val empty = RecordSet(Vector.empty)
+
   def create(map: Seq[scala.collection.Map[String, Any]]): RecordSet = {
     RecordSet(map.map(Record.create))
   }
