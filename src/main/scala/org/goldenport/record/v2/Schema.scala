@@ -4,6 +4,7 @@ import java.sql.Timestamp
 import scalaz._, Scalaz._
 import org.smartdox.Description
 import org.goldenport.Strings
+import com.asamioffice.goldenport.text.UString
 
 /*
  * Add
@@ -21,7 +22,8 @@ import org.goldenport.Strings
  *  version Jun.  9, 2014
  *  version Jul. 25, 2014
  *  version Aug.  6, 2014
- * @version Sep. 25, 2015
+ *  version Sep. 25, 2015
+ * @version Oct. 15, 2015
  * @author  ASAMI, Tomoharu
  */
 case class Schema(
@@ -30,6 +32,7 @@ case class Schema(
   grouping: Grouping = NullGrouping,
   validators: Seq[Validator] = Nil,
   sql: SqlSchema = NullSqlSchema,
+  isAutoLabel: Boolean = true,
 //  contexts: Seq[Context] = Nil,
 //  view: GuiView = ExtjsGridView(),
 //  charts: Seq[Chart] = Nil,
@@ -276,6 +279,14 @@ case class Schema(
       formatter.flatMap(_.format(c, v)) getOrElse c.format(v)
     } getOrElse {
       throw new IllegalArgumentException(s"Illegal column name = $columnname")
+    }
+  }
+
+  def header: Seq[String] = {
+    columns.map { x =>
+      x.label getOrElse {
+        if (isAutoLabel) UString.capitalize(x.name) else x.name
+      }
     }
   }
 }
