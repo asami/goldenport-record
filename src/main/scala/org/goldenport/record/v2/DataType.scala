@@ -23,7 +23,8 @@ import org.goldenport.record.util.{
  *  version Jan. 29, 2014
  *  version Feb.  6, 2014
  *  version May. 15, 2014
- * @version Jul. 27, 2014
+ *  version Jul. 27, 2014
+ * @version Sep. 25, 2015
  * @author  ASAMI, Tomoharu
  */
 sealed trait DataType {
@@ -33,12 +34,12 @@ sealed trait DataType {
   def validate(d: Any): ValidationResult
   def label: String
   def mapData(s: String): String = s
-  def toDouble(s: String): Validation[Throwable, Double] = new NumberFormatException(s).fail
+  def toDouble(s: String): Validation[Throwable, Double] = new NumberFormatException(s).failure
   def toDecimal(s: String): Validation[Throwable, BigDecimal] = {
     try {
       BigDecimal(s).success
     } catch {
-      case NonFatal(e) => e.fail
+      case NonFatal(e) => e.failure
     }
   }
   def isValue: Boolean = true
@@ -56,6 +57,13 @@ sealed trait DataType {
     } else {
       s
     }
+  }
+
+  protected def validate_value(validator: Any => Boolean, v: Any) = {
+    if (validator(v))
+      Valid
+    else
+      DataTypeFailure.create(this, v)
   }
 }
 
@@ -714,14 +722,19 @@ case class XEverforthObjectReference(schema: Schema, reader: (java.sql.Connectio
   override def isValue = false
 }
 
-case class XPowertype() extends DataType {
-  type InstanceType = String
-  def toInstance(x: Any): InstanceType = {
-    x.toString
-  }
+case class XPowertype(powertype: PowertypeClass) extends DataType {
+  type InstanceType = Int
+  def toInstance(v: Any): InstanceType = powertype.toInstance(v)
+  def validate(v: Any): ValidationResult = validate_value(powertype.validate, v)
 
-  def validate(d: Any): ValidationResult = Valid
   def label = "区分"
+  override def isSqlString = false
+  override def isValue = true
+  override def isReference = false
+}
+
+object XPowertype {
+  def apply(): XPowertype = XPowertype(NumberPowertype)
 }
 
 case class XPowertypeReference() extends DataType {

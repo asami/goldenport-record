@@ -9,7 +9,7 @@ import org.goldenport.Strings.notblankp
 import org.goldenport.record.util.{TimestampUtils, DateUtils}
 import org.goldenport.record.util.{AnyUtils}
 
-/**
+/*
  * derived from org.goldenport.g3.message.
  * 
  * @since   Jun.  9, 2010
@@ -32,7 +32,10 @@ import org.goldenport.record.util.{AnyUtils}
  *  version Sep. 28, 2014
  *  version Oct.  2, 2014
  *  version Nov. 29, 2014
- * @version Jan. 28, 2015
+ *  version Jan. 28, 2015
+ *  version Aug. 28, 2015
+ *  version Sep. 17, 2015
+ * @version Oct.  9, 2015
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -58,8 +61,9 @@ case class Record(
   principal: Option[Principal] = None,
   timestamp: Long = System.currentTimeMillis,
   inputFiles: Seq[InputFile] = Nil,
-  opaque: AnyRef = null
-) {
+  opaque: AnyRef = null,
+  source: Option[Record] = None
+) extends CommandPart with EagerListPart {
   override def equals(o: Any): Boolean = {
     o match {
       case rec: Record if length == rec.length =>
@@ -533,6 +537,11 @@ case class Record(
   def isDefined(key: Symbol): Boolean = fields.exists(_.isMatchKey(key))
   def isDefined(key: String): Boolean = isDefined(Symbol(key))
 
+  def isSourceDefined(key: Symbol): Boolean = {
+    source.map(x => x.isDefined(key) || x.isSourceDefined(key)) getOrElse false
+  }
+  def isSourceDefined(key: String): Boolean = isSourceDefined(Symbol(key))
+
   def effectiveList(key: String): List[Any] = {
     get(key) match {
       case None => Nil
@@ -771,6 +780,10 @@ case class Record(
     }
   }
 
+  def withSource(source: Record): Record = {
+    copy(source = Some(source))
+  }
+
   def normalizeMultiplicity(): Record = {
     val files = Record.files2Fields(inputFiles)
 //    println("Record#normalizeMultiplicity files = " + files)
@@ -859,8 +872,7 @@ case class Record(
   }
 }
 
-// TODO Seq
-case class Field(key: Symbol, values: List[Any]) { // TODO introduce Value class
+case class Field(key: Symbol, values: List[Any]) {
   def isMatchKey(k: Symbol): Boolean = {
     k == key ||
     {
@@ -966,9 +978,19 @@ case class Field(key: Symbol, values: List[Any]) { // TODO introduce Value class
       case x => Some(AnyUtils.toString(x))
     }
   }
+
+  def updateKey(key: String): Field = {
+    updateKey(Symbol(key))
+  }
+
+  def updateKey(k: Symbol): Field = {
+    if (key == k) this else copy(key = k)
+  }
 }
 
 object RecordSet {
+  val empty = RecordSet(Vector.empty)
+
   def create(map: Seq[scala.collection.Map[String, Any]]): RecordSet = {
     RecordSet(map.map(Record.create))
   }

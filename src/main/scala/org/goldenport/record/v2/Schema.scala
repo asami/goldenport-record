@@ -3,6 +3,8 @@ package org.goldenport.record.v2
 import java.sql.Timestamp
 import scalaz._, Scalaz._
 import org.smartdox.Description
+import org.goldenport.Strings
+import com.asamioffice.goldenport.text.UString
 
 /*
  * Add
@@ -19,7 +21,9 @@ import org.smartdox.Description
  *  version Feb.  6, 2014
  *  version Jun.  9, 2014
  *  version Jul. 25, 2014
- * @version Aug.  6, 2014
+ *  version Aug.  6, 2014
+ *  version Sep. 25, 2015
+ * @version Oct. 15, 2015
  * @author  ASAMI, Tomoharu
  */
 case class Schema(
@@ -28,6 +32,7 @@ case class Schema(
   grouping: Grouping = NullGrouping,
   validators: Seq[Validator] = Nil,
   sql: SqlSchema = NullSqlSchema,
+  isAutoLabel: Boolean = true,
 //  contexts: Seq[Context] = Nil,
 //  view: GuiView = ExtjsGridView(),
 //  charts: Seq[Chart] = Nil,
@@ -276,6 +281,14 @@ case class Schema(
       throw new IllegalArgumentException(s"Illegal column name = $columnname")
     }
   }
+
+  def header: Seq[String] = {
+    columns.map { x =>
+      x.label getOrElse {
+        if (isAutoLabel) UString.capitalize(x.name) else x.name
+      }
+    }
+  }
 }
 
 object NullSchema extends Schema(Nil)
@@ -481,12 +494,43 @@ case object Valid extends ValidationResult {
   }
 }
 
-case class VDescription(name: String, issue: String, value: Seq[Any] = Nil, label: Option[String] = None) {
+case class VDescription(name: Option[String], issue: String, value: Seq[Any]) {
   def message = {
-    value match {
-      case Nil => "%s: %s".format(name, issue)
-      case v => "%s = %s: %s".format(name, v, issue)
+    name match {
+      case Some(s) =>
+        value.toList match {
+          case Nil => "%s: %s".format(s, issue)
+          case v => "%s = %s: %s".format(s, _formated_value, issue)
+        }
+      case None =>
+        value.toList match {
+          case Nil => "%s".format(issue)
+          case v => "%s: %s".format(_formated_value, issue)
+        }
     }
+  }
+
+  private def _formated_value: String = {
+    val a = value.toList match {
+      case Nil => "NULL"
+      case x :: Nil => x.toString
+      case xs => xs.mkString("(", ",", ")")
+    }
+    Strings.cutstring(a)
+  }
+}
+
+object VDescription {
+  def apply(name: String, issue: String): VDescription = {
+    VDescription(Some(name), issue, Nil)
+  }
+
+  def apply(name: String, issue: String, value: Seq[Any]): VDescription = {
+    VDescription(Some(name), issue, value)
+  }
+
+  def apply(name: Option[String], issue: String): VDescription = {
+    VDescription(name, issue, Nil)
   }
 }
 
@@ -527,7 +571,7 @@ case class ValueDomainWarning(
   override def enkey(key: String) = this.copy(key = key.some)
   override def enlabel(label: String) = this.copy(label = label.some)
   def descriptions = {
-    Vector(VDescription((label orElse key) | "", message.format(value)))
+    Vector(VDescription(label orElse key, message.format(value)))
   }
 }
 
@@ -538,7 +582,7 @@ case class DuplicateWarning(
   override def enkey(key: String) = this.copy(key = key.some)
   override def enlabel(label: String) = this.copy(label = label.some)
   def descriptions = {
-    Vector(VDescription((label orElse key) | "", message.format(value)))
+    Vector(VDescription(label orElse key, message.format(value)))
   }
 }  
 
@@ -599,7 +643,7 @@ case class MultiplicityFailure(multiplicity: Multiplicity, msg: String, key: Opt
   override def enkey(key: String) = this.copy(key = key.some)
   override def enlabel(label: String) = this.copy(label = label.some)
   def descriptions = {
-    val name = (label orElse key) | ""
+    val name = label orElse key
     val a = multiplicity match {
       case MOne => VDescription(name, "値が設定されていません。")
       case MZeroOne => VDescription(name, "値が設定されていません。") // XXX
@@ -622,7 +666,24 @@ case class DataTypeFailure(datatype: DataType, value: Seq[String], key: Option[S
   }
   protected final def message = value_label + "は" + datatype.label + "ではありません。"
   def descriptions = {
-    Vector(VDescription((label orElse key) | "", message, value))
+    Vector(VDescription(label orElse key, message, value))
+  }
+}
+
+object DataTypeFailure {
+  def create(datatype: DataType, value: Any): DataTypeFailure = {
+    value match {
+      case xs: Seq[_] => DataTypeFailure(datatype, _adjust(xs))
+      case _ => DataTypeFailure(datatype, List(Strings.cutstring(value.toString)))
+    }
+  }
+
+  private def _adjust(xs: Seq[_]): Seq[String] = {
+    def f(x: Any) = Strings.cutstring(x.toString, 100)
+    if (xs.length > 5)
+      xs.take(5).map(f).toVector :+ "..."
+    else
+      xs.map(f).toVector
   }
 }
 
@@ -634,7 +695,7 @@ case class ValueDomainFailure(
   override def enkey(key: String) = this.copy(key = key.some)
   override def enlabel(label: String) = this.copy(label = label.some)
   def descriptions = {
-    Vector(VDescription((label orElse key) | "", message.format(value)))
+    Vector(VDescription(label orElse key, message.format(value)))
   }
 }
 
