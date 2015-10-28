@@ -36,7 +36,7 @@ import org.goldenport.record.util.{AnyUtils}
  *  version Jan. 28, 2015
  *  version Aug. 28, 2015
  *  version Sep. 17, 2015
- * @version Oct. 25, 2015
+ * @version Oct. 28, 2015
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -759,17 +759,6 @@ case class Record(
     copy(fields = r)
   }
 
-  def replace(f: Field => Option[Field]): Record = {
-    copy(fields = fields.map(x => f(x) match {
-      case Some(s) => s
-      case None => x
-    }))
-  }
-
-  def transform(f: Field => List[Field]): Record = {
-    copy(fields = fields.flatMap(f))
-  }
-
   def isActive(key: Symbol): Boolean = {
     getOne(key).map {
       case x: String => Strings.notblankp(x)
@@ -844,7 +833,22 @@ case class Record(
     copy(a, inputFiles = b)
   }
 
-  def replaceKey(from: Symbol, to: Symbol) = {
+  def transform(f: Field => List[Field]): Record = {
+    copy(fields = fields.flatMap(f))
+  }
+
+  def replace(f: Field => Option[Field]): Record = {
+    copy(fields = fields.map(x => f(x) match {
+      case Some(s) => s
+      case None => x
+    }))
+  }
+
+  def replaceKey(from: String, to: String): Record = {
+    replaceKey(Symbol(from), Symbol(to))
+  }
+
+  def replaceKey(from: Symbol, to: Symbol): Record = {
     copy(fields = fields.map {
       case f if f.key == from => f.copy(key = to)
       case f => f
@@ -901,6 +905,10 @@ case class Record(
 
   def removeFields(keys: Seq[Symbol]): Record = {
     copy(fields = fields.filterNot(x => keys.contains(x.key)))
+  }
+
+  def removeFields(f: Field => Boolean): Record = {
+    copy(fields = fields.filter(f))
   }
 
   def removeFieldsByName(p: String => Boolean): Record = {
