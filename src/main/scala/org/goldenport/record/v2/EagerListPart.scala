@@ -8,7 +8,8 @@ import org.goldenport.record.util.AnyUtils
 
 /*
  * @since   Sep. 17, 2015
- * @version Oct. 25, 2015
+ *  version Oct. 25, 2015
+ * @version Nov.  2, 2015
  * @author  ASAMI, Tomoharu
  */
 trait EagerListPart { self: Record =>
@@ -59,6 +60,36 @@ trait EagerListPart { self: Record =>
 
   def getEagerUrlList(key: String): List[URL] = {
     getEagerUrlListOption(key) match {
+      case Some(s) => s.list
+      case None => Nil
+    }
+  }
+
+  def getEagerLongListOption(key: Symbol): Option[NonEmptyList[Long]] = {
+    get(key).toList.flatMap(_expands).
+      filter {
+        case s: String => Strings.notblankp(s)
+        case _ => true
+      }.
+      map(AnyUtils.toLong) match {
+        case Nil => None
+        case x :: xs => Some(NonEmptyList.nel(x, xs))
+      }
+  }
+
+  def getEagerLongListOption(key: String): Option[NonEmptyList[Long]] = {
+    getEagerLongListOption(Symbol(key))
+  }
+
+  def getEagerLongList(key: Symbol): List[Long] = {
+    getEagerLongListOption(key) match {
+      case Some(s) => s.list
+      case None => Nil
+    }
+  }
+
+  def getEagerLongList(key: String): List[Long] = {
+    getEagerLongListOption(key) match {
       case Some(s) => s.list
       case None => Nil
     }

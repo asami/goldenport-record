@@ -5,7 +5,8 @@ import scala.util.control.NonFatal
 /*
  * @since   Aug. 12, 2015
  *  version Sep. 25, 2015
- * @version Oct. 25, 2015
+ *  version Oct. 25, 2015
+ * @version Nov.  8, 2015
  * @author  ASAMI, Tomoharu
  */
 trait Powertype {
@@ -116,12 +117,41 @@ trait PowertypeClass {
     v.map(paramString) getOrElse default
   }
 
+  def paramString(v: Option[String], default: T): T = {
+    v.map(paramString) getOrElse default
+  }
+
+  def getParamString(v: Option[String]): Option[T] = {
+    v.flatMap(getParamString)
+  }
+
   def getParamString(v: String): Option[T] = {
     val x = v.trim
     try {
       get(x.toInt)
     } catch {
       case NonFatal(e) => get(x)
+    }
+  }
+
+  def normalizeValue(rec: Record, key: String): Record = {
+    getParamString(rec.getString(key)) match {
+      case Some(s) => rec.update(key -> s.value)
+      case None => rec
+    }
+  }
+
+  def normalizeName(rec: Record, key: String): Record = {
+    getParamString(rec.getString(key)) match {
+      case Some(s) => rec.update(key -> s.name)
+      case None => rec
+    }
+  }
+
+  def normalizeLabel(rec: Record, key: String): Record = {
+    getParamString(rec.getString(key)) match {
+      case Some(s) => rec.update(key -> s.label)
+      case None => rec
     }
   }
 

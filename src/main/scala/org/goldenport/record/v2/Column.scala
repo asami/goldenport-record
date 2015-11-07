@@ -13,7 +13,8 @@ import org.smartdox.Description
  *  version Jan. 20, 2014
  *  version Jul. 25, 2014
  *  version Aug. 11, 2014
- * @version Oct. 27, 2015
+ *  version Oct. 27, 2015
+ * @version Nov.  8, 2015
  * @author  ASAMI, Tomoharu
  */
 case class Column(
@@ -79,6 +80,11 @@ case class Column(
   def isMulti = !isSingle
 
   def isDerived = sql.isDerived
+
+  def isAcceptColumnName(p: String): Boolean = nameCandidates.contains(p)
+
+  lazy val nameCandidates: Vector[String] =
+    Vector(name) ++ aliases ++ label.toVector
 
   /*
    * Formatter
