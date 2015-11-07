@@ -36,7 +36,8 @@ import org.goldenport.record.util.{AnyUtils}
  *  version Jan. 28, 2015
  *  version Aug. 28, 2015
  *  version Sep. 17, 2015
- * @version Oct. 28, 2015
+ *  version Oct. 28, 2015
+ * @version Nov.  7, 2015
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -716,10 +717,14 @@ case class Record(
 
   // updatePreserve
   def update(fs: Seq[(String, Any)]): Record = {
-    val keys: Seq[Symbol] = fs.map(x => Symbol(x._1))
-    val a = fs.map(Field.create)
-    val b = fields.filterNot(x => keys.contains(x.key))
-    copy(fields = b ++ a)
+    if (fs.isEmpty) {
+      this
+    } else {
+      val keys: Seq[Symbol] = fs.map(x => Symbol(x._1))
+      val a = fs.map(Field.create)
+      val b = fields.filterNot(x => keys.contains(x.key))
+      copy(fields = b ++ a)
+    }
   }
 
   // updatePreserve
@@ -728,10 +733,14 @@ case class Record(
 
   // updatePreserve
   def updateAppS(fs: Seq[(Symbol, Any)]): Record = {
-    val keys: Seq[Symbol] = fs.map(_._1)
-    val a = fs.map(Field.createSingleS)
-    val b = fields.filterNot(x => keys.contains(x.key))
-    copy(fields = b ++ a)
+    if (fs.isEmpty) {
+      this
+    } else {
+      val keys: Seq[Symbol] = fs.map(_._1)
+      val a = fs.map(Field.createSingleS)
+      val b = fields.filterNot(x => keys.contains(x.key))
+      copy(fields = b ++ a)
+    }
   }
 
   // updatePreserve
@@ -740,10 +749,14 @@ case class Record(
 
   // updatePreserve
   def updateApp(fs: Seq[(String, Any)]): Record = {
-    val keys: Seq[Symbol] = fs.map(x => Symbol(x._1))
-    val a = fs.map(Field.createSingle)
-    val b = fields.filterNot(x => keys.contains(x.key))
-    copy(fields = b ++ a)
+    if (fs.isEmpty) {
+      this
+    } else {
+      val keys: Seq[Symbol] = fs.map(x => Symbol(x._1))
+      val a = fs.map(Field.createSingle)
+      val b = fields.filterNot(x => keys.contains(x.key))
+      copy(fields = b ++ a)
+    }
   }
 
   def updatePreserve(f: (String, Any)): Record = {
@@ -778,8 +791,12 @@ case class Record(
 */
 
   def complements(f: Seq[(String, Any)]): Record = {
-    val a = f.filterNot(x => isDefined(x._1))
-    this ::++ a
+    if (f.isEmpty) {
+      this
+    } else {
+      val a = f.filterNot(x => isDefined(x._1))
+      this ::++ a
+    }
   }
 
   def normalizeImages(fieldname: String): Record = {
