@@ -37,8 +37,7 @@ import org.goldenport.record.v2.{
  *  version May. 29, 2015
  *  version Jun. 21, 2015
  *  version Jul. 31, 2015
- *  version Aug. 10, 2015
- * @version Nov. 10, 2015
+ * @version Aug. 10, 2015
  * @author  ASAMI, Tomoharu
  */
 case class Record(
@@ -183,6 +182,8 @@ case class Record(
       prefix :+ Field.create(key, value)
     } else {
       prefix ++ (Field.create(key, value) +: suffix.tail)
+<<<<<<< HEAD
+=======
     }
     copy(timestamp = System.currentTimeMillis, fields = r)
   }
@@ -193,10 +194,24 @@ case class Record(
       prefix :+ Field(key, value)
     } else {
       prefix ++ (Field(key, value) +: suffix.tail)
+>>>>>>> b3014fe842688f89ad0f500999b6776067bf6454
     }
     copy(timestamp = System.currentTimeMillis, fields = r)
   }
 
+<<<<<<< HEAD
+  def updateValue(key: Symbol, value: FieldValue): Record = {
+    val (prefix, suffix) = fields.span(_.key != key) // XXX isMatch?
+    val r = if (suffix.isEmpty) {
+      prefix :+ Field(key, value)
+    } else {
+      prefix ++ (Field(key, value) +: suffix.tail)
+    }
+    copy(timestamp = System.currentTimeMillis, fields = r)
+  }
+
+=======
+>>>>>>> b3014fe842688f89ad0f500999b6776067bf6454
   def updateValue(
     key: Symbol,
     value: FieldValue,
@@ -233,6 +248,7 @@ case class Record(
     validation: ValidationResult
   ): Record = {
     updateValueOne(Symbol(key), value, validation)
+<<<<<<< HEAD
 <<<<<<< HEAD
   }
 
@@ -281,6 +297,8 @@ case class Record(
 
   def toStrings(schema: Schema): Vector[String] = {
     schema.columns.toVector.map(c => getString(c.name) getOrElse "")
+=======
+>>>>>>> b3014fe842688f89ad0f500999b6776067bf6454
   }
 
   def removeFields(keys: Seq[Symbol]) = {
