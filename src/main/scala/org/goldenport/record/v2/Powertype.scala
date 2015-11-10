@@ -4,13 +4,31 @@ import scala.util.control.NonFatal
 
 /*
  * @since   Aug. 12, 2015
- * @version Sep. 25, 2015
+ *  version Sep. 25, 2015
+ *  version Oct. 25, 2015
+ * @version Nov.  8, 2015
  * @author  ASAMI, Tomoharu
  */
 trait Powertype {
   def value: Int
   def name: String
   def label: String = name
+  def aliases: Seq[String] = Nil
+  def mark: Option[String] = None
+  def isMark(c: Character): Boolean = {
+    mark match {
+      case Some(s) => s == c.toString
+      case None => false
+    }
+  }
+  def checkMark(s: String): Option[String] = {
+    mark flatMap { x =>
+      if (s.startsWith(x))
+        Some(s.substring(x.length))
+      else
+        None
+    }
+  }
 }
 
 trait PowertypeClass {
@@ -24,6 +42,7 @@ trait PowertypeClass {
 
   def get(v: String): Option[T] = {
     elements.find(_.name == v) orElse
+    elements.find(_.aliases.contains(v)) orElse
     elements.find(_.label == v)
   }
 
@@ -33,6 +52,39 @@ trait PowertypeClass {
   def getLabel(v: String): Option[String] = get(v).map(_.label)
   def getValue(v: Int): Option[Int] = get(v).map(_.value)
   def getValue(v: String): Option[Int] = get(v).map(_.value)
+
+  def getsByMarkAndRemainder(s: String): (Seq[T], Option[String]) = {
+    case class Z(
+      kinds: Vector[T] = Vector.empty,
+      unknown: Vector[Character] = Vector.empty
+    ) {
+      val delimiter = " ,;\t\n\r"
+      def +(c: Character) = {
+        if (delimiter.exists(_ == c))
+          this
+        else
+          elements.find(_.isMark(c)) match {
+            case Some(s) => copy(kinds = kinds :+ s)
+            case None => copy(unknown = unknown :+ c)
+          }
+      }
+      def result = {
+        if (unknown.isEmpty)
+          (kinds, None)
+        else
+          (kinds, Some(unknown.mkString))
+      }
+    }
+    s.foldLeft(Z())(_ + _).result
+  }
+
+  def getsByMark(s: String): Seq[T] = {
+    val (xs, remainder) = getsByMarkAndRemainder(s)
+    if (remainder.isEmpty)
+      xs
+    else
+      throw new IllegalArgumentException(s"Unknown marks '$remainder'")
+  }
 
   def apply(v: Int): T = paramInt(v)
   def apply(v: String): T = paramString(v)
@@ -65,6 +117,14 @@ trait PowertypeClass {
     v.map(paramString) getOrElse default
   }
 
+  def paramString(v: Option[String], default: T): T = {
+    v.map(paramString) getOrElse default
+  }
+
+  def getParamString(v: Option[String]): Option[T] = {
+    v.flatMap(getParamString)
+  }
+
   def getParamString(v: String): Option[T] = {
     val x = v.trim
     try {
@@ -74,10 +134,34 @@ trait PowertypeClass {
     }
   }
 
+  def normalizeValue(rec: Record, key: String): Record = {
+    getParamString(rec.getString(key)) match {
+      case Some(s) => rec.update(key -> s.value)
+      case None => rec
+    }
+  }
+
+  def normalizeName(rec: Record, key: String): Record = {
+    getParamString(rec.getString(key)) match {
+      case Some(s) => rec.update(key -> s.name)
+      case None => rec
+    }
+  }
+
+  def normalizeLabel(rec: Record, key: String): Record = {
+    getParamString(rec.getString(key)) match {
+      case Some(s) => rec.update(key -> s.label)
+      case None => rec
+    }
+  }
+
   def toInstance(v: Any): Int = {
     v match {
       case x: Int => paramInt(x).value
+      case x: Long => paramInt(x.toInt).value
       case x: String => paramString(x).value
+      case x: Byte => paramInt(x.toInt).value
+      case x: Short => paramInt(x.toInt).value
       case _ =>
         throw new IllegalArgumentException(s"Invalid powertype value '$v' for $usage")
     }
@@ -89,7 +173,10 @@ trait PowertypeClass {
   def validate(v: Any): Boolean = {
     v match {
       case x: Int => isValid(x)
+      case x: Long => isValid(x.toInt)
       case x: String => isValid(x)
+      case x: Byte => isValid(x.toInt)
+      case x: Short => isValid(x.toInt)
       case _ => false
     }
   }

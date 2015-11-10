@@ -2,12 +2,16 @@ package org.goldenport.record.util
 
 import java.util.Date
 import java.sql.Timestamp
+import java.net.{URL, URI}
+import java.io.File
+import com.asamioffice.goldenport.io.UURL
 
 /*
  * See com.everforth.lib.util.AnyUtils
  * 
  * @since   Jun. 10, 2014
- * @version Jan. 28, 2015
+ *  version Jan. 28, 2015
+ * @version Oct. 24, 2015
  * @author  ASAMI, Tomoharu
  */
 object AnyUtils {
@@ -106,6 +110,14 @@ object AnyUtils {
       case v: Date => v
       case v: Long => new Date(v)
       case s: String => DateUtils.parse(s)
+    }
+  }
+  def toUrl(x: Any): URL = {
+    x match {
+      case m: URL => m
+      case m: URI => m.toURL
+      case m: File => m.toURI.toURL
+      case s: String => UURL.getURLFromFileOrURLName(s)
     }
   }
 }

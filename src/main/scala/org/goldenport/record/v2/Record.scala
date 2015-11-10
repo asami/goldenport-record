@@ -1,6 +1,7 @@
 package org.goldenport.record.v2
 
 import java.util.Date
+import java.net.URL
 import java.sql.Timestamp
 import scala.util.control.NonFatal
 import scala.math.{BigInt, BigDecimal}
@@ -35,7 +36,8 @@ import org.goldenport.record.util.{AnyUtils}
  *  version Jan. 28, 2015
  *  version Aug. 28, 2015
  *  version Sep. 17, 2015
- * @version Oct.  9, 2015
+ *  version Oct. 28, 2015
+ * @version Nov.  7, 2015
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -229,6 +231,13 @@ case class Record(
     get(key) getOrElse Nil
   }
 
+  def getFormList(key: Symbol): List[Any] = {
+    getList(key) flatMap {
+      case s: String => if (Strings.blankp(s)) None else Some(s)
+      case m => Some(m)
+    }
+  }
+
   def getStringList(key: Symbol): List[String] = {
     getList(key).map(AnyUtils.toString)
   }
@@ -257,12 +266,24 @@ case class Record(
     getList(key).map(AnyUtils.toFloat)
   }
 
-  def getFormDoubleList(key: Symbol): List[Double] = {
-    getFormStringList(key).map(AnyUtils.toDouble)
+  def getFormFloatList(key: Symbol): List[Float] = {
+    getFormStringList(key).map(AnyUtils.toFloat)
   }
 
   def getDoubleList(key: Symbol): List[Double] = {
     getList(key).map(AnyUtils.toDouble)
+  }
+
+  def getFormDoubleList(key: Symbol): List[Double] = {
+    getFormStringList(key).map(AnyUtils.toDouble)
+  }
+
+  def getUrlList(key: Symbol): List[URL] = {
+    getList(key).map(AnyUtils.toUrl)
+  }
+
+  def getFormUrlList(key: Symbol): List[URL] = {
+    getFormList(key).map(AnyUtils.toUrl)
   }
 
   def getRecordList(key: Symbol): List[Record] = getRecords(key)
@@ -358,6 +379,10 @@ case class Record(
     getList(Symbol(key))
   }
 
+  def getFormList(key: String): List[Any] = {
+    getFormList(Symbol(key))
+  }
+
   def getStringList(key: String): List[String] = {
     getList(key).map(AnyUtils.toString)
   }
@@ -396,6 +421,14 @@ case class Record(
 
   def getFormDoubleList(key: String): List[Double] = {
     getStringList(key).map(AnyUtils.toDouble)
+  }
+
+  def getUrlList(key: String): List[URL] = {
+    getList(key).map(AnyUtils.toUrl)
+  }
+
+  def getFormUrlList(key: String): List[URL] = {
+    getFormList(key).map(AnyUtils.toUrl)
   }
 
   def getRecordList(key: String): List[Record] = {
@@ -528,6 +561,13 @@ case class Record(
 
   def paramDate(name: String): Date = {
     paramDate(Symbol(name))
+  }
+
+  def getValue(column: Column): Option[List[Any]] = {
+    if (column.isSingle)
+      getOne(column.name).map(x => List(column.datatype.toInstance(x)))
+    else
+      get(column.name).map(_.map(column.datatype.toInstance(_)))
   }
 
   def length(): Int = fields.length
@@ -677,10 +717,14 @@ case class Record(
 
   // updatePreserve
   def update(fs: Seq[(String, Any)]): Record = {
-    val keys: Seq[Symbol] = fs.map(x => Symbol(x._1))
-    val a = fs.map(Field.create)
-    val b = fields.filterNot(x => keys.contains(x.key))
-    copy(fields = b ++ a)
+    if (fs.isEmpty) {
+      this
+    } else {
+      val keys: Seq[Symbol] = fs.map(x => Symbol(x._1))
+      val a = fs.map(Field.create)
+      val b = fields.filterNot(x => keys.contains(x.key))
+      copy(fields = b ++ a)
+    }
   }
 
   // updatePreserve
@@ -689,10 +733,14 @@ case class Record(
 
   // updatePreserve
   def updateAppS(fs: Seq[(Symbol, Any)]): Record = {
-    val keys: Seq[Symbol] = fs.map(_._1)
-    val a = fs.map(Field.createSingleS)
-    val b = fields.filterNot(x => keys.contains(x.key))
-    copy(fields = b ++ a)
+    if (fs.isEmpty) {
+      this
+    } else {
+      val keys: Seq[Symbol] = fs.map(_._1)
+      val a = fs.map(Field.createSingleS)
+      val b = fields.filterNot(x => keys.contains(x.key))
+      copy(fields = b ++ a)
+    }
   }
 
   // updatePreserve
@@ -701,10 +749,14 @@ case class Record(
 
   // updatePreserve
   def updateApp(fs: Seq[(String, Any)]): Record = {
-    val keys: Seq[Symbol] = fs.map(x => Symbol(x._1))
-    val a = fs.map(Field.createSingle)
-    val b = fields.filterNot(x => keys.contains(x.key))
-    copy(fields = b ++ a)
+    if (fs.isEmpty) {
+      this
+    } else {
+      val keys: Seq[Symbol] = fs.map(x => Symbol(x._1))
+      val a = fs.map(Field.createSingle)
+      val b = fields.filterNot(x => keys.contains(x.key))
+      copy(fields = b ++ a)
+    }
   }
 
   def updatePreserve(f: (String, Any)): Record = {
@@ -739,8 +791,12 @@ case class Record(
 */
 
   def complements(f: Seq[(String, Any)]): Record = {
-    val a = f.filterNot(x => isDefined(x._1))
-    this ::++ a
+    if (f.isEmpty) {
+      this
+    } else {
+      val a = f.filterNot(x => isDefined(x._1))
+      this ::++ a
+    }
   }
 
   def normalizeImages(fieldname: String): Record = {
@@ -794,7 +850,22 @@ case class Record(
     copy(a, inputFiles = b)
   }
 
-  def replaceKey(from: Symbol, to: Symbol) = {
+  def transform(f: Field => List[Field]): Record = {
+    copy(fields = fields.flatMap(f))
+  }
+
+  def replace(f: Field => Option[Field]): Record = {
+    copy(fields = fields.map(x => f(x) match {
+      case Some(s) => s
+      case None => x
+    }))
+  }
+
+  def replaceKey(from: String, to: String): Record = {
+    replaceKey(Symbol(from), Symbol(to))
+  }
+
+  def replaceKey(from: Symbol, to: Symbol): Record = {
     copy(fields = fields.map {
       case f if f.key == from => f.copy(key = to)
       case f => f
@@ -841,8 +912,24 @@ case class Record(
     copy(fields = fields.filter(x => keys.contains(x.key)))
   }
 
-  def removeFields(keys: Seq[Symbol]) = {
+  def removeField(key: String): Record = {
+    removeField(Symbol(key))
+  }
+
+  def removeField(key: Symbol): Record = {
+    removeFields(Vector(key))
+  }
+
+  def removeFields(keys: Seq[Symbol]): Record = {
     copy(fields = fields.filterNot(x => keys.contains(x.key)))
+  }
+
+  def removeFields(f: Field => Boolean): Record = {
+    copy(fields = fields.filter(f))
+  }
+
+  def removeFieldsByName(p: String => Boolean): Record = {
+    copy(fields = fields.filterNot(x => p(x.key.name)))
   }
 
   override def toString(): String = {
@@ -974,6 +1061,13 @@ case class Field(key: Symbol, values: List[Any]) {
 
   def getConcreteString: Option[String] = {
     getOne flatMap {
+      case s: String if Strings.blankp(s) => None
+      case x => Some(AnyUtils.toString(x))
+    }
+  }
+
+  def getConcreteStringList: List[String] = {
+    values flatMap {
       case s: String if Strings.blankp(s) => None
       case x => Some(AnyUtils.toString(x))
     }

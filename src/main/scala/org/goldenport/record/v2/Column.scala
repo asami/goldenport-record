@@ -13,7 +13,8 @@ import org.smartdox.Description
  *  version Jan. 20, 2014
  *  version Jul. 25, 2014
  *  version Aug. 11, 2014
- * @version Oct.  9, 2015
+ *  version Oct. 27, 2015
+ * @version Nov.  8, 2015
  * @author  ASAMI, Tomoharu
  */
 case class Column(
@@ -22,20 +23,23 @@ case class Column(
   multiplicity: Multiplicity = MOne,
   kind: ColumnKind = PlainKind,
   constraints: List[Constraint] = Nil,
-  orderBy: Option[SqlOrder] = None,
+//  orderBy: Option[SqlOrder] = None, // displayFormat
   visibility: Visibility = PlainVisibility,
   label: Option[String] = None,
   aliases: List[String] = Nil,
   sql: SqlColumn = NullSqlColumn,
   formatter: Option[Formatter] = None,
-  displaySequence: Option[Int] = None,
-  desc: Description = Description() // TODO .empty
+  displaySequence: Option[Int] = None, // TODO unify displayFormat
+  displayFormat: Option[DisplayFormat] = None,
+  desc: Description = Description.empty
 //  operations: Seq[Operation] = Nil,
 //  extjs: Map[String, Any] = Map.empty,
 //  isAvailableMode: ExecutionMode => Boolean = _ => true,
 //  properties: Map[String, Any] = Map.empty,
 //  comment: String = ""
 ) extends ColumnSlot {
+  def orderBy: Option[SqlOrder] = displayFormat.flatMap(_.orderBy)
+
   def toModelValidation: List[String] = {
     List(_validation_presence,
         _validation_length,
@@ -76,6 +80,11 @@ case class Column(
   def isMulti = !isSingle
 
   def isDerived = sql.isDerived
+
+  def isAcceptColumnName(p: String): Boolean = nameCandidates.contains(p)
+
+  lazy val nameCandidates: Vector[String] =
+    Vector(name) ++ aliases ++ label.toVector
 
   /*
    * Formatter
