@@ -182,8 +182,6 @@ case class Record(
       prefix :+ Field.create(key, value)
     } else {
       prefix ++ (Field.create(key, value) +: suffix.tail)
-<<<<<<< HEAD
-=======
     }
     copy(timestamp = System.currentTimeMillis, fields = r)
   }
@@ -194,24 +192,10 @@ case class Record(
       prefix :+ Field(key, value)
     } else {
       prefix ++ (Field(key, value) +: suffix.tail)
->>>>>>> b3014fe842688f89ad0f500999b6776067bf6454
     }
     copy(timestamp = System.currentTimeMillis, fields = r)
   }
 
-<<<<<<< HEAD
-  def updateValue(key: Symbol, value: FieldValue): Record = {
-    val (prefix, suffix) = fields.span(_.key != key) // XXX isMatch?
-    val r = if (suffix.isEmpty) {
-      prefix :+ Field(key, value)
-    } else {
-      prefix ++ (Field(key, value) +: suffix.tail)
-    }
-    copy(timestamp = System.currentTimeMillis, fields = r)
-  }
-
-=======
->>>>>>> b3014fe842688f89ad0f500999b6776067bf6454
   def updateValue(
     key: Symbol,
     value: FieldValue,
@@ -248,57 +232,6 @@ case class Record(
     validation: ValidationResult
   ): Record = {
     updateValueOne(Symbol(key), value, validation)
-<<<<<<< HEAD
-<<<<<<< HEAD
-  }
-
-  def removeFields(keys: Seq[Symbol]) = {
-    copy(timestamp = System.currentTimeMillis, fields = fields.filterNot(x => keys.contains(x.key)))
-  }
-
-  def removeFields(keys: Set[Symbol]) = {
-    copy(timestamp = System.currentTimeMillis, fields = fields.filterNot(x => keys.contains(x.key)))
-  }
-
-  def withException(e: Throwable) = {
-    copy(timestamp = System.currentTimeMillis, exception = Some(e))
-  }
-
-  def withException(e: Throwable, source: Record) = {
-//    assert (source.isEmpty, "Source should not be overwrited.")
-    copy(timestamp = System.currentTimeMillis, exception = Some(e), source = this.source :+ source)
-  }
-
-  def withValidation(v: ValidationResult) = {
-    copy(timestamp = System.currentTimeMillis, validation = validation + v)
-  }
-
-  def withSource(s: Record) = {
-    copy(timestamp = System.currentTimeMillis, source = Vector(s))
-  }
-
-  def addSource(s: Record) = {
-    copy(timestamp = System.currentTimeMillis, source = source :+ s)
-  }
-
-  def addSourceAtMostOnce(s: Record) = {
-    if (source.contains(s))
-      this
-    else
-      copy(timestamp = System.currentTimeMillis, source = source :+ s)
-  }
-
-  /*
-   * String Vector
-   */
-  def toStrings: Vector[String] = {
-    fields.map(_.asString).toVector
-  }
-
-  def toStrings(schema: Schema): Vector[String] = {
-    schema.columns.toVector.map(c => getString(c.name) getOrElse "")
-=======
->>>>>>> b3014fe842688f89ad0f500999b6776067bf6454
   }
 
   def removeFields(keys: Seq[Symbol]) = {

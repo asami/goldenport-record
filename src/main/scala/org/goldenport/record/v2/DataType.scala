@@ -449,12 +449,11 @@ case object XToken extends DataType {
 
   def validate(d: Any): ValidationResult = {
     d match {
-      case x: String => try {
+      case x: String =>
         if (x.contains('\n') || x.contains('\r') || x.contains('\t'))
           ValueDomainFailure("Invalid token (%s)", d.toString)
         else
           Valid
-      }
       case _ => Valid // for status_id
 //      case _ => ValueDomainFailure("Invalid token (%s)", d.toString)
     }
