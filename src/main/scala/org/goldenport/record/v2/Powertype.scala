@@ -6,7 +6,7 @@ import scala.util.control.NonFatal
  * @since   Aug. 12, 2015
  *  version Sep. 25, 2015
  *  version Oct. 25, 2015
- * @version Nov.  8, 2015
+ * @version Nov. 23, 2015
  * @author  ASAMI, Tomoharu
  */
 trait Powertype {
@@ -43,7 +43,13 @@ trait PowertypeClass {
   def get(v: String): Option[T] = {
     elements.find(_.name == v) orElse
     elements.find(_.aliases.contains(v)) orElse
-    elements.find(_.label == v)
+    elements.find(_.label == v) orElse {
+      try {
+        get(v.toInt)
+      } catch {
+        case e: NumberFormatException => None
+      }
+    }
   }
 
   def getName(v: Int): Option[String] = get(v).map(_.name)
