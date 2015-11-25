@@ -9,20 +9,21 @@ import org.goldenport.record.util.AnyUtils
 /*
  * @since   Sep. 17, 2015
  *  version Oct. 25, 2015
- * @version Nov.  2, 2015
+ * @version Nov. 23, 2015
  * @author  ASAMI, Tomoharu
  */
 trait EagerListPart { self: Record =>
-  def getEagerStringListOption(key: Symbol): Option[NonEmptyList[String]] = {
-    getEagerStringListOption(key)
+  def getEagerStringList(key: String): Option[List[String]] =
+    getEagerStringList(Symbol(key))
+
+  def getEagerFormStringList(key: String): Option[NonEmptyList[String]] =
+    getEagerFormStringList(Symbol(key))
+
+  def getEagerStringList(key: Symbol): Option[List[String]] = {
+    get(key).map(x => _expands(x).map(AnyUtils.toString))
   }
 
-  def getEagerStringListOption(key: String): Option[NonEmptyList[String]] = {
-    getEagerStringListOption(key)
-  }
-
-  // TODO refactor signature
-  def getEagerStringList(key: Symbol): Option[NonEmptyList[String]] = {
+  def getEagerFormStringList(key: Symbol): Option[NonEmptyList[String]] = {
     get(key).toList.flatMap(_expands).map(AnyUtils.toString).
       filter(Strings.notblankp) match {
         case Nil => None
@@ -30,11 +31,83 @@ trait EagerListPart { self: Record =>
       }
   }
 
-  // TODO refactor signature
-  def getEagerStringList(key: String): Option[NonEmptyList[String]] = {
-    getEagerStringList(Symbol(key))
+  // Long
+  def eagerLongList(key: String): List[Long] =
+    eagerLongList(Symbol(key))
+
+  def eagerLongList(key: Symbol): List[Long] =
+    _to_list(getEagerLongList(key))
+
+  def getEagerLongList(key: String): Option[List[Long]] =
+    getEagerLongList(Symbol(key))
+
+  def getEagerLongList(key: Symbol): Option[List[Long]] =
+    getEagerFormLongList(key).map(_.list)
+
+  def getEagerFormLongList(key: String): Option[NonEmptyList[Long]] =
+    getEagerFormLongList(Symbol(key))
+
+  def getEagerFormLongList(key: Symbol): Option[NonEmptyList[Long]] = {
+    get(key).toList.flatMap(_expands).
+      filter {
+        case s: String => Strings.notblankp(s)
+        case _ => true
+      }.
+      map(AnyUtils.toLong) match {
+        case Nil => None
+        case x :: xs => Some(NonEmptyList.nel(x, xs))
+      }
   }
 
+  // URL
+  def eagerUrlList(key: String): List[URL] = eagerUrlList(Symbol(key))
+
+  def getEagerUrlList(key: String): Option[List[URL]] =
+    getEagerUrlList(Symbol(key))
+
+  def eagerUrlList(key: Symbol): List[URL] =
+    _to_list(getEagerUrlList(key))
+
+  private def _to_list[T](p: Option[List[T]]) = p getOrElse Nil
+
+  def getEagerUrlList(key: Symbol): Option[List[URL]] =
+    getEagerFormUrlList(key).map(_.list)
+
+  def getEagerFormUrlList(key: Symbol): Option[NonEmptyList[URL]] = {
+    get(key).toList.flatMap(_expands).
+      filter {
+        case s: String => Strings.notblankp(s)
+        case _ => true
+      }.
+      map(AnyUtils.toUrl) match {
+        case Nil => None
+        case x :: xs => Some(NonEmptyList.nel(x, xs))
+      }
+  }
+
+  // def getEagerStringListOption(key: Symbol): Option[NonEmptyList[String]] = {
+  //   getEagerStringListOption(key)
+  // }
+
+  // def getEagerStringListOption(key: String): Option[NonEmptyList[String]] = {
+  //   getEagerStringListOption(key)
+  // }
+
+  // TODO refactor signature
+  // def getEagerStringList(key: Symbol): Option[NonEmptyList[String]] = {
+  //   get(key).toList.flatMap(_expands).map(AnyUtils.toString).
+  //     filter(Strings.notblankp) match {
+  //       case Nil => None
+  //       case x :: xs => Some(NonEmptyList.nel(x, xs))
+  //     }
+  // }
+
+  // TODO refactor signature
+  // def getEagerStringList(key: String): Option[NonEmptyList[String]] = {
+  //   getEagerStringList(Symbol(key))
+  // }
+
+  // TODO refactor signature
   def getEagerUrlListOption(key: Symbol): Option[NonEmptyList[URL]] = {
     get(key).toList.flatMap(_expands).
       filter {
@@ -47,53 +120,60 @@ trait EagerListPart { self: Record =>
       }
   }
 
-  def getEagerUrlListOption(key: String): Option[NonEmptyList[URL]] = {
-    getEagerUrlListOption(Symbol(key))
-  }
+  // TODO refactor signature
+  // def getEagerUrlListOption(key: String): Option[NonEmptyList[URL]] = {
+  //   getEagerUrlListOption(Symbol(key))
+  // }
 
-  def getEagerUrlList(key: Symbol): List[URL] = {
-    getEagerUrlListOption(key) match {
-      case Some(s) => s.list
-      case None => Nil
-    }
-  }
+  // TODO refactor signature
+  // def getEagerUrlList(key: Symbol): List[URL] = {
+  //   getEagerUrlListOption(key) match {
+  //     case Some(s) => s.list
+  //     case None => Nil
+  //   }
+  // }
 
-  def getEagerUrlList(key: String): List[URL] = {
-    getEagerUrlListOption(key) match {
-      case Some(s) => s.list
-      case None => Nil
-    }
-  }
+  // TODO refactor signature
+  // def getEagerUrlList(key: String): List[URL] = {
+  //   getEagerUrlListOption(key) match {
+  //     case Some(s) => s.list
+  //     case None => Nil
+  //   }
+  // }
 
-  def getEagerLongListOption(key: Symbol): Option[NonEmptyList[Long]] = {
-    get(key).toList.flatMap(_expands).
-      filter {
-        case s: String => Strings.notblankp(s)
-        case _ => true
-      }.
-      map(AnyUtils.toLong) match {
-        case Nil => None
-        case x :: xs => Some(NonEmptyList.nel(x, xs))
-      }
-  }
+  // TODO refactor signature
+  // def getEagerLongListOption(key: Symbol): Option[NonEmptyList[Long]] = {
+  //   get(key).toList.flatMap(_expands).
+  //     filter {
+  //       case s: String => Strings.notblankp(s)
+  //       case _ => true
+  //     }.
+  //     map(AnyUtils.toLong) match {
+  //       case Nil => None
+  //       case x :: xs => Some(NonEmptyList.nel(x, xs))
+  //     }
+  // }
 
-  def getEagerLongListOption(key: String): Option[NonEmptyList[Long]] = {
-    getEagerLongListOption(Symbol(key))
-  }
+  // TODO refactor signature
+  // def getEagerLongListOption(key: String): Option[NonEmptyList[Long]] = {
+  //   getEagerLongListOption(Symbol(key))
+  // }
 
-  def getEagerLongList(key: Symbol): List[Long] = {
-    getEagerLongListOption(key) match {
-      case Some(s) => s.list
-      case None => Nil
-    }
-  }
+  // TODO refactor signature
+  // def getEagerLongList(key: Symbol): List[Long] = {
+  //   getEagerLongListOption(key) match {
+  //     case Some(s) => s.list
+  //     case None => Nil
+  //   }
+  // }
 
-  def getEagerLongList(key: String): List[Long] = {
-    getEagerLongListOption(key) match {
-      case Some(s) => s.list
-      case None => Nil
-    }
-  }
+  // TODO refactor signature
+  // def getEagerLongList(key: String): List[Long] = {
+  //   getEagerLongListOption(key) match {
+  //     case Some(s) => s.list
+  //     case None => Nil
+  //   }
+  // }
 
   private def _expands(x: Any): List[Any] = {
     x match {
