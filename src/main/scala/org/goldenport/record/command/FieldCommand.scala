@@ -6,7 +6,7 @@ import org.goldenport.record.util.AnyUtils
 
 /*
  * @since   Sep. 17, 2015
- * @version Sep. 17, 2015
+ * @version Nov. 19, 2015
  * @author  ASAMI, Tomoharu
  */
 sealed trait FieldCommand[T] {
@@ -65,29 +65,37 @@ object FieldCommand {
     }
   }
 
-  def getCmdString(rec: Record, key: Symbol): Option[FieldCommand[String]] = {
-    getCmdString(rec, key.name)
+  def getCmdString(rec: Record, key: Symbol, isoverwrite: Boolean): Option[FieldCommand[String]] = {
+    getCmdString(rec, key.name, isoverwrite)
   }
 
-  def getCmdString(rec: Record, key: String): Option[FieldCommand[String]] = {
+  def getCmdString(rec: Record, key: String, isoverwrite: Boolean): Option[FieldCommand[String]] = {
     def makekey(cmd: String) = key + DELIMITER + cmd
-    rec.getConcreteString(key).map(OverwriteCommand(_)) orElse
+    def getoverwritestring = if (isoverwrite)
+      rec.getString(key)
+    else
+      rec.getConcreteString(key)
+    getoverwritestring.map(OverwriteCommand(_)) orElse
     rec.getString(makekey(FIELD_CONTENT)).map(ContentCommand(_)) orElse
-    rec.getConcreteString(makekey(FIELD_OVERWRITE)).map(OverwriteCommand(_)) orElse
+    rec.getString(makekey(FIELD_OVERWRITE)).map(OverwriteCommand(_)) orElse
     rec.getConcreteString(makekey(FIELD_APPEND)).map(AppendCommand(_)) orElse
     rec.getConcreteString(makekey(FIELD_REMOVE)).map(RemoveCommand(_)) orElse
     rec.getConcreteString(makekey(FIELD_DELETE)).map(DeleteCommand(_)) orElse
     rec.getConcreteString(makekey(FIELD_CLEAR)).map(ClearCommand(_))
   }
 
-  def getCmdInt(rec: Record, key: Symbol): Option[FieldCommand[Int]] = {
-    getCmdInt(rec, key.name)
+  def getCmdInt(rec: Record, key: Symbol, isoverwrite: Boolean): Option[FieldCommand[Int]] = {
+    getCmdInt(rec, key.name, isoverwrite)
   }
 
-  def getCmdInt(rec: Record, key: String): Option[FieldCommand[Int]] = {
+  def getCmdInt(rec: Record, key: String, isoverwrite: Boolean): Option[FieldCommand[Int]] = {
     def makekey(cmd: String) = key + DELIMITER + cmd
     def f(k: String) = rec.getConcreteString(k).map(AnyUtils.toInt)
-    f(key).map(OverwriteCommand(_)) orElse
+    def getoverwriteint = if (isoverwrite)
+      rec.getString(key).map(AnyUtils.toInt)
+    else
+      f(key)
+    getoverwriteint.map(OverwriteCommand(_)) orElse
     f(makekey(FIELD_CONTENT)).map(ContentCommand(_)) orElse
     f(makekey(FIELD_OVERWRITE)).map(OverwriteCommand(_)) orElse
     f(makekey(FIELD_APPEND)).map(AppendCommand(_)) orElse
