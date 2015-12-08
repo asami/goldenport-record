@@ -7,29 +7,52 @@ import org.goldenport.record.v2._
 
 /*
  * @since   Nov. 15, 2015
- * @version Nov. 25, 2015
+ * @version Dec.  4, 2015
  * @author  ASAMI, Tomoharu
  */
-sealed trait StoreOperation[+A] extends UnitOfWork[A] {
+sealed trait StoreOperation[+A] extends ExtensionUnitOfWork[A] {
 }
 
-case class Get(store: Store, id: Store.Id) extends StoreOperation[Option[Record]]
+case class Get(store: Store, id: Store.Id) extends StoreOperation[GetResult]
 
-case class Gets(store: Store, ids: Seq[Store.Id]) extends StoreOperation[RecordSet]
+case class Gets(store: Store, ids: Seq[Store.Id]) extends StoreOperation[GetsResult]
 
-case class Select(store: Store, query: String) extends StoreOperation[RecordSet]
+case class Select(store: Store, query: Query) extends StoreOperation[SelectResult]
 
-case class Insert(store: Store, rec: Record) extends StoreOperation[Store.Id]
+case class Insert(store: Store, rec: Record) extends StoreOperation[InsertResult]
 
-case class Inserts(store: Store, rs: RecordSet) extends StoreOperation[IndexedSeq[Store.Id]]
+case class Inserts(store: Store, rs: RecordSet) extends StoreOperation[IndexedSeq[InsertResult]]
 
-case class Update(store: Store, id: Store.Id, rec: Record) extends StoreOperation[Unit]
+case class Update(store: Store, id: Store.Id, rec: Record) extends StoreOperation[UpdateResult]
 
-case class Updates(store: Store, rs: Map[Store.Id, Record]) extends StoreOperation[Unit]
+case class Updates(store: Store, rs: Map[Store.Id, Record]) extends StoreOperation[IndexedSeq[UpdateResult]]
 
 case class Delete(store: Store, id: Store.Id) extends StoreOperation[Unit]
 
 case class Deletes(store: Store, ids: Seq[Store.Id]) extends StoreOperation[Unit]
+
+case class Commit() extends StoreOperation[CommitResult]
+
+case class GetResult(entity: Option[Entity])
+case class GetsResult(entities: EntitySequence)
+case class SelectResult(entities: EntitySequence)
+case class InsertResult(
+  id: Store.Id,
+  items: IndexedSeq[Store.Id] = Vector.empty
+)
+case class InsertsResult(inserts: IndexedSeq[InsertResult])
+case class UpdateResult(
+  id: Store.Id,
+  items: IndexedSeq[Store.Id] = Vector.empty
+)
+case class UpdatesResult(updates: IndexedSeq[UpdateResult])
+sealed trait CommitResult {
+  def log: String
+}
+case class CommitSuccess(log: String) extends CommitResult {
+}
+case class CommitFailure(log: String) extends CommitResult {
+}
 
 object StoreOperation {
   type StoreOperationFM[T] = Free.FreeC[StoreOperation, T]
@@ -39,15 +62,17 @@ object StoreOperation {
 
   def gets(store: Store, ids: Seq[Store.Id]) = Free.liftFC(Gets(store, ids))
 
+  def select(store: Store, query: Query) = Free.liftFC(Select(store, query))
+
   def insert(
     store: Store,
     rec: Record
-  ): StoreOperationFM[Store.Id] = Free.liftFC(Insert(store, rec))
+  ): StoreOperationFM[InsertResult] = Free.liftFC(Insert(store, rec))
 
   def inserts(
     store: Store,
     rs: RecordSet
-  ): StoreOperationFM[IndexedSeq[Store.Id]] = Free.liftFC(Inserts(store, rs))
+  ): StoreOperationFM[IndexedSeq[InsertResult]] = Free.liftFC(Inserts(store, rs))
 
   def update(store: Store, id: Store.Id, rec: Record) = Free.liftFC(Update(store, id, rec))
 
@@ -60,6 +85,8 @@ object StoreOperation {
   def delete(store: Store, id: String) = Free.liftFC(Delete(store, Store.StringId(id)))
 
   def deletes(store: Store, ids: Seq[Store.Id]) = Free.liftFC(Deletes(store, ids))
+
+  def commit() = Free.liftFC(Commit())
 
   def runFM[F[_], O](
     f: StoreOperationFM[O]

@@ -37,7 +37,8 @@ import org.goldenport.record.util.{AnyUtils}
  *  version Aug. 28, 2015
  *  version Sep. 17, 2015
  *  version Oct. 28, 2015
- * @version Nov.  7, 2015
+ *  version Nov. 30, 2015
+ * @version Dec.  3, 2015
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -289,9 +290,8 @@ case class Record(
   def getRecordList(key: Symbol): List[Record] = getRecords(key)
 
   def getRecords(key: Symbol): List[Record] = {
-    get(key) match {
-      case None => Nil
-      case Some(xs) => xs.map(_.asInstanceOf[Record])
+    effectiveList(key) collect {
+      case xs: Record => xs
     }
   }
 
@@ -435,24 +435,34 @@ case class Record(
     getRecordList(Symbol(key))
   }
 
+  private def _no_such_element(key: Symbol): Nothing = {
+    val msg = getString('id) match {
+      case Some(s) => s"No such element '${key.name}' in '$s'"
+      case None => s"No such element '${key.name}'"
+    }
+    throw new NoSuchElementException(msg)
+  }
+
   def asString(key: Symbol): String = {
-    AnyUtils.toString(getOne(key).get)
+    getOne(key).map(AnyUtils.toString) getOrElse {
+      _no_such_element(key)
+    }
   }
 
   def asBoolean(key: Symbol): Boolean = {
-    getBoolean(key).get
+    getBoolean(key) getOrElse _no_such_element(key)
   }
 
   def asInt(key: Symbol): Int = {
-    AnyUtils.toInt(getOne(key).get)
+    AnyUtils.toInt(getOne(key).getOrElse(_no_such_element(key)))
   }
 
   def asLong(key: Symbol): Long = {
-    AnyUtils.toLong(getOne(key).get)
+    AnyUtils.toLong(getOne(key).getOrElse(_no_such_element(key)))
   }
 
   def asBigDecimal(key: Symbol): BigDecimal = {
-    getBigDecimal(key).get
+    getBigDecimal(key).getOrElse(_no_such_element(key))
   }
 
   def asTimestamp(key: Symbol): Timestamp = {
@@ -468,19 +478,23 @@ case class Record(
   }
 
   def asString(key: String): String = {
-    AnyUtils.toString(getOne(key).get)
+//    AnyUtils.toString(getOne(key).get)
+    asString(Symbol(key))
   }
 
   def asBoolean(key: String): Boolean = {
-    getBoolean(key).get
+//    getBoolean(key).get
+    asBoolean(Symbol(key))
   }
 
   def asInt(key: String): Int = {
-    AnyUtils.toInt(getOne(key).get)
+//    AnyUtils.toInt(getOne(key).get)
+    asInt(Symbol(key))
   }
 
   def asLong(key: String): Long = {
-    AnyUtils.toLong(getOne(key).get)
+//    AnyUtils.toLong(getOne(key).get)
+    asLong(Symbol(key))
   }
 
   def asBigDecimal(name: String): BigDecimal = {
@@ -582,14 +596,12 @@ case class Record(
   }
   def isSourceDefined(key: String): Boolean = isSourceDefined(Symbol(key))
 
+  def effectiveList(key: Symbol): List[Any] = {
+    getField(key).map(_.effectiveList) getOrElse Nil
+  }
+
   def effectiveList(key: String): List[Any] = {
-    get(key) match {
-      case None => Nil
-      case Some(Nil) => Nil
-      case Some(List(Nil)) => Nil
-      case Some(List(xs: List[_])) => xs
-      case Some(xs) => xs
-    }
+    getField(key).map(_.effectiveList) getOrElse Nil
   }
 
   def keyStringValues: Seq[(String, Any)] = {
@@ -1031,6 +1043,13 @@ case class Field(key: Symbol, values: List[Any]) {
       }
       case xs => Some(xs)
     }
+  }
+
+  def effectiveList: List[Any] = values match {
+    case Nil => Nil
+    case List(Nil) => Nil
+    case List(xs: Seq[_]) => xs.toList
+    case xs => xs
   }
 
   def keyValue: Option[(Symbol, Any)] = {

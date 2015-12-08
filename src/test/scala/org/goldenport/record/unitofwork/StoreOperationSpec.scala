@@ -8,10 +8,11 @@ import scalaz.{Store => _, _}, Scalaz._
 import org.goldenport.record.v2._
 import org.goldenport.record.unitofwork
 import org.goldenport.record.unitofwork._
+import org.goldenport.record.unitofwork.interpreter._
 
 /*
  * @since   Nov. 15, 2015
- * @version Nov. 25, 2015
+ * @version Dec.  8, 2015
  * @author  ASAMI, Tomoharu
  */
 @RunWith(classOf[JUnitRunner])
@@ -23,7 +24,7 @@ class StoreOperationSpec extends WordSpec with Matchers {
       val store = unitofwork.Store.printer
       val id = unitofwork.Store.StringId("1")
       val rec = Record.empty
-      val program: StoreOperationFM[Store.Id] = for {
+      val program: StoreOperationFM[InsertResult] = for {
         a <- get(store, id)
         b <- insert(store, rec)
       } yield b

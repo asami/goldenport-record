@@ -7,11 +7,13 @@ import org.goldenport.record.v2._
 
 /*
  * @since   Nov. 15, 2015
- * @version Nov. 25, 2015
+ * @version Dec.  4, 2015
  * @author  ASAMI, Tomoharu
  */
-trait UnitOfWork[+A] {
+sealed trait UnitOfWork[+A] {
 }
+
+trait ExtensionUnitOfWork[+A] extends UnitOfWork[A]
 
 case class Value[T](v: T) extends UnitOfWork[T]
 
@@ -24,12 +26,11 @@ object UnitOfWork {
   def lift[T[_] <: UnitOfWork[_], A](x: T[A]) = Free.liftFC(x)
   def lift[T](x: T): UnitOfWorkFM[T] = Free.liftFC(Value(x))
 
-  case class ServiceRequest()
+  trait ServiceRequest
+  trait ServiceResponse
 
-  case class ServiceResponse()
-
-  def invoke(req: ServiceRequest): UnitOfWorkFM[ServiceResponse] =
-    Free.liftFC(InvokeService(req))
+  def invoke[T <: ServiceResponse](req: ServiceRequest): UnitOfWorkFM[T] =
+    Free.liftFC(InvokeService(req)).asInstanceOf[UnitOfWorkFM[T]]
 
   def runFM[F[_], O](
     f: UnitOfWorkFM[O]
@@ -51,31 +52,33 @@ object UnitOfWork {
   }
 
   object store {
-    def get(store: Store, id: Store.Id) = StoreOperation.get(store, id).asInstanceOf[UnitOfWorkFM[Option[Record]]]
+    def get(store: Store, id: Store.Id) = StoreOperation.get(store, id).asInstanceOf[UnitOfWorkFM[GetResult]]
 
-    def gets(store: Store, ids: Seq[Store.Id]) = StoreOperation.gets(store, ids).asInstanceOf[UnitOfWorkFM[RecordSet]]
+    def gets(store: Store, ids: Seq[Store.Id]) = StoreOperation.gets(store, ids).asInstanceOf[UnitOfWorkFM[GetsResult]]
+
+    def select(store: Store, query: Query) = StoreOperation.select(store, query).asInstanceOf[UnitOfWorkFM[SelectResult]]
 
     def insert(
       store: Store,
       rec: Record
-    ): UnitOfWorkFM[Store.Id] = StoreOperation.insert(store, rec).asInstanceOf[UnitOfWorkFM[Store.Id]]
+    ): UnitOfWorkFM[InsertResult] = StoreOperation.insert(store, rec).asInstanceOf[UnitOfWorkFM[InsertResult]]
 
     def inserts(
       store: Store,
       rs: RecordSet
-    ): UnitOfWorkFM[IndexedSeq[Store.Id]] = StoreOperation.inserts(store, rs).asInstanceOf[UnitOfWorkFM[IndexedSeq[Store.Id]]]
+    ): UnitOfWorkFM[IndexedSeq[InsertResult]] = StoreOperation.inserts(store, rs).asInstanceOf[UnitOfWorkFM[IndexedSeq[InsertResult]]]
 
     def update(
       store: Store,
       id: Store.Id,
       rec: Record
-    ): UnitOfWorkFM[Unit] = StoreOperation.update(store, id, rec).asInstanceOf[UnitOfWorkFM[Unit]]
+    ): UnitOfWorkFM[UpdateResult] = StoreOperation.update(store, id, rec).asInstanceOf[UnitOfWorkFM[UpdateResult]]
 
     def update(
       store: Store,
       id: String,
       rec: Record
-    ): UnitOfWorkFM[Unit] = StoreOperation.update(store, id, rec).asInstanceOf[UnitOfWorkFM[Unit]]
+    ): UnitOfWorkFM[UpdateResult] = StoreOperation.update(store, id, rec).asInstanceOf[UnitOfWorkFM[UpdateResult]]
 
     def updates(
       store: Store, rs: Map[Store.Id, Record]
@@ -89,5 +92,7 @@ object UnitOfWork {
       store: Store,
       ids: Seq[Store.Id]
     ) = StoreOperation.deletes(store, ids).asInstanceOf[UnitOfWorkFM[Unit]]
+
+    def commit() = StoreOperation.commit().asInstanceOf[UnitOfWorkFM[CommitResult]]
   }
 }
