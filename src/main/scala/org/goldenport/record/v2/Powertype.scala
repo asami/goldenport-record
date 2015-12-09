@@ -1,12 +1,15 @@
 package org.goldenport.record.v2
 
 import scala.util.control.NonFatal
+import scala.math.BigInt
+import scala.math.BigDecimal
 
 /*
  * @since   Aug. 12, 2015
  *  version Sep. 25, 2015
  *  version Oct. 25, 2015
- * @version Nov. 23, 2015
+ *  version Nov. 23, 2015
+ * @version Dec.  9, 2015
  * @author  ASAMI, Tomoharu
  */
 trait Powertype {
@@ -168,6 +171,8 @@ trait PowertypeClass {
       case x: String => paramString(x).value
       case x: Byte => paramInt(x.toInt).value
       case x: Short => paramInt(x.toInt).value
+      case x: BigInt => paramInt(x.toInt).value
+      case x: BigDecimal => paramInt(x.toInt).value
       case _ =>
         throw new IllegalArgumentException(s"Invalid powertype value '$v' for $usage")
     }
@@ -183,6 +188,8 @@ trait PowertypeClass {
       case x: String => isValid(x)
       case x: Byte => isValid(x.toInt)
       case x: Short => isValid(x.toInt)
+      case x: BigInt => isValid(x.toInt)
+      case x: BigDecimal => isValid(x.toInt)
       case _ => false
     }
   }
