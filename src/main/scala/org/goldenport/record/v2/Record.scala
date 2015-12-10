@@ -38,7 +38,7 @@ import org.goldenport.record.util.{AnyUtils}
  *  version Sep. 17, 2015
  *  version Oct. 28, 2015
  *  version Nov. 30, 2015
- * @version Dec.  3, 2015
+ * @version Dec. 10, 2015
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -944,20 +944,36 @@ case class Record(
     copy(fields = fields.filterNot(x => p(x.key.name)))
   }
 
+  def normalize: Record = copy(fields = normalizedFields)
+
+  def normalizedFields: List[Field] = {
+    case class Z(z: Vector[Field] = Vector.empty) {
+      def +(rhs: Field) = {
+        if (z.exists(x => x.key == rhs.key))
+          this
+        else
+          Z(z :+ rhs)
+      }
+
+      def result = z.toList
+    }
+    fields.foldLeft(Z())(_ + _).result
+  }
+
   override def toString(): String = {
     "Record(" + fields + ", " + inputFiles + ")"
   }
 
   def toMap: Map[String, Any] = {
-    Map.empty ++ fields.flatMap(f => f.effectiveValue.map(v => f.key.name -> v))
+    Map.empty ++ normalizedFields.flatMap(f => f.effectiveValue.map(v => f.key.name -> v))
   }
 
   def toStringMap: Map[String, String] = {
-    Map.empty ++ fields.flatMap(f => f.effectiveValue.map(v => f.key.name -> AnyUtils.toString(v)))
+    Map.empty ++ normalizedFields.flatMap(f => f.effectiveValue.map(v => f.key.name -> AnyUtils.toString(v)))
   }
 
   def toVector: Vector[(String, Any)] = {
-    Vector.empty ++ fields.map { x =>
+    Vector.empty ++ normalizedFields.map { x =>
       x.key.name -> to_natural_value(x.values)
     }
   }
