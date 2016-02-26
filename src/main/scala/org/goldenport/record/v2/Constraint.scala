@@ -5,6 +5,7 @@ import Validator._
 // TODO Validation already has not been Monad. Use Disjunction or use it as Applicative.
 // http://stackoverflow.com/questions/22635033/validation-implicit-scalaz-bind-not-found
 import scalaz.Validation.FlatMap._
+import scala.util.control.NonFatal
 
 /*
  * @snice   Nov. 23, 2012
@@ -12,7 +13,8 @@ import scalaz.Validation.FlatMap._
  *  version Dec. 31, 2013
  *  version Jan. 15, 2014
  *  version Feb.  6, 2014
- * @version Jan.  5, 2015
+ *  version Jan.  5, 2015
+ * @version Feb. 26, 2016
  * @author  ASAMI, Tomoharu
  */
 trait Constraint {
@@ -66,6 +68,37 @@ trait Constraint {
     @inline def calc(d: Double): Int = ((d * 1000).toInt + 5) / 10
     calc(lhs) == calc(rhs)
   }
+
+  protected def value_domain(msg: String, value: String)(body: => Boolean): Option[ValidationResult] = try {
+    if (body)
+      None
+    else
+      Some(ValueDomainFailure(msg, value))
+  } catch {
+    case NonFatal(e) => Some(ValueDomainFailure(msg, value))
+  }
+
+  protected def constraint_length(length: Int, value: String) =
+    value_domain(s"長さ(${value.length})が${length}を超えています。", value) {
+      value.length > length
+    }
+
+  protected def constraint_digits(value: String) =
+    value_domain(s"数値列ではありません。", value) {
+      value.forall(is_digit)
+    }
+
+  protected def constraint_digit(value: Char) =
+    value_domain(s"数値ではありません。", value.toString) {
+      is_digit(value)
+    }
+
+  protected def is_digit(value: Char) = '0' <= value && value <= '9'
+
+  protected def constraint_enumeration(xs: String*)(value: String) =
+    value_domain(s"適合しません。", value) {
+      xs.contains(value)
+    }
 }
 
 object Constraint {
@@ -234,4 +267,14 @@ case class CEnumeration(values: Seq[String]) extends Constraint {
       ValueDomainFailure("%sは%sで有効ではありません。".format(value, values.mkString(", ")), value)
     }
   }
+}
+
+case class CMaxLength(length: Int) extends Constraint {
+  def validate(datatype: DataType, value: String, record: Record): Option[ValidationResult] =
+    constraint_length(length, value)
+}
+
+case class CDigitsLength(length: Int) extends Constraint {
+  def validate(datatype: DataType, value: String, record: Record): Option[ValidationResult] =
+    constraint_length(length, value) |+| constraint_digits(value)
 }

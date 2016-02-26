@@ -38,7 +38,8 @@ import org.goldenport.record.util.{AnyUtils}
  *  version Sep. 17, 2015
  *  version Oct. 28, 2015
  *  version Nov. 30, 2015
- * @version Dec. 10, 2015
+ *  version Dec. 13, 2015
+ * @version Feb. 26, 2016
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -802,6 +803,9 @@ case class Record(
   }
 */
 
+  def complements(rec: Record): Record = complements(rec.keyStringValues)
+  def complements(p: Map[String, Any]): Record = complements(p.toVector)
+
   def complements(f: Seq[(String, Any)]): Record = {
     if (f.isEmpty) {
       this
@@ -962,6 +966,19 @@ case class Record(
 
   override def toString(): String = {
     "Record(" + fields + ", " + inputFiles + ")"
+  }
+
+  def distillByPrefix(rec: Record, prefix: String): Record = {
+    val prefixlength = prefix.length
+    if (prefixlength == 0)
+      rec
+    else
+      Record(rec.fields.flatMap { x =>
+        if (x.key.name.startsWith(prefix))
+          Some(x.updateKey(x.key.name.substring(prefixlength)))
+        else
+          None
+      })
   }
 
   def toMap: Map[String, Any] = {

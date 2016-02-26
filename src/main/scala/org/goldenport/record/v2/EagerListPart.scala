@@ -9,10 +9,18 @@ import org.goldenport.record.util.AnyUtils
 /*
  * @since   Sep. 17, 2015
  *  version Oct. 25, 2015
- * @version Nov. 23, 2015
+ *  version Nov. 23, 2015
+ *  version Dec. 11, 2015
+ * @version Feb. 26, 2016
  * @author  ASAMI, Tomoharu
  */
 trait EagerListPart { self: Record =>
+  def eagerStringList(key: String): List[String] =
+    eagerStringList(Symbol(key))
+
+  def eagerStringList(key: Symbol): List[String] =
+    getEagerStringList(key) getOrElse Nil
+
   def getEagerStringList(key: String): Option[List[String]] =
     getEagerStringList(Symbol(key))
 

@@ -8,7 +8,8 @@ import java.net.URI
  *  version Dec. 31, 2012
  *  version Jan.  9, 2013
  *  version Mar. 10, 2013
- * @version Apr.  4, 2013
+ *  version Apr.  4, 2013
+ * @version Dec. 14, 2015
  * @author  ASAMI, Tomoharu
  */
 case class SqlSchema(actions: Seq[SqlAction]) {
@@ -16,3 +17,8 @@ case class SqlSchema(actions: Seq[SqlAction]) {
 }
 
 object NullSqlSchema extends SqlSchema(Nil)
+
+object SqlSchema {
+  val empty = NullSqlSchema
+}
+
