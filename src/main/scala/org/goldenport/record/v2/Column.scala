@@ -14,7 +14,8 @@ import org.smartdox.Description
  *  version Jul. 25, 2014
  *  version Aug. 11, 2014
  *  version Oct. 27, 2015
- * @version Nov.  8, 2015
+ *  version Nov.  8, 2015
+ * @version Feb. 26, 2016
  * @author  ASAMI, Tomoharu
  */
 case class Column(
@@ -39,6 +40,25 @@ case class Column(
 //  comment: String = ""
 ) extends ColumnSlot {
   def orderBy: Option[SqlOrder] = displayFormat.flatMap(_.orderBy)
+
+  def validate(f: Field): ValidationResult = {
+    _validate_datatype(f) |+| _validate_constraints(f)
+  }
+
+  private def _validate_datatype(f: Field): ValidationResult = {
+    val a: Seq[ValidationResult] = f.values.map(
+      _ match {
+        case xs: Seq[_] => sys.error("???")
+        case x => datatype.validate(x).enkey(f.key.name)
+      }
+    )
+    a.toVector.suml
+  }
+
+  private def _validate_constraints(f: Field): ValidationResult = {
+    // constraints
+    Valid
+  }
 
   def toModelValidation: List[String] = {
     List(_validation_presence,

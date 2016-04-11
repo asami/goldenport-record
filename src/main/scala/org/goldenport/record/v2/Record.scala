@@ -37,7 +37,10 @@ import org.goldenport.record.util.{AnyUtils}
  *  version Aug. 28, 2015
  *  version Sep. 17, 2015
  *  version Oct. 28, 2015
- * @version Nov.  7, 2015
+ *  version Nov. 30, 2015
+ *  version Dec. 13, 2015
+ *  version Feb. 26, 2016
+ * @version Apr. 12, 2016
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -219,7 +222,7 @@ case class Record(
       case v: Short => BigDecimal(v)
       case v: Int => BigDecimal(v)
       case v: Long => BigDecimal(v)
-      case v: Float => BigDecimal(v)
+      case v: Float => BigDecimal(v.toString)
       case v: Double => BigDecimal(v)
       case v: BigInt => BigDecimal(v)
       case v: BigDecimal => v
@@ -289,9 +292,8 @@ case class Record(
   def getRecordList(key: Symbol): List[Record] = getRecords(key)
 
   def getRecords(key: Symbol): List[Record] = {
-    get(key) match {
-      case None => Nil
-      case Some(xs) => xs.map(_.asInstanceOf[Record])
+    effectiveList(key) collect {
+      case xs: Record => xs
     }
   }
 
@@ -435,24 +437,34 @@ case class Record(
     getRecordList(Symbol(key))
   }
 
+  private def _no_such_element(key: Symbol): Nothing = {
+    val msg = getString('id) match {
+      case Some(s) => s"No such element '${key.name}' in '$s'"
+      case None => s"No such element '${key.name}'"
+    }
+    throw new NoSuchElementException(msg)
+  }
+
   def asString(key: Symbol): String = {
-    AnyUtils.toString(getOne(key).get)
+    getOne(key).map(AnyUtils.toString) getOrElse {
+      _no_such_element(key)
+    }
   }
 
   def asBoolean(key: Symbol): Boolean = {
-    getBoolean(key).get
+    getBoolean(key) getOrElse _no_such_element(key)
   }
 
   def asInt(key: Symbol): Int = {
-    AnyUtils.toInt(getOne(key).get)
+    AnyUtils.toInt(getOne(key).getOrElse(_no_such_element(key)))
   }
 
   def asLong(key: Symbol): Long = {
-    AnyUtils.toLong(getOne(key).get)
+    AnyUtils.toLong(getOne(key).getOrElse(_no_such_element(key)))
   }
 
   def asBigDecimal(key: Symbol): BigDecimal = {
-    getBigDecimal(key).get
+    getBigDecimal(key).getOrElse(_no_such_element(key))
   }
 
   def asTimestamp(key: Symbol): Timestamp = {
@@ -468,19 +480,23 @@ case class Record(
   }
 
   def asString(key: String): String = {
-    AnyUtils.toString(getOne(key).get)
+//    AnyUtils.toString(getOne(key).get)
+    asString(Symbol(key))
   }
 
   def asBoolean(key: String): Boolean = {
-    getBoolean(key).get
+//    getBoolean(key).get
+    asBoolean(Symbol(key))
   }
 
   def asInt(key: String): Int = {
-    AnyUtils.toInt(getOne(key).get)
+//    AnyUtils.toInt(getOne(key).get)
+    asInt(Symbol(key))
   }
 
   def asLong(key: String): Long = {
-    AnyUtils.toLong(getOne(key).get)
+//    AnyUtils.toLong(getOne(key).get)
+    asLong(Symbol(key))
   }
 
   def asBigDecimal(name: String): BigDecimal = {
@@ -582,14 +598,12 @@ case class Record(
   }
   def isSourceDefined(key: String): Boolean = isSourceDefined(Symbol(key))
 
+  def effectiveList(key: Symbol): List[Any] = {
+    getField(key).map(_.effectiveList) getOrElse Nil
+  }
+
   def effectiveList(key: String): List[Any] = {
-    get(key) match {
-      case None => Nil
-      case Some(Nil) => Nil
-      case Some(List(Nil)) => Nil
-      case Some(List(xs: List[_])) => xs
-      case Some(xs) => xs
-    }
+    getField(key).map(_.effectiveList) getOrElse Nil
   }
 
   def keyStringValues: Seq[(String, Any)] = {
@@ -790,6 +804,9 @@ case class Record(
   }
 */
 
+  def complements(rec: Record): Record = complements(rec.keyStringValues)
+  def complements(p: Map[String, Any]): Record = complements(p.toVector)
+
   def complements(f: Seq[(String, Any)]): Record = {
     if (f.isEmpty) {
       this
@@ -932,20 +949,49 @@ case class Record(
     copy(fields = fields.filterNot(x => p(x.key.name)))
   }
 
+  def normalize: Record = copy(fields = normalizedFields)
+
+  def normalizedFields: List[Field] = {
+    case class Z(z: Vector[Field] = Vector.empty) {
+      def +(rhs: Field) = {
+        if (z.exists(x => x.key == rhs.key))
+          this
+        else
+          Z(z :+ rhs)
+      }
+
+      def result = z.toList
+    }
+    fields.foldLeft(Z())(_ + _).result
+  }
+
   override def toString(): String = {
     "Record(" + fields + ", " + inputFiles + ")"
   }
 
+  def distillByPrefix(rec: Record, prefix: String): Record = {
+    val prefixlength = prefix.length
+    if (prefixlength == 0)
+      rec
+    else
+      Record(rec.fields.flatMap { x =>
+        if (x.key.name.startsWith(prefix))
+          Some(x.updateKey(x.key.name.substring(prefixlength)))
+        else
+          None
+      })
+  }
+
   def toMap: Map[String, Any] = {
-    Map.empty ++ fields.flatMap(f => f.effectiveValue.map(v => f.key.name -> v))
+    Map.empty ++ normalizedFields.flatMap(f => f.effectiveValue.map(v => f.key.name -> v))
   }
 
   def toStringMap: Map[String, String] = {
-    Map.empty ++ fields.flatMap(f => f.effectiveValue.map(v => f.key.name -> AnyUtils.toString(v)))
+    Map.empty ++ normalizedFields.flatMap(f => f.effectiveValue.map(v => f.key.name -> AnyUtils.toString(v)))
   }
 
   def toVector: Vector[(String, Any)] = {
-    Vector.empty ++ fields.map { x =>
+    Vector.empty ++ normalizedFields.map { x =>
       x.key.name -> to_natural_value(x.values)
     }
   }
@@ -1031,6 +1077,13 @@ case class Field(key: Symbol, values: List[Any]) {
       }
       case xs => Some(xs)
     }
+  }
+
+  def effectiveList: List[Any] = values match {
+    case Nil => Nil
+    case List(Nil) => Nil
+    case List(xs: Seq[_]) => xs.toList
+    case xs => xs
   }
 
   def keyValue: Option[(Symbol, Any)] = {

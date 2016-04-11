@@ -4,23 +4,39 @@ import org.goldenport.record.command._
 
 /*
  * @since   Sep. 17, 2015
- * @version Sep. 17, 2015
+ * @version Nov. 16, 2015
  * @author  ASAMI, Tomoharu
  */
 trait CommandPart { self: Record =>
   def getCmdString(key: Symbol): Option[FieldCommand[String]] = {
-    FieldCommand.getCmdString(this, key)
+    getCmdString(key, true)
+  }
+
+  def getCmdString(key: Symbol, overwritep: Boolean): Option[FieldCommand[String]] = {
+    FieldCommand.getCmdString(this, key, overwritep)
   }
 
   def getCmdString(key: String): Option[FieldCommand[String]] = {
-    FieldCommand.getCmdString(this, key)
+    getCmdString(key, true)
+  }
+
+  def getCmdString(key: String, overwritep: Boolean): Option[FieldCommand[String]] = {
+    FieldCommand.getCmdString(this, key, overwritep)
   }
 
   def getCmdInt(key: Symbol): Option[FieldCommand[Int]] = {
-    FieldCommand.getCmdInt(this, key)
+    getCmdInt(key, true)
+  }
+
+  def getCmdInt(key: Symbol, overwritep: Boolean): Option[FieldCommand[Int]] = {
+    FieldCommand.getCmdInt(this, key, overwritep)
   }
 
   def getCmdInt(key: String): Option[FieldCommand[Int]] = {
-    FieldCommand.getCmdInt(this, key)
+    getCmdInt(key, true)
+  }
+
+  def getCmdInt(key: String, overwritep: Boolean): Option[FieldCommand[Int]] = {
+    FieldCommand.getCmdInt(this, key, overwritep)
   }
 }

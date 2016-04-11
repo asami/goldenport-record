@@ -15,7 +15,8 @@ import com.asamioffice.goldenport.text.UPathString
  *  version May. 17, 2013
  *  version Aug.  7, 2013
  *  version Oct.  3, 2013
- * @version Nov. 29, 2014
+ *  version Nov. 29, 2014
+ * @version Feb. 26, 2016
  * @author  ASAMI, Tomoharu
  */
 trait InputFile {
@@ -143,7 +144,10 @@ object InputFile {
   }
 }
 
-case class UploadFile(key: String, uri: String, size: Long)
+case class UploadFile(
+  key: String, uri: String, size: Long,
+  getWidth: Option[Int] = None, getHeight: Option[Int] = None
+)
 
 trait WorkFile {
   def length: Long
