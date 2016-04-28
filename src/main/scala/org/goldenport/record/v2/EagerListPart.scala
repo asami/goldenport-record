@@ -11,7 +11,8 @@ import org.goldenport.record.util.AnyUtils
  *  version Oct. 25, 2015
  *  version Nov. 23, 2015
  *  version Dec. 11, 2015
- * @version Feb. 26, 2016
+ *  version Feb. 26, 2016
+ * @version Apr. 27, 2016
  * @author  ASAMI, Tomoharu
  */
 trait EagerListPart { self: Record =>
@@ -56,15 +57,15 @@ trait EagerListPart { self: Record =>
     getEagerFormLongList(Symbol(key))
 
   def getEagerFormLongList(key: Symbol): Option[NonEmptyList[Long]] = {
-    get(key).toList.flatMap(_expands).
+    val a = get(key).toList.flatMap(_expands).
       filter {
         case s: String => Strings.notblankp(s)
         case _ => true
-      }.
-      map(AnyUtils.toLong) match {
-        case Nil => None
-        case x :: xs => Some(NonEmptyList.nel(x, xs))
-      }
+      }.map(AnyUtils.toLong): List[Long]
+    a match {
+      case Nil => None
+      case x :: xs => Some(NonEmptyList.nel(x, xs))
+    }
   }
 
   // URL
@@ -82,15 +83,15 @@ trait EagerListPart { self: Record =>
     getEagerFormUrlList(key).map(_.list)
 
   def getEagerFormUrlList(key: Symbol): Option[NonEmptyList[URL]] = {
-    get(key).toList.flatMap(_expands).
+    val a = get(key).toList.flatMap(_expands).
       filter {
         case s: String => Strings.notblankp(s)
         case _ => true
-      }.
-      map(AnyUtils.toUrl) match {
-        case Nil => None
-        case x :: xs => Some(NonEmptyList.nel(x, xs))
-      }
+      }.map(AnyUtils.toUrl): List[URL]
+    a match {
+      case Nil => None
+      case x :: xs => Some(NonEmptyList.nel(x, xs))
+    }
   }
 
   // def getEagerStringListOption(key: Symbol): Option[NonEmptyList[String]] = {
@@ -116,17 +117,8 @@ trait EagerListPart { self: Record =>
   // }
 
   // TODO refactor signature
-  def getEagerUrlListOption(key: Symbol): Option[NonEmptyList[URL]] = {
-    get(key).toList.flatMap(_expands).
-      filter {
-        case s: String => Strings.notblankp(s)
-        case _ => true
-      }.
-      map(AnyUtils.toUrl) match {
-        case Nil => None
-        case x :: xs => Some(NonEmptyList.nel(x, xs))
-      }
-  }
+  def getEagerUrlListOption(key: Symbol): Option[NonEmptyList[URL]] =
+    getEagerFormUrlList(key)
 
   // TODO refactor signature
   // def getEagerUrlListOption(key: String): Option[NonEmptyList[URL]] = {

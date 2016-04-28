@@ -8,10 +8,21 @@ import org.goldenport.record.unitofwork._
 
 /*
  * @since   Nov. 15, 2015
- * @version Dec.  3, 2015
+ *  version Dec.  3, 2015
+ * @version Apr. 28, 2016
  * @author  ASAMI, Tomoharu
  */
 trait StoreOperationInterpreter[+F[_]] extends NaturalTransformation[StoreOperation, F] {
+  def abort(message: String): Unit = {
+    interpreter_Abort(message)
+  }
+  def abort(e: Throwable): Unit = {
+    interpreter_Abort(e)
+  }
+
+  protected def interpreter_Abort(message: String): Unit
+  protected def interpreter_Abort(e: Throwable): Unit
+
   def apply[T](op: StoreOperation[T]): F[T] = {
     op match {
       case Get(store, id) => get(store, id)
@@ -42,6 +53,9 @@ trait StoreOperationInterpreter[+F[_]] extends NaturalTransformation[StoreOperat
 class IdStoreOperationInterpreter(
   logic: StoreOperationLogic
 ) extends StoreOperationInterpreter[Id] {
+  protected def interpreter_Abort(message: String) = logic.abort(message)
+  protected def interpreter_Abort(e: Throwable) = logic.abort(e)
+
   def get[T](store: Store, id: Store.Id): T = {
     logic.get(store, id).asInstanceOf[T]
   }
@@ -86,6 +100,9 @@ class IdStoreOperationInterpreter(
 trait StoreOperationInterpreterBase[F[_]] extends StoreOperationInterpreter[F] {
   def typeclass: Applicative[F]
   def logic: StoreOperationLogic
+
+  protected def interpreter_Abort(message: String) = logic.abort(message)
+  protected def interpreter_Abort(e: Throwable) = logic.abort(e)
 
   def get[T](store: Store, id: Store.Id): F[T] = {
     typeclass.point(logic.get(store, id).asInstanceOf[T])

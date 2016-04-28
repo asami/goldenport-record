@@ -7,7 +7,8 @@ import org.goldenport.record.v2._
 
 /*
  * @since   Nov. 15, 2015
- * @version Dec.  4, 2015
+ *  version Dec.  4, 2015
+ * @version Apr. 27, 2016
  * @author  ASAMI, Tomoharu
  */
 sealed trait UnitOfWork[+A] {
@@ -20,14 +21,38 @@ case class Value[T](v: T) extends UnitOfWork[T]
 case class InvokeService(request: UnitOfWork.ServiceRequest) extends UnitOfWork[UnitOfWork.ServiceResponse] {
 }
 
+case class Raise(e: Throwable) extends UnitOfWork[Throwable]
+
 object UnitOfWork {
   type UnitOfWorkFM[T] = Free.FreeC[UnitOfWork, T]
 
   def lift[T[_] <: UnitOfWork[_], A](x: T[A]) = Free.liftFC(x)
   def lift[T](x: T): UnitOfWorkFM[T] = Free.liftFC(Value(x))
 
+  def raise[T](e: Throwable): UnitOfWorkFM[T] = 
+    Free.liftFC(Raise(e)).asInstanceOf[UnitOfWorkFM[T]]
+
   trait ServiceRequest
   trait ServiceResponse
+
+  case class BooleanRequest(v: Boolean) extends ServiceRequest
+  case class ByteRequest(v: Byte) extends ServiceRequest
+  case class ShortRequest(v: Short) extends ServiceRequest
+  case class IntRequest(v: Int) extends ServiceRequest
+  case class FloatRequest(v: Float) extends ServiceRequest
+  case class DoubleRequest(v: Double) extends ServiceRequest
+  case class BigIntRequest(v: BigInt) extends ServiceRequest
+  case class BigDecimalRequest(v: BigDecimal) extends ServiceRequest
+  case class StringRequest(v: String) extends ServiceRequest
+  case class BooleanResponse(v: Boolean) extends ServiceResponse
+  case class ByteResponse(v: Byte) extends ServiceResponse
+  case class ShortResponse(v: Short) extends ServiceResponse
+  case class IntResponse(v: Int) extends ServiceResponse
+  case class FloatResponse(v: Float) extends ServiceResponse
+  case class DoubleResponse(v: Double) extends ServiceResponse
+  case class BigIntResponse(v: BigInt) extends ServiceResponse
+  case class BigDecimalResponse(v: BigDecimal) extends ServiceResponse
+  case class StringResponse(v: String) extends ServiceResponse
 
   def invoke[T <: ServiceResponse](req: ServiceRequest): UnitOfWorkFM[T] =
     Free.liftFC(InvokeService(req)).asInstanceOf[UnitOfWorkFM[T]]
@@ -94,5 +119,8 @@ object UnitOfWork {
     ) = StoreOperation.deletes(store, ids).asInstanceOf[UnitOfWorkFM[Unit]]
 
     def commit() = StoreOperation.commit().asInstanceOf[UnitOfWorkFM[CommitResult]]
+
+    // compiler error
+//    def abort(p: String) = StoreOperation.abort(p).asInstanceOf[UnitOfWorkFM[CommitResult]]
   }
 }
