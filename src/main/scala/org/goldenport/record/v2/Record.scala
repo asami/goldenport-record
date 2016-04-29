@@ -39,7 +39,8 @@ import org.goldenport.record.util.{AnyUtils}
  *  version Oct. 28, 2015
  *  version Nov. 30, 2015
  *  version Dec. 13, 2015
- * @version Feb. 26, 2016
+ *  version Feb. 26, 2016
+ * @version Apr. 29, 2016
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -697,6 +698,9 @@ case class Record(
 
   def +(r: Record): Record = update(r)
 
+  def appendS(xs: Seq[(Symbol, Any)]): Record =
+    copy(fields ++ xs.map(Field.createS))
+
   def monoidAppend(rhs: Record): Record = {
     this + rhs // TODO associative law
   }
@@ -806,6 +810,8 @@ case class Record(
   def complements(rec: Record): Record = complements(rec.keyStringValues)
   def complements(p: Map[String, Any]): Record = complements(p.toVector)
 
+  def complementsS(p: Map[Symbol, Any]): Record = complementsS(p.toVector)
+
   def complements(f: Seq[(String, Any)]): Record = {
     if (f.isEmpty) {
       this
@@ -814,6 +820,21 @@ case class Record(
       this ::++ a
     }
   }
+
+  def complementsS(f: Seq[(Symbol, Any)]): Record = {
+    if (f.isEmpty) {
+      this
+    } else {
+      val a = f.filterNot(x => isDefined(x._1))
+      this appendS a
+    }
+  }
+
+  def complement(key: String, value: Any): Record =
+    complements(Vector(key -> value))
+
+  def complement(key: Symbol, value: Any): Record =
+    complementsS(Vector(key -> value))
 
   def normalizeImages(fieldname: String): Record = {
     val a = Symbol(fieldname)
@@ -992,6 +1013,12 @@ case class Record(
   def toVector: Vector[(String, Any)] = {
     Vector.empty ++ normalizedFields.map { x =>
       x.key.name -> to_natural_value(x.values)
+    }
+  }
+
+  def toStringVector: Vector[(String, String)] = {
+    Vector.empty ++ normalizedFields.map { x =>
+      x.key.name -> AnyUtils.toString(x.values)
     }
   }
 
