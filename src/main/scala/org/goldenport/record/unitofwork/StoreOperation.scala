@@ -7,7 +7,8 @@ import org.goldenport.record.v2._
 
 /*
  * @since   Nov. 15, 2015
- * @version Dec.  4, 2015
+ *  version Dec.  4, 2015
+ * @version Apr. 27, 2016
  * @author  ASAMI, Tomoharu
  */
 sealed trait StoreOperation[+A] extends ExtensionUnitOfWork[A] {
@@ -87,6 +88,9 @@ object StoreOperation {
   def deletes(store: Store, ids: Seq[Store.Id]) = Free.liftFC(Deletes(store, ids))
 
   def commit() = Free.liftFC(Commit())
+
+  // compiler error
+//  def abort(p: String) = Free.liftFC(CommitFailure(p))
 
   def runFM[F[_], O](
     f: StoreOperationFM[O]

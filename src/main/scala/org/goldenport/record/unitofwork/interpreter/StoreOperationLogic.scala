@@ -6,10 +6,11 @@ import org.goldenport.record.unitofwork._
 
 /*
  * @since   Nov. 15, 2015
- * @version Dec.  4, 2015
+ *  version Dec.  4, 2015
+ * @version Apr. 28, 2016
  * @author  ASAMI, Tomoharu
  */
-trait StoreOperationLogic {
+trait StoreOperationLogic extends LogicBase {
   def get(store: Store, id: Store.Id): GetResult
   def gets(store: Store, ids: Seq[Store.Id]): GetsResult
   def select(store: Store, query: Query): SelectResult
@@ -19,7 +20,6 @@ trait StoreOperationLogic {
   def updates(store: Store, rs: Map[Store.Id, Record]): UpdatesResult
   def delete(store: Store, id: Store.Id): Unit // DeleteResult
   def deletes(store: Store, ids: Seq[Store.Id]): Unit // DeletesResult
-  def commit(): CommitResult
 }
 
 object StoreOperationLogic {
@@ -65,5 +65,8 @@ object StoreOperationLogic {
     def commit(): CommitResult = {
       ???
     }
+
+    def abort(message: String): Unit = ???
+    def abort(e: Throwable): Unit = ???
   }
 }
