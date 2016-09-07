@@ -5,6 +5,7 @@ import scalaz._, Scalaz._
 import org.smartdox.Description
 import org.goldenport.Strings
 import com.asamioffice.goldenport.text.UString
+import org.goldenport.record.command.ValueCommand
 
 /*
  * Add
@@ -23,7 +24,9 @@ import com.asamioffice.goldenport.text.UString
  *  version Jul. 25, 2014
  *  version Aug.  6, 2014
  *  version Sep. 25, 2015
- * @version Oct. 15, 2015
+ *  version Oct. 15, 2015
+ *  version May. 26, 2016
+ * @version Sep.  8, 2016
  * @author  ASAMI, Tomoharu
  */
 case class Schema(
@@ -49,6 +52,10 @@ case class Schema(
     def append(f1: ValidationResult, f2: => ValidationResult) = f1 + f2
     def zero: ValidationResult = Valid
   } // TODO uses Validation.ValidationResultMonoid
+
+  final def getColumn(key: String) = {
+    columns.find(_.name == key)
+  }
 
   final def getColumn(key: Symbol) = {
     columns.find(_.name == key.name)
@@ -224,6 +231,7 @@ case class Schema(
   private def _validate_datatype_column(c: Column, f: Field): ValidationResult = {
     val a: Seq[ValidationResult] = f.values.map(
       _ match {
+        case m: ValueCommand => Valid
         case xs: Seq[_] => sys.error("???")
         case x => c.datatype.validate(x).enkey(f.key.name)
       }
