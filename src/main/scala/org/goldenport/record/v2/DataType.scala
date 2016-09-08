@@ -24,7 +24,8 @@ import org.goldenport.record.util.{
  *  version Feb.  6, 2014
  *  version May. 15, 2014
  *  version Jul. 27, 2014
- * @version Sep. 25, 2015
+ *  version Sep. 25, 2015
+ * @version Jun. 16, 2016
  * @author  ASAMI, Tomoharu
  */
 sealed trait DataType {
@@ -537,6 +538,8 @@ case object XDateTime extends DataType {
   type InstanceType = Timestamp
   def toInstance(x: Any): InstanceType = {
     x match {
+      case v: Int => new Timestamp(v)
+      case v: Long => new Timestamp(v)
       case v: java.util.Date => new Timestamp(v.getTime)
       case v: DateTime => new Timestamp(v.getMillis)
       case v: String => TimestampUtils.parseIso(v)

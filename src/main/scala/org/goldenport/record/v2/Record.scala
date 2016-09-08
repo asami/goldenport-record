@@ -40,7 +40,10 @@ import org.goldenport.record.util.{AnyUtils}
  *  version Nov. 30, 2015
  *  version Dec. 13, 2015
  *  version Feb. 26, 2016
- * @version Apr. 29, 2016
+ *  version Apr. 29, 2016
+ *  version May. 20, 2016
+ *  version Aug. 26, 2016
+ * @version Sep.  8, 2016
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -60,6 +63,12 @@ case class RecordSet(records: Seq[Record],
   }
 }
 
+/*
+ * effective: special handling for internal list management
+ * eager: allow comma separated list representation
+ * rigid: inform whether list is empty as Option
+ * form: address an empty html form as no parameter
+ */
 case class Record(
   fields: List[Field], // TODO Seq
   // context
@@ -68,7 +77,7 @@ case class Record(
   inputFiles: Seq[InputFile] = Nil,
   opaque: AnyRef = null,
   source: Option[Record] = None
-) extends CommandPart with EagerListPart {
+) extends CommandPart with EagerListPart with HtmlFormPart {
   override def equals(o: Any): Boolean = {
     o match {
       case rec: Record if length == rec.length =>
@@ -89,27 +98,8 @@ case class Record(
     fields.find(_.isMatchKey(key)).map(_.values)
   }
 
-  // TODO unify Field
-  def getOne(key: Symbol): Option[Any] = {
-    get(key) match {
-      case None => None
-      case Some(Nil) => None
-      case Some(x :: _) => Some(x)
-    }
-/*
-    println("getOne = " + get(key))
-    println("getOne 2 = " + get(key).headOption)
-    val a = get(key) match {
-      case Some(x) => {
-        println("getOne 3 = " + x)
-        x.headOption
-      }
-      case None => None
-    }
-    println("getOne r = " + a)
-    a
-*/
-  }
+  def getOne(key: Symbol): Option[Any] =
+    getField(key).flatMap(_.getOne)
 
   def getFormOne(key: Symbol): Option[Any] = {
     getOne(key) filter {
@@ -213,6 +203,17 @@ case class Record(
     getOne(key).map {
       case x: Date => x
       case s: String => DateUtils.parse(s)
+    }
+  }
+
+  def getFormDate(key: Symbol): Option[Date] = {
+    getOne(key) flatMap {
+      case x: Date => Some(x)
+      case s: String =>
+        if (notblankp(s))
+          Some(DateUtils.parse(s))
+        else
+          None
     }
   }
 
@@ -372,6 +373,8 @@ case class Record(
   def getDate(key: String): Option[Date] = {
     getDate(Symbol(key))
   }
+
+  def getFormDate(key: String): Option[Date] = getFormDate(Symbol(key))
 
   def getBigDecimal(key: String): Option[BigDecimal] = {
     getBigDecimal(Symbol(key))
@@ -891,12 +894,11 @@ case class Record(
     copy(fields = fields.flatMap(f))
   }
 
-  def replace(f: Field => Option[Field]): Record = {
-    copy(fields = fields.map(x => f(x) match {
-      case Some(s) => s
-      case None => x
-    }))
-  }
+  def replaceRemove(f: Field => Option[Field]): Record =
+    copy(fields = fields.flatMap(f(_).toList))
+
+  def replace(f: Field => Field): Record =
+    copy(fields = fields.map(f))
 
   def replaceKey(from: String, to: String): Record = {
     replaceKey(Symbol(from), Symbol(to))
@@ -945,6 +947,45 @@ case class Record(
     }
   }
 
+  def replaceFields(pf: PartialFunction[Field, Field]): Record = {
+    ???
+  }
+
+  def replaceValues(pf: PartialFunction[Any, Any]): Record = {
+    ???
+  }
+
+  private def _replace_values(rec: Record, pf: PartialFunction[Any, Any]): Record = {
+    val xs = rec.fields.map { f =>
+      f.copy(values = _replace_values(f.values, pf))
+    }
+    rec.copy(fields = xs)
+  }
+
+  private def _replace_values(xs: List[Any], pf: PartialFunction[Any, Any]): List[Any] = {
+    if (xs.isEmpty)
+      xs
+    else if (_is_defined(xs, pf))
+      xs.map(_replace_value(_, pf))
+    else
+      xs
+  }
+
+  private def _is_defined(x: Any, pf: PartialFunction[Any, Any]): Boolean = {
+    x match {
+      case m: Seq[_] => m.exists(_is_defined(_, pf))
+      case _ => pf.isDefinedAt(x)
+    }
+  }
+
+  private def _replace_value(x: Any, pf: PartialFunction[Any, Any]): Any = {
+    x match {
+      case m: Seq[_] => m.map(_replace_value(_, pf))
+      case m if pf.isDefinedAt(m) => pf.apply(m)
+      case _ => x
+    }
+  }
+
   def activateFields(keys: Seq[Symbol]) = {
     copy(fields = fields.filter(x => keys.contains(x.key)))
   }
@@ -962,7 +1003,7 @@ case class Record(
   }
 
   def removeFields(f: Field => Boolean): Record = {
-    copy(fields = fields.filter(f))
+    copy(fields = fields.filterNot(f))
   }
 
   def removeFieldsByName(p: String => Boolean): Record = {
@@ -1129,7 +1170,9 @@ case class Field(key: Symbol, values: List[Any]) {
 
   def getOne: Option[Any] = {
     values match {
+      case null => None
       case Nil => None
+      case null :: _ => None
       case x :: _ => Some(x)
     }
   }
