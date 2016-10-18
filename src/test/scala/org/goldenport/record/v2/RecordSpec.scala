@@ -10,7 +10,8 @@ import org.scalatest._
  *  version Mar. 28, 2013
  *  version May. 13, 2013
  *  version Oct. 22, 2013
- * @version Feb.  6, 2014
+ *  version Feb.  6, 2014
+ * @version Oct. 18, 2016
  * @author  ASAMI, Tomoharu
  */
 @RunWith(classOf[JUnitRunner])
@@ -22,8 +23,12 @@ class PlainTableTest extends WordSpec with Matchers {
         r.asString('b) should be ("ab")
       }
       "symbol using '.'" in {
-        val r = Record(List(Field(Symbol("a.b"), List("ab"))))
+        val r = Record(List(Field(Symbol("a.b"), List("ab"))), useKeyMatchLeaf = true)
         r.asString('b) should be ("ab")
+      }
+      "symbol using '.' but FQN" in {
+        val r = Record(List(Field(Symbol("a.b"), List("ab"))))
+        r.getString('b) should be (None)
       }
     }
     "get" which {

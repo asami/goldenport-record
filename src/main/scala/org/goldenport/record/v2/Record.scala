@@ -7,6 +7,7 @@ import scala.util.control.NonFatal
 import scala.math.{BigInt, BigDecimal}
 import org.goldenport.Strings
 import org.goldenport.Strings.notblankp
+import org.goldenport.record.command.NullValue
 import org.goldenport.record.util.{TimestampUtils, DateUtils}
 import org.goldenport.record.util.{AnyUtils}
 
@@ -43,7 +44,8 @@ import org.goldenport.record.util.{AnyUtils}
  *  version Apr. 29, 2016
  *  version May. 20, 2016
  *  version Aug. 26, 2016
- * @version Sep.  8, 2016
+ *  version Sep. 22, 2016
+ * @version Oct. 18, 2016
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -76,8 +78,15 @@ case class Record(
   timestamp: Long = System.currentTimeMillis,
   inputFiles: Seq[InputFile] = Nil,
   opaque: AnyRef = null,
-  source: Option[Record] = None
+  source: Option[Record] = None,
+  useKeyMatchLeaf: Boolean = false
 ) extends CommandPart with EagerListPart with HtmlFormPart {
+  protected def is_match_key(key: Symbol)(f: Field): Boolean =
+    if (useKeyMatchLeaf)
+      f.isMatchKey(key)
+    else
+      f.key == key
+
   override def equals(o: Any): Boolean = {
     o match {
       case rec: Record if length == rec.length =>
@@ -87,7 +96,7 @@ case class Record(
   }
 
   def getField(key: Symbol): Option[Field] = {
-    fields.find(_.isMatchKey(key))
+    fields.find(is_match_key(key))
   }
 
   def getField(key: String): Option[Field] = {
@@ -95,7 +104,7 @@ case class Record(
   }
 
   def get(key: Symbol): Option[List[Any]] = {
-    fields.find(_.isMatchKey(key)).map(_.values)
+    fields.find(is_match_key(key)).map(_.values)
   }
 
   def getOne(key: Symbol): Option[Any] =
@@ -103,6 +112,7 @@ case class Record(
 
   def getFormOne(key: Symbol): Option[Any] = {
     getOne(key) filter {
+      case NullValue => false
       case "" => false
       case _ => true
     }
@@ -115,6 +125,7 @@ case class Record(
 
   def getFormString(key: Symbol): Option[String] = {
     getOne(key) flatMap {
+      case NullValue => None
       case "" => None
       case x => Some(AnyUtils.toString(x))
     }
@@ -135,6 +146,7 @@ case class Record(
 
   def getFormBoolean(key: Symbol): Option[Boolean] = {
     getOne(key) flatMap {
+      case NullValue => None
       case "" => None
       case x => getBoolean(key)
     }
@@ -146,6 +158,7 @@ case class Record(
 
   def getFormInt(key: Symbol): Option[Int] = {
     getOne(key) flatMap {
+      case NullValue => None
       case "" => None
       case x => Some(AnyUtils.toInt(x))
     }
@@ -157,6 +170,7 @@ case class Record(
 
   def getFormLong(key: Symbol): Option[Long] = {
     getOne(key) flatMap {
+      case NullValue => None
       case "" => None
       case x => Some(AnyUtils.toLong(x))
     }
@@ -168,6 +182,7 @@ case class Record(
 
   def getFormFloat(key: Symbol): Option[Float] = {
     getOne(key) flatMap {
+      case NullValue => None
       case "" => None
       case x => Some(AnyUtils.toFloat(x))
     }
@@ -179,6 +194,7 @@ case class Record(
 
   def getFormDouble(key: Symbol): Option[Double] = {
     getOne(key) flatMap {
+      case NullValue => None
       case "" => None
       case x => Some(AnyUtils.toDouble(x))
     }
@@ -194,6 +210,7 @@ case class Record(
 
   def getFormTimestamp(key: Symbol): Option[Timestamp] = {
     getOne(key) flatMap {
+      case NullValue => None
       case "" => None
       case x => getTimestamp(key)
     }
@@ -208,6 +225,7 @@ case class Record(
 
   def getFormDate(key: Symbol): Option[Date] = {
     getOne(key) flatMap {
+      case NullValue => None
       case x: Date => Some(x)
       case s: String =>
         if (notblankp(s))
@@ -593,7 +611,7 @@ case class Record(
   def isEmpty() = fields.isEmpty
   def nonEmpty() = fields.nonEmpty
 
-  def isDefined(key: Symbol): Boolean = fields.exists(_.isMatchKey(key))
+  def isDefined(key: Symbol): Boolean = fields.exists(is_match_key(key))
   def isDefined(key: String): Boolean = isDefined(Symbol(key))
 
   def isSourceDefined(key: Symbol): Boolean = {
@@ -1026,6 +1044,27 @@ case class Record(
     fields.foldLeft(Z())(_ + _).result
   }
 
+  def normalizeLeaf: Record = normalizeLeaf(Map.empty)
+
+  def normalizeLeaf(pf: PartialFunction[Field, Field]): Record = {
+    case class Z(z: Vector[Field] = Vector.empty) {
+      def +(rhs: Field) = {
+        Strings.totokens(rhs.key.name, ".").lastOption.fold(
+          throw new IllegalStateException("No name field")
+        ) { s =>
+          val key = Symbol(s)
+          if (z.exists(x => x.key == key))
+            throw new IllegalStateException(s"Leaf key confilict ${rhs.key}")
+          else
+            Z(z :+ rhs.copy(key = key))
+        }
+      }
+      def result = z.toList
+    }
+    val xs = fields.foldLeft(Z())(_ + _).result
+    copy(fields = xs)
+  }
+
   override def toString(): String = {
     "Record(" + fields + ", " + inputFiles + ")"
   }
@@ -1210,6 +1249,9 @@ object RecordSet {
   def create(map: Seq[scala.collection.Map[String, Any]]): RecordSet = {
     RecordSet(map.map(Record.create))
   }
+
+  def createDb(map: Seq[scala.collection.Map[String, Any]]): RecordSet =
+    RecordSet(map.map(Record.createDb))
 }
 
 object Record {
@@ -1228,6 +1270,13 @@ object Record {
   def createS(data: Seq[(Symbol, Any)]): Record = {
     Record(data.map(Field.createS).toList)
   }
+
+  def createDb(map: scala.collection.Map[String, Any]): Record =
+    createDb(map.toList)
+
+  // compatibility: use Leaf instead.
+  def createDb(data: Seq[(String, Any)]): Record =
+    Record(data.map(Field.create).toList, useKeyMatchLeaf = true)
 
   /*
    * Uses the method in case of List as single object.
