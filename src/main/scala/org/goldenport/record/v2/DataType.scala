@@ -14,7 +14,7 @@ import org.goldenport.record.util.{
   DateUtils, TimeUtils, TimestampUtils, DateTimeUtils}
 
 /*
- * @snice   Nov. 23, 2012
+ * @since   Nov. 23, 2012
  *  version Dec. 18, 2012
  *  version Jan. 29, 2013
  *  version Feb. 20, 2013
@@ -25,7 +25,8 @@ import org.goldenport.record.util.{
  *  version May. 15, 2014
  *  version Jul. 27, 2014
  *  version Sep. 25, 2015
- * @version Jun. 16, 2016
+ *  version Jun. 16, 2016
+ * @version Jan. 23, 2017
  * @author  ASAMI, Tomoharu
  */
 sealed trait DataType {
@@ -579,6 +580,22 @@ case object XText extends DataType {
 
   def validate(d: Any): ValidationResult = Valid // TODO
   def label = "テキスト"
+}
+
+case object XBase64 extends DataType {
+  type InstanceType = String
+  def toInstance(x: Any): InstanceType = x.toString
+
+  def validate(d: Any): ValidationResult = Valid // TODO
+  def label = "BASE64"
+}
+
+case object XBinary extends DataType {
+  type InstanceType = Any
+  def toInstance(x: Any): InstanceType = x
+
+  def validate(d: Any): ValidationResult = Valid // TODO
+  def label = "Binary"
 }
 
 case object XLink extends DataType {

@@ -6,15 +6,17 @@ import Validator._
 // http://stackoverflow.com/questions/22635033/validation-implicit-scalaz-bind-not-found
 import scalaz.Validation.FlatMap._
 import scala.util.control.NonFatal
+import scala.util.matching.Regex
 
 /*
- * @snice   Nov. 23, 2012
+ * @since   Nov. 23, 2012
  *  version Dec.  9, 2012
  *  version Dec. 31, 2013
  *  version Jan. 15, 2014
  *  version Feb.  6, 2014
  *  version Jan.  5, 2015
- * @version Feb. 26, 2016
+ *  version Feb. 26, 2016
+ * @version Jan. 21, 2017
  * @author  ASAMI, Tomoharu
  */
 trait Constraint {
@@ -83,6 +85,11 @@ trait Constraint {
       value.length > length
     }
 
+  protected def constraint_minimum_length(length: Int, value: String) =
+    value_domain(s"長さ(${value.length})が${length}より小さくなっています。", value) {
+      value.length < length
+    }
+
   protected def constraint_digits(value: String) =
     value_domain(s"数値列ではありません。", value) {
       value.forall(is_digit)
@@ -143,6 +150,16 @@ object Constraint {
           case Nil => Nil.success
           case v => v.success
         }
+      }
+      case m: MRange => value match {
+        case null => Nil.success
+        case Nil => Nil.success
+        case v => v.success
+      }
+      case m: MRanges => value match {
+        case null => Nil.success
+        case Nil => Nil.success
+        case v => v.success
       }
     }
     a match {
@@ -274,7 +291,52 @@ case class CMaxLength(length: Int) extends Constraint {
     constraint_length(length, value)
 }
 
+case class CMinLength(length: Int) extends Constraint {
+  def validate(datatype: DataType, value: String, record: Record): Option[ValidationResult] =
+    constraint_minimum_length(length, value)
+}
+
 case class CDigitsLength(length: Int) extends Constraint {
   def validate(datatype: DataType, value: String, record: Record): Option[ValidationResult] =
     constraint_length(length, value) |+| constraint_digits(value)
+}
+
+case class CMaxInteger(v: BigInt, isExclusive: Boolean) extends Constraint {
+  def validate(datatype: DataType, value: String, record: Record): Option[ValidationResult] =
+    ???
+}
+
+case class CMinInteger(v: BigInt, isExclusive: Boolean) extends Constraint {
+  def validate(datatype: DataType, value: String, record: Record): Option[ValidationResult] =
+    ???
+}
+
+case class CMaxDecimal(v: BigDecimal, isExclusive: Boolean) extends Constraint {
+  def validate(datatype: DataType, value: String, record: Record): Option[ValidationResult] =
+    ???
+}
+
+case class CMinDecimal(v: BigDecimal, isExclusive: Boolean) extends Constraint {
+  def validate(datatype: DataType, value: String, record: Record): Option[ValidationResult] =
+    ???
+}
+
+case class CRegex(regex: Regex) extends Constraint {
+  def validate(datatype: DataType, value: String, record: Record): Option[ValidationResult] =
+    ???
+}
+
+case class CMaxItems(n: Int) extends Constraint {
+  def validate(datatype: DataType, value: String, record: Record): Option[ValidationResult] =
+    ???
+}
+
+case class CMinItems(n: Int) extends Constraint {
+  def validate(datatype: DataType, value: String, record: Record): Option[ValidationResult] =
+    ???
+}
+
+case class CUniqueItems(b: Boolean) extends Constraint {
+  def validate(datatype: DataType, value: String, record: Record): Option[ValidationResult] =
+    ???
 }

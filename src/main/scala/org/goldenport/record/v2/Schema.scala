@@ -12,7 +12,7 @@ import org.goldenport.record.command.ValueCommand
  * Column/curd
  */
 /*
- * @snice   Nov. 23, 2012
+ * @since   Nov. 23, 2012
  *  version Dec. 28, 2012
  *  version Jan. 30, 2013
  *  version Mar. 12, 2013
@@ -26,7 +26,8 @@ import org.goldenport.record.command.ValueCommand
  *  version Sep. 25, 2015
  *  version Oct. 15, 2015
  *  version May. 26, 2016
- * @version Sep.  8, 2016
+ *  version Sep.  8, 2016
+ * @version Jan. 21, 2017
  * @author  ASAMI, Tomoharu
  */
 case class Schema(
@@ -279,7 +280,7 @@ case class Schema(
   }
 
   /*
-   * Formatter
+   * Format for display
    */
   def format(columnname: String, rec: Record): String = {
     val v = rec.get(columnname)
@@ -297,6 +298,18 @@ case class Schema(
       }
     }
   }
+
+  /*
+   * Import/Export and Convert
+   */
+  def importIn(rec: Record): Record = columns.foldLeft(rec)((z, x) => x importIn z)
+  def exportOut(rec: Record): Record = columns.foldLeft(rec)((z, x) => x exportOut z)
+
+  def convertIn(rec: Record): Record = columns.foldLeft(rec)((z, x) => x convertIn z)
+  def convertOut(rec: Record): Record = columns.foldLeft(rec)((z, x) => x convertOut z)
+
+  def importConvertIn(rec: Record): Record = convertIn(importIn(rec))
+  def exportConvertOut(rec: Record): Record = convertOut(exportOut(rec))
 }
 
 object NullSchema extends Schema(Nil)
@@ -350,6 +363,16 @@ case object MOneMore extends Multiplicity {
 case object MZeroMore extends Multiplicity {
   val mark = "*"
   val label = "0..*"
+}
+
+case class MRange(from: Int, to: Int) extends Multiplicity {
+  val mark = ".."
+  val label = s"${from}..${to}"
+}
+
+case class MRanges(ranges: List[NonEmptyList[MRange]]) extends Multiplicity {
+  val mark = "..."
+  val label = s"""${ranges.mkString("[", ",", "]")}"""
 }
 
 /*
@@ -657,6 +680,8 @@ case class MultiplicityFailure(multiplicity: Multiplicity, msg: String, key: Opt
       case MZeroOne => VDescription(name, "値が設定されていません。") // XXX
       case MOneMore => VDescription(name, "値が一つも設定されていません。")
       case MZeroMore => VDescription(name, "値が設定されていません。") // XXX
+      case m: MRange => VDescription(name, "値が設定されていません。")
+      case m: MRanges => VDescription(name, "値が設定されていません。")
     }
     Vector(a)
   }

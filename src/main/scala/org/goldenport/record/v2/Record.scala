@@ -45,7 +45,8 @@ import org.goldenport.record.util.{AnyUtils}
  *  version May. 20, 2016
  *  version Aug. 26, 2016
  *  version Sep. 22, 2016
- * @version Oct. 18, 2016
+ *  version Oct. 18, 2016
+ * @version Jan.  7, 2016
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -849,6 +850,13 @@ case class Record(
       val a = f.filterNot(x => isDefined(x._1))
       this appendS a
     }
+  }
+
+  def complementsEmpty(p: Seq[(String, Any)]): Record = {
+    val updatekeys = p.map(_._1)
+    val filtered = removeFields(field =>
+      updatekeys.contains(field.key.name) && field.isEmpty)
+    filtered.complements(p)
   }
 
   def complement(key: String, value: Any): Record =

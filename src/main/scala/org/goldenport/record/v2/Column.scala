@@ -5,7 +5,7 @@ import Validator._
 import org.smartdox.Description
 
 /*
- * @snice   Dec.  8, 2012
+ * @since   Dec.  8, 2012
  *  version Dec. 12, 2012
  *  version Feb. 20, 2013
  *  version Mar.  3, 2013
@@ -15,7 +15,8 @@ import org.smartdox.Description
  *  version Aug. 11, 2014
  *  version Oct. 27, 2015
  *  version Nov.  8, 2015
- * @version Feb. 26, 2016
+ *  version Feb. 26, 2016
+ * @version Jan. 15, 2017
  * @author  ASAMI, Tomoharu
  */
 case class Column(
@@ -29,16 +30,21 @@ case class Column(
   label: Option[String] = None,
   aliases: List[String] = Nil,
   sql: SqlColumn = NullSqlColumn,
-  formatter: Option[Formatter] = None,
-  displaySequence: Option[Int] = None, // TODO unify displayFormat
+  // formatter: Option[Formatter] = None, // unify displayFormat
+  displaySequence: Option[Int] = None, // compatibility, unify displayFormat
   displayFormat: Option[DisplayFormat] = None,
-  desc: Description = Description.empty
+  desc: Description = Description.empty,
+  extension: Column.Extension = Column.Extension.empty
 //  operations: Seq[Operation] = Nil,
 //  extjs: Map[String, Any] = Map.empty,
 //  isAvailableMode: ExecutionMode => Boolean = _ => true,
 //  properties: Map[String, Any] = Map.empty,
 //  comment: String = ""
 ) extends ColumnSlot {
+//  def displayFormat = extension.displayFormat
+  def converter = extension.converter
+  def importer = extension.importer
+  def exporter = extension.exporter
   def orderBy: Option[SqlOrder] = displayFormat.flatMap(_.orderBy)
 
   def validate(f: Field): ValidationResult = {
@@ -107,21 +113,53 @@ case class Column(
     Vector(name) ++ aliases ++ label.toVector
 
   /*
-   * Formatter
+   * Format for display
    */
   def format(value: Option[List[Any]]): String = {
     def otherwise = value match {
       case None => ""
       case Some(xs) => xs.map(datatype.format).mkString(",")
     }
-    formatter match {
+    displayFormat.flatMap(_.formatter) match {
       case Some(f) => f.format(this, value) getOrElse otherwise
       case None => otherwise
     }
   }
+  // def format(value: Option[List[Any]]): String = {
+  //   def otherwise = value match {
+  //     case None => ""
+  //     case Some(xs) => xs.map(datatype.format).mkString(",")
+  //   }
+  //   formatter match {
+  //     case Some(f) => f.format(this, value) getOrElse otherwise
+  //     case None => otherwise
+  //   }
+  // }
+
+  /*
+   * Import/Export and Convert
+   */
+  def importIn(rec: Record): Record = importer.fold(rec)(x => _transform(x.apply, rec))
+  def exportOut(rec: Record): Record = exporter.fold(rec)(x => _transform(x.apply, rec))
+  def convertIn(rec: Record): Record = converter.fold(rec)(x => _transform(x.convertIn, rec))
+  def convertOut(rec: Record): Record = converter.fold(rec)(x => _transform(x.convertOut, rec))
+  private def _transform(f: Any => Any, rec: Record): Record =
+    rec.get(name).fold(rec)(x => rec.update(name -> x))
 }
 
 object Column {
+  case class Extension(
+//    displayFormat: Option[DisplayFormat],
+    converter: Option[Converter], // convert to/from internal datatype
+    importer: Option[Importer], // import data to represent datattype
+    exporter: Option[Exporter] // export data from represent datatype
+  )
+
+  object Extension {
+    val empty = Extension(None, None, None)
+
+//    def apply(p: DisplayFormat): Extension = Extension(Some(p), None, None, None)
+  }
 }
 
 sealed trait ColumnKind {

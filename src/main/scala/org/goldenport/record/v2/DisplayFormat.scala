@@ -1,19 +1,23 @@
 package org.goldenport.record.v2
 
 /*
- * @snice   Oct. 25, 2015
- * @version Oct. 28, 2015
+ * @since   Oct. 25, 2015
+ * @version Jan. 24, 2017
  * @author  ASAMI, Tomoharu
  */
 case class DisplayFormat(
   orderBy: Option[SqlOrder],
   width: Option[DisplayFormat.Length],
   header: DisplayFormat.Format,
-  body: DisplayFormat.Format
-)
+  body: DisplayFormat.Format,
+  sequence: Option[Int],
+  formatter: Option[Formatter]
+) {
+  def withFormatter(p: Formatter) = copy(formatter = Some(p))
+}
 
 object DisplayFormat {
-  val empty = DisplayFormat(None, None, Format.empty, Format.empty)
+  val empty = DisplayFormat(None, None, Format.empty, Format.empty, None, None)
 
   def HFBBFB(hf: Int, hb: Int, bf: Int, bb: Int) =
     empty.copy(header = Format.FB(hf, hb), body = Format.FB(bf, bb))
@@ -24,7 +28,7 @@ object DisplayFormat {
   case class Format(
     font: Option[Font],
     align: Option[Align],
-    vertival: Option[Vertical],
+    vertical: Option[Vertical],
     foregroudColorRgb: Option[Int],
     backgroundColorRgb: Option[Int],
     height: Option[Length]
