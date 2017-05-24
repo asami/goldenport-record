@@ -12,14 +12,17 @@ import com.asamioffice.goldenport.io.UURL
  * @since   Jun. 10, 2014
  *  version Jan. 28, 2015
  *  version Oct. 24, 2015
- * @version Apr. 29, 2016
+ *  version Apr. 29, 2016
+ * @version May. 25, 2017
  * @author  ASAMI, Tomoharu
  */
 object AnyUtils {
   def toString(x: Any): String = {
     x match {
       case v: Timestamp => DateTimeUtils.toIsoDateTimeStringJst(v)
+      case v: Symbol => v.name
       case m: Seq[_] => m.map(toString(_)).mkString(",")
+      case m: Array[_] => m.map(toString(_)).mkString(",")
       case _ => x.toString
     }
   }

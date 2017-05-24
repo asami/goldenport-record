@@ -16,7 +16,8 @@ import scala.util.matching.Regex
  *  version Feb.  6, 2014
  *  version Jan.  5, 2015
  *  version Feb. 26, 2016
- * @version Jan. 21, 2017
+ *  version Jan. 21, 2017
+ * @version May. 24, 2017
  * @author  ASAMI, Tomoharu
  */
 trait Constraint {
@@ -109,9 +110,9 @@ trait Constraint {
 }
 
 object Constraint {
-  val MESSAGE_NO_DATA = "データがありません"
-  val MESSAGE_EMPTY_DATA = "データが空です"
-  val MESSAGE_NO_FIELD = "フィールドがありません"
+  // val MESSAGE_NO_DATA = "データがありません"
+  // val MESSAGE_EMPTY_DATA = "データが空です"
+  // val MESSAGE_NO_FIELD = "フィールドがありません"
 
   def validateMultiplicity(
     datatype: DataType, multiplicity: Multiplicity,
@@ -125,9 +126,10 @@ object Constraint {
     val a: Validation[Invalid, Seq[String]] = multiplicity match {
       case MOne => {
         value match {
-          case null => MultiplicityFailure(MOne, MESSAGE_NO_DATA).failure
-          case Nil => MultiplicityFailure(MOne, MESSAGE_EMPTY_DATA).failure
-          case v => v.success
+          case null => MultiplicityFailure.noData(MOne).failure
+          case Nil => MultiplicityFailure.emptyData(MOne).failure
+          case m if m.length == 1 => m.success
+          case m => MultiplicityFailure.tooManyData(MOne, m).failure
         }
       }
       case MZeroOne => {
@@ -139,8 +141,8 @@ object Constraint {
       }
       case MOneMore => {
         value match {
-          case null => MultiplicityFailure(MOne, MESSAGE_NO_DATA).failure
-          case Nil => MultiplicityFailure(MOne, MESSAGE_EMPTY_DATA).failure
+          case null => MultiplicityFailure.noData(MOneMore).failure
+          case Nil => MultiplicityFailure.emptyData(MOneMore).failure
           case v => v.success
         }
       }

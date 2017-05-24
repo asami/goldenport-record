@@ -6,6 +6,7 @@ import org.smartdox.Description
 import org.goldenport.Strings
 import com.asamioffice.goldenport.text.UString
 import org.goldenport.record.command.ValueCommand
+import org.goldenport.record.util.{AnyUtils, I18NString}
 
 /*
  * Add
@@ -27,7 +28,8 @@ import org.goldenport.record.command.ValueCommand
  *  version Oct. 15, 2015
  *  version May. 26, 2016
  *  version Sep.  8, 2016
- * @version Jan. 21, 2017
+ *  version Jan. 21, 2017
+ * @version May. 25, 2017
  * @author  ASAMI, Tomoharu
  */
 case class Schema(
@@ -525,27 +527,46 @@ case object Valid extends ValidationResult {
   }
 }
 
-case class VDescription(name: Option[String], issue: String, value: Seq[Any]) {
-  def message = {
+case class VDescription(
+  name: Option[String],
+  issue: I18NString,
+  value: Option[Seq[Any]]
+) {
+  // legacy
+  lazy val message = {
     name match {
       case Some(s) =>
         value.toList match {
-          case Nil => "%s: %s".format(s, issue)
-          case v => "%s = %s: %s".format(s, _formated_value, issue)
+          case Nil => "%s: %s".format(s, issue.jaMessage)
+          case v => "%s = %s: %s".format(s, _formated_value, issue.jaMessage)
         }
       case None =>
         value.toList match {
-          case Nil => "%s".format(issue)
-          case v => "%s: %s".format(_formated_value, issue)
+          case Nil => "%s".format(issue.jaMessage)
+          case v => "%s: %s".format(_formated_value, issue.jaMessage)
         }
+    }
+  }
+
+  lazy val i18nMessage: I18NString = name.fold(issue)(n => issue.update(x => s"$n: $x"))
+
+  lazy val i18nMessageWithValue: I18NString = name.fold {
+    value.toList match {
+      case Nil => issue
+      case xs => issue.update(x => s"$x (${_formated_value})")
+    }
+  } { n =>
+      value.toList match {
+      case Nil => issue.update(x => s"$n: $x")
+      case xs => issue.update(x => s"$n: $x (${_formated_value})")
     }
   }
 
   private def _formated_value: String = {
     val a = value.toList match {
       case Nil => "NULL"
-      case x :: Nil => x.toString
-      case xs => xs.mkString("(", ",", ")")
+      case x :: Nil => AnyUtils.toString(x)
+      case xs => xs.map(AnyUtils.toString).mkString(",")
     }
     Strings.cutstring(a)
   }
@@ -553,16 +574,32 @@ case class VDescription(name: Option[String], issue: String, value: Seq[Any]) {
 
 object VDescription {
   def apply(name: String, issue: String): VDescription = {
-    VDescription(Some(name), issue, Nil)
+    VDescription(Some(name), I18NString.create(issue), None)
+  }
+
+  def apply(name: String, issue: String, value: Option[Seq[Any]]): VDescription = {
+    VDescription(Some(name), I18NString.create(issue), value)
   }
 
   def apply(name: String, issue: String, value: Seq[Any]): VDescription = {
-    VDescription(Some(name), issue, value)
+    VDescription(Some(name), I18NString.create(issue), Some(value))
   }
 
   def apply(name: Option[String], issue: String): VDescription = {
-    VDescription(name, issue, Nil)
+    VDescription(name, I18NString.create(issue), None)
   }
+
+  def apply(name: String, issue: I18NString): VDescription =
+    VDescription(Some(name), issue, None)
+
+  def apply(name: String, issue: I18NString, value: Seq[Any]): VDescription =
+    VDescription(Some(name), issue, if (value.isEmpty) None else Some(value))
+
+  def apply(name: String, issue: I18NString, value: Option[Seq[Any]]): VDescription =
+    VDescription(Some(name), issue, value)
+
+  def apply(name: Option[String], issue: I18NString, value: Seq[Any]): VDescription =
+    VDescription(name, issue, if (value.isEmpty) None else Some(value))
 }
 
 trait Warning extends ValidationResult {
@@ -582,6 +619,7 @@ trait Warning extends ValidationResult {
   def asWarnings: Vector[Warning] = Vector(this)
   def descriptions: Vector[VDescription]
   def messages: Vector[String] = descriptions.map(_.message)
+  def i18nMessages: Vector[I18NString] = descriptions.map(_.i18nMessage)
 }
 
 case class CompoundWarning(warnings: Vector[Warning]) extends Warning {
@@ -626,7 +664,7 @@ case class IllegalFieldWarning(key: String,
 
 case class RedundancyFieldWarning(
   key: String,
-  value: Seq[Any] = Nil,
+  value: Option[Seq[Any]] = None,
   label: Option[String] = None,
   message: Option[String] = None) extends Warning {
   def descriptions = Vector(VDescription(label | key, message | "余分なフィールドです。", value))
@@ -649,6 +687,7 @@ trait Invalid extends ValidationResult {
   def descriptions: Vector[VDescription]
   def getWarning(): Option[Warning] = None
   def messages: Vector[String] = descriptions.map(_.message)
+  def i18nMessages: Vector[I18NString] = descriptions.map(_.i18nMessage)
 }
 
 case class CompoundFailure(failures: Vector[Invalid], warning: Option[Warning] = None) extends Invalid {
@@ -670,21 +709,61 @@ case class IllegalFieldFailure(key: String,
   def descriptions = Vector(VDescription(label | key, message + "値が異常です。", value))
 }
 
-case class MultiplicityFailure(multiplicity: Multiplicity, msg: String, key: Option[String] = None, label: Option[String] = None) extends Invalid {
+case class MultiplicityFailure(
+  multiplicity: Multiplicity,
+  message: I18NString,
+  key: Option[String],
+  value: Option[Seq[Any]],
+  label: Option[String]
+) extends Invalid {
   override def enkey(key: String) = this.copy(key = key.some)
   override def enlabel(label: String) = this.copy(label = label.some)
   def descriptions = {
     val name = label orElse key
-    val a = multiplicity match {
-      case MOne => VDescription(name, "値が設定されていません。")
-      case MZeroOne => VDescription(name, "値が設定されていません。") // XXX
-      case MOneMore => VDescription(name, "値が一つも設定されていません。")
-      case MZeroMore => VDescription(name, "値が設定されていません。") // XXX
-      case m: MRange => VDescription(name, "値が設定されていません。")
-      case m: MRanges => VDescription(name, "値が設定されていません。")
-    }
+    // val a = multiplicity match {
+    //   case MOne => VDescription(name, "値が設定されていません。")
+    //   case MZeroOne => VDescription(name, "値が設定されていません。") // XXX
+    //   case MOneMore => VDescription(name, "値が一つも設定されていません。")
+    //   case MZeroMore => VDescription(name, "値が設定されていません。") // XXX
+    //   case m: MRange => VDescription(name, "値が設定されていません。")
+    //   case m: MRanges => VDescription(name, "値が設定されていません。")
+    // }
+    val m = message
+    val a = VDescription(name, m, value)
     Vector(a)
   }
+}
+object MultiplicityFailure {
+  def apply(multiplicity: Multiplicity, message: I18NString): MultiplicityFailure =
+    MultiplicityFailure(multiplicity, message, None, None, None)
+
+  def noData(multiplicity: Multiplicity): MultiplicityFailure = {
+    MultiplicityFailure(multiplicity,
+      I18NString.create(
+        "No data available.",
+        "値が設定されていません。"
+      )
+    )
+  }
+  def emptyData(multiplicity: Multiplicity): MultiplicityFailure = {
+    MultiplicityFailure(multiplicity,
+      I18NString.create(
+        "Empty data.",
+        "データが空です。"
+      )
+    )
+  }
+  def tooManyData(multiplicity: Multiplicity, value: Seq[String]): MultiplicityFailure =
+    MultiplicityFailure(multiplicity, _too_many_data(multiplicity), None, Some(value), None)
+
+  def tooManyData(multiplicity: Multiplicity, name: String, value: Seq[String]): MultiplicityFailure =
+    MultiplicityFailure(multiplicity, _too_many_data(multiplicity), Some(name), Some(value), None)
+
+  private def _too_many_data(multiplicity: Multiplicity): I18NString =
+    I18NString.create(
+      "Too many data.",
+      "データ数が多すぎます。"
+    )
 }
 
 case class DataTypeFailure(datatype: DataType, value: Seq[String], key: Option[String] = None, label: Option[String] = None) extends Invalid {
@@ -698,8 +777,13 @@ case class DataTypeFailure(datatype: DataType, value: Seq[String], key: Option[S
     }
   }
   protected final def message = value_label + "は" + datatype.label + "ではありません。"
+  protected final def i18nMessage = I18NString(
+    "{0} is not {1}.",
+    "{0} は {1} ではありません。",
+    List(value_label, datatype.label)
+  )
   def descriptions = {
-    Vector(VDescription(label orElse key, message, value))
+    Vector(VDescription(label orElse key, i18nMessage, value))
   }
 }
 

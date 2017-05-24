@@ -18,7 +18,8 @@ import org.smartdox._
  *  version Aug. 15, 2012
  *  version Mar.  3, 2013
  *  version Jan. 20, 2014
- * @version Feb.  6, 2014
+ *  version Feb.  6, 2014
+ * @version May. 24, 2017
  * @author  ASAMI, Tomoharu
  */
 object Schema {
@@ -283,7 +284,7 @@ class RecordField(
     def fv(v: T): ValidationNel[RecordFieldException, T] = {
       facets.flatMap(_.validateO(v, ctx)) match {
         case Nil => data.success
-        case e :: es => nel(e, es).fail
+        case e :: es => nel(e, es).failure
       }
     }
     def zv(v: T) = v match {
@@ -308,13 +309,13 @@ class RecordField(
 
     multiplicity match {
       case MOne => if (zv(data)) {
-        new MultiplicityRecordFieldException("One").failNel
+        new MultiplicityRecordFieldException("One").failureNel
       } else {
         fv(data) 
       }
       case MZeroOne => if (zv(data)) data.success else fv(data)
       case MOneMore => if (zv(data)) {
-        new MultiplicityRecordFieldException("OneMore").failNel
+        new MultiplicityRecordFieldException("OneMore").failureNel
       } else mv(data)
       case MZeroMore => mv(data)
     }
@@ -873,7 +874,7 @@ abstract class XFacet extends RecordSchemaElement {
 
   def validate[T](data: T, ctx: RecordContext): ValidationNel[RecordFieldException, T] = {
     validateO(data.asInstanceOf[AnyRef], ctx) match {
-      case Some(e) => e.failNel
+      case Some(e) => e.failureNel
       case None => data.success
     }
   }
