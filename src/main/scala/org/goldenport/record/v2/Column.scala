@@ -2,7 +2,10 @@ package org.goldenport.record.v2
 
 import scalaz._, Scalaz._
 import Validator._
+import java.util.Locale
+import com.asamioffice.goldenport.text.UString
 import org.smartdox.Description
+import org.goldenport.record.util.I18NString
 
 /*
  * @since   Dec.  8, 2012
@@ -16,7 +19,8 @@ import org.smartdox.Description
  *  version Oct. 27, 2015
  *  version Nov.  8, 2015
  *  version Feb. 26, 2016
- * @version Jan. 15, 2017
+ *  version Jan. 15, 2017
+ * @version Aug.  1, 2017
  * @author  ASAMI, Tomoharu
  */
 case class Column(
@@ -27,7 +31,8 @@ case class Column(
   constraints: List[Constraint] = Nil,
 //  orderBy: Option[SqlOrder] = None, // displayFormat
   visibility: Visibility = PlainVisibility,
-  label: Option[String] = None,
+  label: Option[String] = None, // C locale and last resort
+  i18nLabel: Option[I18NString] = None,
   aliases: List[String] = Nil,
   sql: SqlColumn = NullSqlColumn,
   // formatter: Option[Formatter] = None, // unify displayFormat
@@ -111,6 +116,9 @@ case class Column(
 
   lazy val nameCandidates: Vector[String] =
     Vector(name) ++ aliases ++ label.toVector
+
+  def label(locale: Locale): String =
+    i18nLabel.map(_.get(locale)) orElse label getOrElse UString.capitalize(name)
 
   /*
    * Format for display

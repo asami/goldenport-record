@@ -29,7 +29,8 @@ import org.goldenport.record.util.{AnyUtils, I18NString}
  *  version May. 26, 2016
  *  version Sep.  8, 2016
  *  version Jan. 21, 2017
- * @version May. 25, 2017
+ *  version May. 25, 2017
+ * @version Aug.  1, 2017
  * @author  ASAMI, Tomoharu
  */
 case class Schema(
@@ -537,13 +538,13 @@ case class VDescription(
     name match {
       case Some(s) =>
         value.toList match {
-          case Nil => "%s: %s".format(s, issue.jaMessage)
-          case v => "%s = %s: %s".format(s, _formated_value, issue.jaMessage)
+          case Nil => "%s: %s".format(s, issue.ja)
+          case v => "%s = %s: %s".format(s, _formated_value, issue.ja)
         }
       case None =>
         value.toList match {
-          case Nil => "%s".format(issue.jaMessage)
-          case v => "%s: %s".format(_formated_value, issue.jaMessage)
+          case Nil => "%s".format(issue.ja)
+          case v => "%s: %s".format(_formated_value, issue.ja)
         }
     }
   }
@@ -574,19 +575,19 @@ case class VDescription(
 
 object VDescription {
   def apply(name: String, issue: String): VDescription = {
-    VDescription(Some(name), I18NString.create(issue), None)
+    VDescription(Some(name), I18NString(issue), None)
   }
 
   def apply(name: String, issue: String, value: Option[Seq[Any]]): VDescription = {
-    VDescription(Some(name), I18NString.create(issue), value)
+    VDescription(Some(name), I18NString(issue), value)
   }
 
   def apply(name: String, issue: String, value: Seq[Any]): VDescription = {
-    VDescription(Some(name), I18NString.create(issue), Some(value))
+    VDescription(Some(name), I18NString(issue), Some(value))
   }
 
   def apply(name: Option[String], issue: String): VDescription = {
-    VDescription(name, I18NString.create(issue), None)
+    VDescription(name, I18NString(issue), None)
   }
 
   def apply(name: String, issue: I18NString): VDescription =
@@ -739,7 +740,7 @@ object MultiplicityFailure {
 
   def noData(multiplicity: Multiplicity): MultiplicityFailure = {
     MultiplicityFailure(multiplicity,
-      I18NString.create(
+      I18NString(
         "No data available.",
         "値が設定されていません。"
       )
@@ -747,7 +748,7 @@ object MultiplicityFailure {
   }
   def emptyData(multiplicity: Multiplicity): MultiplicityFailure = {
     MultiplicityFailure(multiplicity,
-      I18NString.create(
+      I18NString(
         "Empty data.",
         "データが空です。"
       )
@@ -760,7 +761,7 @@ object MultiplicityFailure {
     MultiplicityFailure(multiplicity, _too_many_data(multiplicity), Some(name), Some(value), None)
 
   private def _too_many_data(multiplicity: Multiplicity): I18NString =
-    I18NString.create(
+    I18NString(
       "Too many data.",
       "データ数が多すぎます。"
     )
@@ -780,7 +781,7 @@ case class DataTypeFailure(datatype: DataType, value: Seq[String], key: Option[S
   protected final def i18nMessage = I18NString(
     "{0} is not {1}.",
     "{0} は {1} ではありません。",
-    List(value_label, datatype.label)
+    Vector(value_label, datatype.label)
   )
   def descriptions = {
     Vector(VDescription(label orElse key, i18nMessage, value))
