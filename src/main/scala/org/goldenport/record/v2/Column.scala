@@ -5,7 +5,7 @@ import Validator._
 import java.util.Locale
 import com.asamioffice.goldenport.text.UString
 import org.smartdox.Description
-import org.goldenport.record.util.I18NString
+import org.goldenport.i18n.I18NString
 
 /*
  * @since   Dec.  8, 2012
@@ -20,7 +20,8 @@ import org.goldenport.record.util.I18NString
  *  version Nov.  8, 2015
  *  version Feb. 26, 2016
  *  version Jan. 15, 2017
- * @version Aug.  1, 2017
+ *  version Aug.  1, 2017
+ * @version Sep.  1, 2017
  * @author  ASAMI, Tomoharu
  */
 case class Column(
@@ -118,7 +119,7 @@ case class Column(
     Vector(name) ++ aliases ++ label.toVector
 
   def label(locale: Locale): String =
-    i18nLabel.map(_.get(locale)) orElse label getOrElse UString.capitalize(name)
+    i18nLabel.flatMap(_.get(locale)) orElse label getOrElse UString.capitalize(name)
 
   /*
    * Format for display

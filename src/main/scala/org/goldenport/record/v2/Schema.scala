@@ -5,8 +5,10 @@ import scalaz._, Scalaz._
 import org.smartdox.Description
 import org.goldenport.Strings
 import com.asamioffice.goldenport.text.UString
+import org.goldenport.i18n.I18NString
+import org.goldenport.util.AnyUtils
+// import org.goldenport.record.util.{AnyUtils, I18NString}
 import org.goldenport.record.command.ValueCommand
-import org.goldenport.record.util.{AnyUtils, I18NString}
 
 /*
  * Add
@@ -30,7 +32,8 @@ import org.goldenport.record.util.{AnyUtils, I18NString}
  *  version Sep.  8, 2016
  *  version Jan. 21, 2017
  *  version May. 25, 2017
- * @version Aug.  1, 2017
+ *  version Aug.  1, 2017
+ * @version Sep.  1, 2017
  * @author  ASAMI, Tomoharu
  */
 case class Schema(

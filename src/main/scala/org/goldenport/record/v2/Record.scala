@@ -1,15 +1,14 @@
 package org.goldenport.record.v2
 
 import java.util.Date
-import java.net.URL
+import java.net.{URL, URI}
 import java.sql.Timestamp
 import scala.util.control.NonFatal
 import scala.math.{BigInt, BigDecimal}
 import org.goldenport.Strings
 import org.goldenport.Strings.notblankp
 import org.goldenport.record.command.NullValue
-import org.goldenport.record.util.{TimestampUtils, DateUtils}
-import org.goldenport.record.util.{AnyUtils}
+import org.goldenport.util.{TimestampUtils, DateUtils, AnyUtils}
 
 /*
  * derived from org.goldenport.g3.message.
@@ -46,7 +45,8 @@ import org.goldenport.record.util.{AnyUtils}
  *  version Aug. 26, 2016
  *  version Sep. 22, 2016
  *  version Oct. 18, 2016
- * @version Jan.  7, 2016
+ *  version Jan.  7, 2016
+ * @version Sep.  4, 2017
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -81,7 +81,7 @@ case class Record(
   opaque: AnyRef = null,
   source: Option[Record] = None,
   useKeyMatchLeaf: Boolean = false
-) extends CommandPart with EagerListPart with HtmlFormPart {
+) extends CommandPart with EagerListPart with HtmlFormPart with JsonPart {
   protected def is_match_key(key: Symbol)(f: Field): Boolean =
     if (useKeyMatchLeaf)
       f.isMatchKey(key)
@@ -249,6 +249,8 @@ case class Record(
       case v => BigDecimal(v.toString)
     }
   }
+
+  def getUri(key: Symbol): Option[URI] = getOne(key).map(AnyUtils.toUri)
 
   def getList(key: Symbol): List[Any] = {
     get(key) getOrElse Nil
