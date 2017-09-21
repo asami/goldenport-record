@@ -10,7 +10,7 @@ import play.api.libs.json._
 import org.goldenport.Strings
 import org.goldenport.bag.BufferFileBag
 import org.goldenport.json.JsonUtils
-import org.goldenport.util.{AnyUtils, AnyRefUtils, StringUtils}
+import org.goldenport.util.{AnyUtils, AnyRefUtils, StringUtils, SeqUtils}
 import org.goldenport.record.v2._
 import org.goldenport.record.v2.bag.{RecordBag, CsvBag}
 
@@ -25,7 +25,7 @@ import org.goldenport.record.v2.bag.{RecordBag, CsvBag}
  *  version Apr.  2, 2017
  *  version Jul. 11, 2017
  *  version Aug. 30, 2017
- * @version Sep.  2, 2017
+ * @version Sep. 15, 2017
  * @author  ASAMI, Tomoharu
  */
 object RecordUtils {
@@ -418,78 +418,173 @@ object RecordUtils {
     Record.create(TupleUtils.makeTupleVectorFlatten(schema, fields))
   }
 
+  case class Slot(column: Column, lefts: List[String], rights: List[String]) {
+    def isMatch(p: Slot): Boolean = isMatch(p.column.name)
+    def isMatch(p: String): Boolean = column.name == p
+  }
+
+  def buildSchema(p: Record, ps: Record*): Schema = buildSchema(p +: ps)
+
   def buildSchema(ps: Seq[Record]): Schema = {
-    case class Slot(column: Column, lefts: List[String], rights: List[String]) {
-      def isMatch(p: Slot): Boolean = isMatch(p.column.name)
-      def isMatch(p: String): Boolean = column.name == p
-    }
-    def tocolumn(f: Field): Column = Column(f.key.name, XString)
-    def toslot(rec: Record, f: Field): Slot = rec.fields.span(_ != f) match {
-      case (Nil, Nil) => Slot(tocolumn(f), Nil, Nil)
-      case (Nil, rs) => Slot(tocolumn(f), Nil, rs.tail.map(_.key.name))
-      case (ls, Nil) => Slot(tocolumn(f), ls.map(_.key.name).reverse, Nil)
-      case (ls, rs) => Slot(tocolumn(f), ls.map(_.key.name).reverse, rs.tail.map(_.key.name))
-    }
-    def split(ss: List[Slot], s: Slot): (List[Slot], Slot, List[Slot]) =
-      ss.toList.span(_.isMatch(s)) match {
-        case (Nil, Nil) => (Nil, s, Nil)
-        case (Nil, rs) => (Nil, rs.head, rs.tail.toList)
-        case (ls, Nil) => splitguess(ss, s)
-        case (ls, rs) => (ls.toList, rs.head, rs.tail.toList)
-      }
-    def splitguess(ss: List[Slot], s: Slot): (List[Slot], Slot, List[Slot]) =
-      s.lefts match {
-        case Nil => splitguess2(ss, s)
-        case x :: xs => splitguessleft(ss, s, x, xs)
-      }
-    def splitguessleft(ss: List[Slot], s: Slot, name: String, candidates: List[String]): (List[Slot], Slot, List[Slot]) =
-      ss.toList.span(_.isMatch(name)) match {
-        case (Nil, Nil) => (Nil, s, Nil)
-        case (Nil, rs) => (List(rs.head), s, rs.tail)
-        case (ls, Nil) => candidates match {
-          case Nil => splitguess2(ss, s)
-          case x :: xs => splitguessleft(ss, s, x, xs)
-        }
-        case (ls, rs) => (ls :+ rs.head, s, rs.tail)
-      }
-    def splitguess2(ss: List[Slot], s: Slot): (List[Slot], Slot, List[Slot]) =
-      s.rights match {
-        case Nil => (Nil, s, Nil)
-        case x :: xs => splitguessright(ss, s, x, xs)
-      }
-    def splitguessright(ss: List[Slot], s: Slot, name: String, candidates: List[String]): (List[Slot], Slot, List[Slot]) =
-      ss.toList.span(_.isMatch(name)) match {
-        case (Nil, Nil) => (Nil, s, Nil)
-        case (Nil, rs) => (Nil, s, rs)
-        case (ls, Nil) => candidates match {
-          case Nil => (ls, s, Nil)
-          case x :: xs => splitguessright(ss, s, x, xs)
-        }
-        case (ls, rs) => (ls, s, rs)
-      }
-    def merge(z: Slot, n: Slot): Slot = {
-      case class Z(xs: Vector[String]) {
-        def r = xs.toList
-        def +(rhs: String) = if (r.contains(rhs)) this else Z(xs :+ rhs)
-      }
-      val l = n.lefts./:(Z(z.lefts.toVector))(_+_).r
-      val r = n.rights./:(Z(z.rights.toVector))(_+_).r
-      Slot(n.column, l, r)
-    }
+    // case class Slot(column: Column, lefts: List[String], rights: List[String]) {
+    //   def isMatch(p: Slot): Boolean = isMatch(p.column.name)
+    //   def isMatch(p: String): Boolean = column.name == p
+    // }
+    // def tocolumn(f: Field): Column = Column(f.key.name, XString)
+    // def toslot(rec: Record, f: Field): Slot = rec.fields.span(_ != f) match {
+    //   case (Nil, Nil) => Slot(tocolumn(f), Nil, Nil)
+    //   case (Nil, rs) => Slot(tocolumn(f), Nil, rs.tail.map(_.key.name))
+    //   case (ls, Nil) => Slot(tocolumn(f), ls.map(_.key.name).reverse, Nil)
+    //   case (ls, rs) => Slot(tocolumn(f), ls.map(_.key.name).reverse, rs.tail.map(_.key.name))
+    // }
+    // def split(ss: List[Slot], s: Slot): (List[Slot], Slot, List[Slot]) =
+    //   ss.toList.span(_.isMatch(s)) match {
+    //     case (Nil, Nil) => (Nil, s, Nil)
+    //     case (Nil, rs) => (Nil, rs.head, rs.tail.toList)
+    //     case (ls, Nil) => splitguess(ss, s)
+    //     case (ls, rs) => (ls.toList, rs.head, rs.tail.toList)
+    //   }
+    // def splitguess(ss: List[Slot], s: Slot): (List[Slot], Slot, List[Slot]) =
+    //   s.lefts match {
+    //     case Nil => splitguess2(ss, s)
+    //     case x :: xs => splitguessleft(ss, s, x, xs)
+    //   }
+    // def splitguessleft(ss: List[Slot], s: Slot, name: String, candidates: List[String]): (List[Slot], Slot, List[Slot]) =
+    //   ss.toList.span(_.isMatch(name)) match {
+    //     case (Nil, Nil) => (Nil, s, Nil)
+    //     case (Nil, rs) => (List(rs.head), s, rs.tail)
+    //     case (ls, Nil) => candidates match {
+    //       case Nil => splitguess2(ss, s)
+    //       case x :: xs => splitguessleft(ss, s, x, xs)
+    //     }
+    //     case (ls, rs) => (ls :+ rs.head, s, rs.tail)
+    //   }
+    // def splitguess2(ss: List[Slot], s: Slot): (List[Slot], Slot, List[Slot]) =
+    //   s.rights match {
+    //     case Nil => (Nil, s, Nil)
+    //     case x :: xs => splitguessright(ss, s, x, xs)
+    //   }
+    // def splitguessright(ss: List[Slot], s: Slot, name: String, candidates: List[String]): (List[Slot], Slot, List[Slot]) =
+    //   ss.toList.span(_.isMatch(name)) match {
+    //     case (Nil, Nil) => (Nil, s, Nil)
+    //     case (Nil, rs) => (Nil, s, rs)
+    //     case (ls, Nil) => candidates match {
+    //       case Nil => (ls, s, Nil)
+    //       case x :: xs => splitguessright(ss, s, x, xs)
+    //     }
+    //     case (ls, rs) => (ls, s, rs)
+    //   }
+    // def merge(z: Slot, n: Slot): Slot = {
+    //   case class Z(xs: Vector[String]) {
+    //     def r = xs.toList
+    //     def +(rhs: String) = if (r.contains(rhs)) this else Z(xs :+ rhs)
+    //   }
+    //   val l = n.lefts./:(Z(z.lefts.toVector))(_+_).r
+    //   val r = n.rights./:(Z(z.rights.toVector))(_+_).r
+    //   Slot(n.column, l, r)
+    // }
     case class Z(columns: List[Slot] = Nil) {
       def r = Schema(columns.map(_.column))
       def +(rhs: Record): Z = {
         case class ZZ(r: List[Slot] = Nil) {
           def +(f: Field): ZZ = {
-            val slot = toslot(rhs, f)
-            val (ls, x, rs) = split(r, slot)
-            ZZ(ls ++ List(merge(x, slot)) ++ rs)
+//            println("f:" + f)
+            val slot = _to_slot(rhs, f)
+//            println("slot:" + slot)
+//            println("r:" + r)
+            val (ls, x, rs) = _split(r, slot)
+//            println("ZZ+")
+            // println(ls)
+            // println(x)
+            // println(rs)
+            ZZ(ls ++ List(_merge(x, slot)) ++ rs)
           }
         }
+//        println("rec:" + rhs.fields)
         Z(rhs.fields./:(ZZ(columns))(_+_).r)
       }
     }
     ps./:(Z())(_+_).r
+  }
+
+  private def _to_slot(rec: Record, f: Field): Slot =
+    SeqUtils.split3L((_: Field) == f)(rec.fields) match {
+      case (ls, Nil, rs) => Slot(_to_column(f), ls.map(_.key.name), rs.map(_.key.name))
+      case (ls, cs, rs) => Slot(_to_column(cs.head), ls.map(_.key.name), rs.map(_.key.name))
+    }
+
+  private def _to_column(f: Field): Column = {
+    val datatype = DataType.guessSeq(f.values)
+    val multiplicity = Multiplicity.guess(f.values)
+    Column(f.key.name, datatype, multiplicity)
+  }
+
+  private def _split(ss: List[Slot], s: Slot): (List[Slot], Slot, List[Slot]) =
+    SeqUtils.split3L((_: Slot).isMatch(s))(ss) match {
+      case (ls, Nil, rs) => _split_guess(ss, s)
+      case (ls, cs, rs) => (ls, cs.head, rs)
+    }
+
+  private def _split_guess(ss: List[Slot], s: Slot): (List[Slot], Slot, List[Slot]) =
+    s.lefts.reverse match {
+      case Nil => _split_guess2(ss, s)
+      case x :: xs => _split_guess_left(ss, s, x, xs)
+    }
+
+  private def _split_guess2(ss: List[Slot], s: Slot): (List[Slot], Slot, List[Slot]) =
+    s.rights match {
+      case Nil => (Nil, s, Nil)
+      case x :: xs => _split_guess_right(ss, s, x, xs)
+    }
+
+  private def _is_slot(name: String)(slot: Slot): Boolean = slot.isMatch(name)
+
+  private def _split_guess_left(ss: List[Slot], s: Slot, name: String, candidates: List[String]): (List[Slot], Slot, List[Slot]) =
+    SeqUtils.split3L(_is_slot(name))(ss) match {
+      case (Nil, Nil, _) => (Nil, s, Nil)
+      case (ls, Nil, _) => candidates match {
+        case Nil => _split_guess2(ss, s)
+        case x :: xs => _split_guess_left(ss, s, x, xs)
+      }
+      case (ls, cs, rs) => (ls ++ cs, s, rs)
+    }
+    // ss.toList.span(_.isMatch(name)) match {
+    //   case (Nil, Nil) => (Nil, s, Nil)
+    //   case (Nil, rs) => (List(rs.head), s, rs.tail)
+    //   case (ls, Nil) => candidates match {
+    //     case Nil => _split_guess2(ss, s)
+    //     case x :: xs => _split_guess_left(ss, s, x, xs)
+    //   }
+    //   case (ls, rs) => (ls :+ rs.head, s, rs.tail)
+    // }
+
+  private def _split_guess_right(ss: List[Slot], s: Slot, name: String, candidates: List[String]): (List[Slot], Slot, List[Slot]) =
+    SeqUtils.split3L(_is_slot(name))(ss) match {
+      case (Nil, Nil, _) => (Nil, s, Nil)
+      case (ls, Nil, _) => candidates match {
+        case Nil => (ls, s, Nil)
+        case x :: xs => _split_guess_right(ss, s, x, xs)
+      }
+      case (ls, cs, rs) => (ls, s, cs ++ rs)
+    }
+    // ss.toList.span(_.isMatch(name)) match {
+    //   case (Nil, Nil) => (Nil, s, Nil)
+    //   case (Nil, rs) => (Nil, s, rs)
+    //   case (ls, Nil) => candidates match {
+    //     case Nil => (ls, s, Nil)
+    //     case x :: xs => _split_guess_right(ss, s, x, xs)
+    //   }
+    //   case (ls, rs) => (ls, s, rs)
+    // }
+
+  private def _merge(z: Slot, n: Slot): Slot = {
+    case class Z(xs: Vector[String]) {
+      def r = xs.toList
+      def +(rhs: String) = if (r.contains(rhs)) this else Z(xs :+ rhs)
+    }
+    val l = n.lefts./:(Z(z.lefts.toVector))(_+_).r
+    val r = n.rights./:(Z(z.rights.toVector))(_+_).r
+    Slot(n.column, l, r)
   }
 
   // LTSV

@@ -21,7 +21,7 @@ import org.goldenport.i18n.I18NString
  *  version Feb. 26, 2016
  *  version Jan. 15, 2017
  *  version Aug.  1, 2017
- * @version Sep.  1, 2017
+ * @version Sep. 21, 2017
  * @author  ASAMI, Tomoharu
  */
 case class Column(
@@ -40,6 +40,7 @@ case class Column(
   displaySequence: Option[Int] = None, // compatibility, unify displayFormat
   displayFormat: Option[DisplayFormat] = None,
   desc: Description = Description.empty,
+  form: Column.Form = Column.Form.empty,
   extension: Column.Extension = Column.Extension.empty
 //  operations: Seq[Operation] = Nil,
 //  extjs: Map[String, Any] = Map.empty,
@@ -157,6 +158,15 @@ case class Column(
 }
 
 object Column {
+  case class Form(
+    readonly: Boolean = false
+  ) {
+    def isEmpty = this == Form.empty
+  }
+  object Form {
+    val empty = Form()
+  }
+
   case class Extension(
 //    displayFormat: Option[DisplayFormat],
     converter: Option[Converter], // convert to/from internal datatype

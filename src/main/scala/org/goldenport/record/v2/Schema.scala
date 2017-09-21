@@ -5,9 +5,9 @@ import scalaz._, Scalaz._
 import org.smartdox.Description
 import org.goldenport.Strings
 import com.asamioffice.goldenport.text.UString
+import org.goldenport.exception.RAISE
 import org.goldenport.i18n.I18NString
 import org.goldenport.util.AnyUtils
-// import org.goldenport.record.util.{AnyUtils, I18NString}
 import org.goldenport.record.command.ValueCommand
 
 /*
@@ -33,7 +33,7 @@ import org.goldenport.record.command.ValueCommand
  *  version Jan. 21, 2017
  *  version May. 25, 2017
  *  version Aug.  1, 2017
- * @version Sep.  1, 2017
+ * @version Sep. 21, 2017
  * @author  ASAMI, Tomoharu
  */
 case class Schema(
@@ -316,12 +316,66 @@ case class Schema(
 
   def importConvertIn(rec: Record): Record = convertIn(importIn(rec))
   def exportConvertOut(rec: Record): Record = convertOut(exportOut(rec))
+
+  /*
+   * Marshall
+   */
+  def marshall: String = Schema.json.marshall(this)
 }
 
 object NullSchema extends Schema(Nil)
 
 object Schema {
   val empty = NullSchema
+
+  object json {
+    import play.api.libs.json._
+    import play.api.libs.functional.syntax._
+    import Column.Form
+
+    implicit val DataTypeFormat = new Format[DataType] {
+      def reads(json: JsValue): JsResult[DataType] =
+        json match {
+          case JsString(s) => JsSuccess(DataType.to(s))
+          case m => RAISE.noReachDefect
+        }
+      def writes(o: DataType): JsValue = JsString(o.name)
+    }
+
+    implicit val FormFormat = Json.format[Form]
+    implicit val ColumnFormat = new Format[Column] {
+      def reads(json: JsValue): JsResult[Column] = {
+        val name = (json \ "name").as[String]
+        val datatype = (json \ "datatype").asOpt[DataType] getOrElse XString
+        val form = (json \ "form").asOpt[Form] getOrElse Form.empty
+        JsSuccess(Column(name, datatype, form = form))
+      }
+      def writes(o: Column): JsValue = JsObject(
+        List(
+          "name" -> JsString(o.name),
+          "datatype" -> JsString(o.datatype.name)
+        ) ++ List(
+          if (o.form.isEmpty) None else Some("form" -> Json.toJson(o.form))
+        ).flatten
+      )
+    }
+
+    implicit val SchemaFormat = new Format[Schema] {
+      def reads(json: JsValue): JsResult[Schema] = {
+        val columns = (json \ "columns") match {
+          case JsArray(xs) => xs.map(_.as[Column])
+          case m => RAISE.noReachDefect // JsError(s"Unknown element in columns: $m")
+        }
+        JsSuccess(Schema(columns))
+      }
+      def writes(o: Schema): JsValue = JsObject(List(
+        "columns" -> JsArray(o.columns.map(Json.toJson(_)))
+      ))
+    }
+
+    def marshall(schema: Schema): String = Json.toJson(schema).toString
+    def unmarshall(p: String): Schema = Json.parse(p).as[Schema]
+  }
 }
 
 trait ColumnSlot {
@@ -354,6 +408,54 @@ sealed trait Multiplicity {
   def mark: String
   def label: String
 }
+
+object Multiplicity {
+  def guessSeq(ps: Seq[List[Any]]): Multiplicity = {
+    case class Z(empty: Int = 0, one: Int = 0, more: Int = 0) {
+      def r = if (more > 0) {
+        if (empty > 0)
+          MOneMore
+        else
+          MZeroMore
+      } else if (one > 0) {
+        if (empty > 0)
+          MZeroOne
+        else
+          MOne
+      } else {
+        MZeroOne
+      }
+      def +(rhs: List[Any]) =
+        rhs match {
+          case Nil => copy(empty = empty + 1)
+          case x :: Nil => if (isMultiple(rhs))
+            copy(more = more + 1)
+          else
+            copy(one = one + 1)
+          case _ => copy(more = more + 1)
+        }
+    }
+    ps./:(Z())(_+_).r
+  }
+
+  def guess(p: List[Any]): Multiplicity =
+    if (isMultiple(p))
+      MZeroMore
+    else
+      MZeroOne
+
+  def isMultiple(p: List[Any]): Boolean = p match {
+    case Nil => false
+    case x :: Nil => x match {
+      case _: Seq[_] => true
+      case _: Array[_] => true
+      case _: Record => true
+      case _ => false
+    }
+    case _ => true
+  }
+}
+
 case object MOne extends Multiplicity {
   val mark = "1"
   val label = "1"

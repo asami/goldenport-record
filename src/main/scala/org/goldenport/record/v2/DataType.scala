@@ -2,7 +2,7 @@ package org.goldenport.record.v2
 
 import java.util.UUID
 import java.sql.{Timestamp, Date, Time}
-import java.net.URL
+import java.net.{URL, URI}
 import java.text.SimpleDateFormat
 import com.asamioffice.goldenport.io.UURL
 import org.joda.time._
@@ -26,7 +26,8 @@ import org.goldenport.record.util.{
  *  version Jul. 27, 2014
  *  version Sep. 25, 2015
  *  version Jun. 16, 2016
- * @version Jan. 23, 2017
+ *  version Jan. 23, 2017
+ * @version Sep. 21, 2017
  * @author  ASAMI, Tomoharu
  */
 sealed trait DataType {
@@ -67,6 +68,206 @@ sealed trait DataType {
     else
       DataTypeFailure.create(this, v)
   }
+}
+
+object DataType {
+  val datatypes = Vector(
+    XBoolean,
+    XByte,
+    XShort,
+    XInt,
+    XLong,
+    XFloat,
+    XFloat1,
+    XDouble,
+    XInteger,
+    XDecimal,
+    XString,
+    XToken,
+    XDate,
+    XTime,
+    XDateTime,
+    XText,
+    XBase64,
+    XBinary,
+    XLink,
+    XEMail,
+    XMoney,
+    XPercent,
+    XUnit,
+    XUuid,
+    XEverforthid,
+    XXml,
+    XHtml
+    // XEntityReference, XValue, XEverforthObjectReference, XPowertype, XPowertypeReference, XStateMachine, XStateMachineReference, XExternalDataType
+  )
+
+  def get(p: String): Option[DataType] = datatypes.find(_.name == p)
+
+  def to(p: String): DataType = get(p) getOrElse {
+    throw new NoSuchElementException(s"Unavailable datatype: $p")
+  }
+
+  def guessSeq(ps: Seq[Any]): DataType =  {
+    @annotation.tailrec
+    def go(p: List[Any], dt: DataType): DataType = p match {
+      case Nil => dt
+      case x :: xs =>
+        val guessed = guess(x)
+        if (dt == guessed)
+          go(xs, dt)
+        else
+          unify(dt, guessed)
+    }
+    ps match {
+      case Nil => XString
+      case x :: xs => go(xs, guess(x))
+    }
+  }
+
+  def guess(p: Any): DataType = p match {
+    case _: String => XString
+    case _: Boolean => XBoolean
+    case _: Byte => XByte
+    case _: Short => XShort
+    case _: Int => XInt
+    case _: Long => XLong
+    case _: Float => XFloat
+    case _: Double => XDouble
+    case _: BigInt => XInteger
+    case _: BigDecimal => XDecimal
+    case _: Date => XDate
+    case _: LocalDate => XDate
+    case _: Time => XTime
+    case _: LocalTime => XTime
+    case _: Timestamp => XDateTime
+    case _: DateTime => XDateTime
+    case _: URL => XLink
+    case _ => XString
+  }
+
+  def unify(lhs: DataType, rhs: DataType): DataType =
+    lhs match {
+      case XString => XString
+      case XBoolean => rhs match {
+        case XString => XString
+        case XBoolean => XBoolean
+        case XByte => XByte
+        case XShort => XShort
+        case XInt => XInt
+        case XLong => XLong
+        case XFloat => XFloat
+        case XDouble => XDouble
+        case XInteger => XInteger
+        case XDecimal => XDecimal
+        case _ => XString
+      }
+      case XByte => rhs match {
+        case XString => XString
+        case XBoolean => XByte
+        case XByte => XByte
+        case XShort => XShort
+        case XInt => XInt
+        case XLong => XLong
+        case XFloat => XFloat
+        case XDouble => XDouble
+        case XInteger => XInteger
+        case XDecimal => XDecimal
+        case _ => XString
+      }
+      case XShort => rhs match {
+        case XString => XString
+        case XBoolean => XShort
+        case XByte => XShort
+        case XShort => XShort
+        case XInt => XInt
+        case XLong => XLong
+        case XFloat => XFloat
+        case XDouble => XDouble
+        case XInteger => XInteger
+        case XDecimal => XDecimal
+        case _ => XString
+      }
+      case XInt => rhs match {
+        case XString => XString
+        case XBoolean => XInt
+        case XByte => XInt
+        case XShort => XInt
+        case XInt => XInt
+        case XLong => XLong
+        case XFloat => XFloat
+        case XDouble => XDouble
+        case XInteger => XInteger
+        case XDecimal => XDecimal
+        case _ => XString
+      }
+      case XLong => rhs match {
+        case XString => XString
+        case XBoolean => XLong
+        case XByte => XLong
+        case XShort => XLong
+        case XInt => XLong
+        case XLong => XLong
+        case XFloat => XFloat
+        case XDouble => XDouble
+        case XInteger => XInteger
+        case XDecimal => XDecimal
+        case _ => XString
+      }
+      case XFloat => rhs match {
+        case XString => XString
+        case XBoolean => XFloat
+        case XByte => XFloat
+        case XShort => XFloat
+        case XInt => XFloat
+        case XLong => XFloat
+        case XFloat => XFloat
+        case XDouble => XDouble
+        case XInteger => XInteger
+        case XDecimal => XDecimal
+        case _ => XString
+      }
+      case XDouble => rhs match {
+        case XString => XString
+        case XBoolean => XDouble
+        case XByte => XDouble
+        case XShort => XDouble
+        case XInt => XDouble
+        case XLong => XDouble
+        case XFloat => XDouble
+        case XDouble => XDouble
+        case XInteger => XInteger
+        case XDecimal => XDecimal
+        case _ => XString
+      }
+      case XInteger => rhs match {
+        case XString => XString
+        case XBoolean => XInteger
+        case XByte => XInteger
+        case XShort => XInteger
+        case XInt => XInteger
+        case XLong => XInteger
+        case XFloat => XDecimal
+        case XDouble => XDecimal
+        case XInteger => XInteger
+        case XDecimal => XDecimal
+        case _ => XString
+      }
+      case XDecimal => rhs match {
+        case XString => XString
+        case XBoolean => XDecimal
+        case XByte => XDecimal
+        case XShort => XDecimal
+        case XInt => XDecimal
+        case XLong => XDecimal
+        case XFloat => XDecimal
+        case XDouble => XDecimal
+        case XInteger => XDecimal
+        case XDecimal => XDecimal
+        case _ => XString
+      }
+      case _ => if (lhs == rhs) lhs else XString
+    }
 }
 
 case object XBoolean extends DataType {
