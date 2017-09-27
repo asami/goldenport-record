@@ -21,7 +21,7 @@ import org.goldenport.i18n.I18NString
  *  version Feb. 26, 2016
  *  version Jan. 15, 2017
  *  version Aug.  1, 2017
- * @version Sep. 21, 2017
+ * @version Sep. 27, 2017
  * @author  ASAMI, Tomoharu
  */
 case class Column(
@@ -40,6 +40,7 @@ case class Column(
   displaySequence: Option[Int] = None, // compatibility, unify displayFormat
   displayFormat: Option[DisplayFormat] = None,
   desc: Description = Description.empty,
+  layout: Column.Layout = Column.Layout.empty,
   form: Column.Form = Column.Form.empty,
   extension: Column.Extension = Column.Extension.empty
 //  operations: Seq[Operation] = Nil,
@@ -158,8 +159,19 @@ case class Column(
 }
 
 object Column {
+  case class Grid(fraction: Int, denominator: Int)
+
+  case class Layout(
+    optional: Boolean = false,
+    grid: Option[Grid] = None
+  )
+  object Layout {
+    val empty = Layout()
+  }
+
   case class Form(
     readonly: Boolean = false
+    // invisible: Boolean = false : Visibility
   ) {
     def isEmpty = this == Form.empty
   }
