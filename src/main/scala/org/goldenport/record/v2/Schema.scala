@@ -9,6 +9,7 @@ import org.goldenport.exception.RAISE
 import org.goldenport.i18n.I18NString
 import org.goldenport.util.AnyUtils
 import org.goldenport.record.command.ValueCommand
+import org.goldenport.record.v2.util.RecordUtils
 
 /*
  * Add
@@ -33,7 +34,8 @@ import org.goldenport.record.command.ValueCommand
  *  version Jan. 21, 2017
  *  version May. 25, 2017
  *  version Aug.  1, 2017
- * @version Sep. 21, 2017
+ *  version Sep. 21, 2017
+ * @version Oct.  7, 2017
  * @author  ASAMI, Tomoharu
  */
 case class Schema(
@@ -321,6 +323,7 @@ case class Schema(
    * Marshall
    */
   def marshall: String = Schema.json.marshall(this)
+  def marshallRecord: Record = RecordUtils.fromJsonString(marshall)
 }
 
 object NullSchema extends Schema(Nil)

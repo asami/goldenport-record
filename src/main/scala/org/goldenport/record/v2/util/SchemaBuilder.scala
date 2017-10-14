@@ -12,10 +12,30 @@ import org.goldenport.record.v2._
  *  version Apr. 22, 2016
  *  version Jan. 19, 2017
  *  version Aug.  3, 2017
- * @version Sep. 27, 2017
+ *  version Sep. 27, 2017
+ * @version Oct. 12, 2017
  * @author  ASAMI, Tomoharu
  */
+case class SchemaBuilder(columns: Vector[Column] = Vector.empty) {
+  import SchemaBuilder._
+
+  def build: Schema = Schema(columns)
+
+  def append(p: CBase, ps: CBase*): SchemaBuilder =
+    copy(columns = columns ++ (p +: ps).map(_.toColumn))
+
+  def update(name: String, datatype: DataType): SchemaBuilder =
+    copy(columns = columns.map(x =>
+      if (x.name === name)
+        x.copy(datatype = datatype)
+      else
+        x
+    ))
+}
+
 object SchemaBuilder {
+  def apply(schema: Schema): SchemaBuilder = SchemaBuilder(schema.columns.toVector)
+
   def create(columns: CBase*): Schema = {
     Schema(columns.map(_.toColumn))
   }

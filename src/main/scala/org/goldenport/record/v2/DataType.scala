@@ -27,7 +27,8 @@ import org.goldenport.record.util.{
  *  version Sep. 25, 2015
  *  version Jun. 16, 2016
  *  version Jan. 23, 2017
- * @version Sep. 21, 2017
+ *  version Sep. 21, 2017
+ * @version Oct. 12, 2017
  * @author  ASAMI, Tomoharu
  */
 sealed trait DataType {
@@ -810,6 +811,20 @@ case object XLink extends DataType {
 
   def validate(d: Any): ValidationResult = Valid // TODO
   def label = "リンク"
+  override def getXmlDatatypeName = Some("anyURI")
+}
+
+case object XImageLink extends DataType {
+  type InstanceType = URL
+  def toInstance(x: Any): InstanceType = {
+    x match {
+      case v: URL => v
+      case v: String => UURL.getURLFromFileOrURLName(v)
+    }
+  }
+
+  def validate(d: Any): ValidationResult = Valid // TODO
+  def label = "画像"
   override def getXmlDatatypeName = Some("anyURI")
 }
 

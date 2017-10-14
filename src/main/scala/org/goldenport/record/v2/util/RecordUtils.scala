@@ -25,7 +25,8 @@ import org.goldenport.record.v2.bag.{RecordBag, CsvBag}
  *  version Apr.  2, 2017
  *  version Jul. 11, 2017
  *  version Aug. 30, 2017
- * @version Sep. 15, 2017
+ *  version Sep. 15, 2017
+ * @version Oct. 12, 2017
  * @author  ASAMI, Tomoharu
  */
 object RecordUtils {
@@ -93,6 +94,7 @@ object RecordUtils {
       case XFloat1 => AnyRefUtils.toFloat(x)
       case XHtml => AnyRefUtils.toString(x)
       case XLink => AnyRefUtils.toString(x)
+      case XImageLink => AnyRefUtils.toString(x)
       case XMoney => AnyRefUtils.toBigDecimal(x)
       case XPercent => AnyRefUtils.toFloat(x)
       case t: XPowertype => ???
