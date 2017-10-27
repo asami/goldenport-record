@@ -21,7 +21,8 @@ import org.goldenport.i18n.I18NString
  *  version Feb. 26, 2016
  *  version Jan. 15, 2017
  *  version Aug.  1, 2017
- * @version Sep. 27, 2017
+ *  version Sep. 27, 2017
+ * @version Oct. 22, 2017
  * @author  ASAMI, Tomoharu
  */
 case class Column(
@@ -50,6 +51,8 @@ case class Column(
 //  comment: String = ""
 ) extends ColumnSlot {
 //  def displayFormat = extension.displayFormat
+  def withDatatype(p: DataType) = copy(datatype = p)
+
   def converter = extension.converter
   def importer = extension.importer
   def exporter = extension.exporter

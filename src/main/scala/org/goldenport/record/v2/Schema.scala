@@ -35,7 +35,7 @@ import org.goldenport.record.v2.util.RecordUtils
  *  version May. 25, 2017
  *  version Aug.  1, 2017
  *  version Sep. 21, 2017
- * @version Oct.  7, 2017
+ * @version Oct. 25, 2017
  * @author  ASAMI, Tomoharu
  */
 case class Schema(
@@ -86,6 +86,19 @@ case class Schema(
     def f(c: Column) = !c.sql.isDerived
     columns.filter(f)
   }
+
+  final def enableColumns(ps: Seq[String]): Schema =
+    removeColumns(x => !ps.contains(x.name))
+
+  final def enableColumn(p: String, ps: String*): Schema = removeColumns(p +: ps)
+
+  final def removeColumns(f: Column => Boolean): Schema =
+    copy(columns = columns.filterNot(f))
+
+  final def removeColumns(ps: Seq[String]): Schema =
+    removeColumns(x => ps.contains(x.name))
+
+  final def removeColumn(p: String, ps: String*): Schema = removeColumns(p +: ps)
 
   final def addColumns(cs: Seq[Column]): Schema = {
     copy(columns = this.columns ++ cs)
@@ -324,6 +337,16 @@ case class Schema(
    */
   def marshall: String = Schema.json.marshall(this)
   def marshallRecord: Record = RecordUtils.fromJsonString(marshall)
+
+  def toMarshalizable: Schema = copy(columns =
+    columns.map { c =>
+      c.datatype match {
+        case m: XEntityReference => c.withDatatype(XEntityId)
+        case m: XEverforthObjectReference => c.withDatatype(XEntityId)
+        case _ => c
+      }
+    }
+  )
 }
 
 object NullSchema extends Schema(Nil)
@@ -335,6 +358,7 @@ object Schema {
     import play.api.libs.json._
     import play.api.libs.functional.syntax._
     import Column.Form
+    import org.goldenport.json.JsonUtils.Implicits._
 
     implicit val DataTypeFormat = new Format[DataType] {
       def reads(json: JsValue): JsResult[DataType] =
@@ -344,20 +368,33 @@ object Schema {
         }
       def writes(o: DataType): JsValue = JsString(o.name)
     }
-
+    implicit val MultiplicityFormat = new Format[Multiplicity] {
+      def reads(json: JsValue): JsResult[Multiplicity] =
+        json match {
+          case JsString(s) => JsSuccess(Multiplicity.to(s))
+          case m => RAISE.noReachDefect
+        }
+      def writes(o: Multiplicity): JsValue = JsString(o.mark)
+    }
     implicit val FormFormat = Json.format[Form]
     implicit val ColumnFormat = new Format[Column] {
       def reads(json: JsValue): JsResult[Column] = {
         val name = (json \ "name").as[String]
         val datatype = (json \ "datatype").asOpt[DataType] getOrElse XString
+        val multiplicity = (json \ "multiplicity").asOpt[Multiplicity] getOrElse MOne
+        val label = (json \ "label").asOpt[String]
+        val i18nLabel = (json \ "i18nLabel").asOpt[I18NString]
         val form = (json \ "form").asOpt[Form] getOrElse Form.empty
-        JsSuccess(Column(name, datatype, form = form))
+        JsSuccess(Column(name, datatype, multiplicity, label = label, i18nLabel = i18nLabel, form = form))
       }
       def writes(o: Column): JsValue = JsObject(
         List(
           "name" -> JsString(o.name),
-          "datatype" -> JsString(o.datatype.name)
+          "datatype" -> JsString(o.datatype.name),
+          "multiplicity" -> JsString(o.multiplicity.mark)
         ) ++ List(
+          o.label.map(x => "label" -> JsString(x)),
+          o.i18nLabel.map(x => "i18nLabel" -> Json.toJson(x)),
           if (o.form.isEmpty) None else Some("form" -> Json.toJson(o.form))
         ).flatten
       )
@@ -378,6 +415,10 @@ object Schema {
 
     def marshall(schema: Schema): String = Json.toJson(schema).toString
     def unmarshall(p: String): Schema = Json.parse(p).as[Schema]
+    def unmarshall(p: JsValue): Schema = SchemaFormat.reads(p) match {
+      case JsSuccess(s, _) => s
+      case m: JsError => throw new IllegalArgumentException(m.toString)
+    }
   }
 }
 
@@ -457,6 +498,15 @@ object Multiplicity {
     }
     case _ => true
   }
+
+  def to(s: String): Multiplicity =
+    s match {
+      case MOne.`mark` => MOne
+      case MZeroOne.`mark` => MZeroOne
+      case MOneMore.`mark` => MOneMore
+      case MZeroMore.`mark` => MZeroMore
+      case _ => RAISE.notImplementedYetDefect
+    }
 }
 
 case object MOne extends Multiplicity {

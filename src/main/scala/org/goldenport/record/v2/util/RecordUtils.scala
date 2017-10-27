@@ -26,7 +26,7 @@ import org.goldenport.record.v2.bag.{RecordBag, CsvBag}
  *  version Jul. 11, 2017
  *  version Aug. 30, 2017
  *  version Sep. 15, 2017
- * @version Oct. 12, 2017
+ * @version Oct. 22, 2017
  * @author  ASAMI, Tomoharu
  */
 object RecordUtils {
@@ -87,6 +87,7 @@ object RecordUtils {
       case XDateTime => AnyRefUtils.toTimestamp(x)
       case XBase64 => throw new UnsupportedOperationException(s"Not implemented yet: XBase64")
       case XBinary => throw new UnsupportedOperationException("Not implemented yet: XBinary")
+      case XEntityId => AnyRefUtils.toString(x)
       case XEverforthid => AnyRefUtils.toString(x)
       case XEMail => AnyRefUtils.toString(x)
       case t: XEntityReference => AnyRefUtils.toString(x)
@@ -214,6 +215,15 @@ object RecordUtils {
       case a: JsArray => js2records(a)
       case _ => throw new IllegalArgumentException("Not object or array = " + j)
     }
+  }
+
+  def js2record(j: JsValue): Record = j match {
+    case null => Record.empty
+    case JsNull => Record.empty
+    case m: JsUndefined => Record.empty
+    case m: JsObject => js2record(m)
+    case m: JsArray => throw new IllegalArgumentException(s"Array: $j")
+    case _ => throw new IllegalArgumentException(s"Not object: $j")
   }
 
   def js2record(o: JsObject): Record = {

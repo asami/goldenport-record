@@ -28,7 +28,7 @@ import org.goldenport.record.util.{
  *  version Jun. 16, 2016
  *  version Jan. 23, 2017
  *  version Sep. 21, 2017
- * @version Oct. 12, 2017
+ * @version Oct. 22, 2017
  * @author  ASAMI, Tomoharu
  */
 sealed trait DataType {
@@ -72,7 +72,7 @@ sealed trait DataType {
 }
 
 object DataType {
-  val datatypes = Vector(
+  private val _datatypes = Vector(
     XBoolean,
     XByte,
     XShort,
@@ -92,18 +92,25 @@ object DataType {
     XBase64,
     XBinary,
     XLink,
+    XImageLink,
     XEMail,
     XMoney,
     XPercent,
     XUnit,
     XUuid,
+    XEntityId,
     XEverforthid,
     XXml,
     XHtml
     // XEntityReference, XValue, XEverforthObjectReference, XPowertype, XPowertypeReference, XStateMachine, XStateMachineReference, XExternalDataType
   )
 
-  def get(p: String): Option[DataType] = datatypes.find(_.name == p)
+  def get(p: String): Option[DataType] = _datatypes.find(_.name == p) orElse {
+    val pf: PartialFunction[String, DataType] = {
+      case "statemachine" => XStateMachine()
+    }
+    pf.lift(p)
+  }
 
   def to(p: String): DataType = get(p) getOrElse {
     throw new NoSuchElementException(s"Unavailable datatype: $p")
@@ -887,6 +894,17 @@ case object XUuid extends DataType {
 
   def validate(d: Any): ValidationResult = Valid
   def label = "UUID"
+  override def getXmlDatatypeName = Some("token")
+}
+
+case object XEntityId extends DataType { // XEntityReference
+  type InstanceType = String
+  def toInstance(x: Any): InstanceType = {
+    x.toString
+  }
+
+  def validate(d: Any): ValidationResult = Valid
+  def label = "EntityID"
   override def getXmlDatatypeName = Some("token")
 }
 

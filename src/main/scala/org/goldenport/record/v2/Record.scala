@@ -46,7 +46,8 @@ import org.goldenport.util.{TimestampUtils, DateUtils, AnyUtils}
  *  version Sep. 22, 2016
  *  version Oct. 18, 2016
  *  version Jan.  7, 2016
- * @version Sep.  4, 2017
+ *  version Sep.  4, 2017
+ * @version Oct. 26, 2017
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -1014,6 +1015,27 @@ case class Record(
     }
   }
 
+  def transformRecursive(f: Field => List[Field]): Record =
+    copy(
+      fields = for {
+        x <- fields
+        y <- f(x)
+      } yield {
+        val a = y.values.map {
+          case m: Record => m.transformRecursive(f)
+          case m => m
+        }
+        y.copy(values = a)
+      }
+    )
+
+  def replaceValueStringRecursive(key: String, f: String => String): Record =
+    transformRecursive(x =>
+      if (x.key.name == key)
+        x.getString.fold(List(x))(y => List(x.update(f(y))))
+      else List(x)
+    )
+
   def activateFields(keys: Seq[Symbol]) = {
     copy(fields = fields.filter(x => keys.contains(x.key)))
   }
@@ -1144,6 +1166,8 @@ case class Field(key: Symbol, values: List[Any]) {
   def update(v: Seq[Any]): Field = {
     Field(key, v.toList)
   }
+
+  def update(p: String): Field = copy(values = List(p))
 
   def mapDouble(f: Double => Double): Field = {
     try {
