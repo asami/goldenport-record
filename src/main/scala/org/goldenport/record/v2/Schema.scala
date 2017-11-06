@@ -35,7 +35,8 @@ import org.goldenport.record.v2.util.RecordUtils
  *  version May. 25, 2017
  *  version Aug.  1, 2017
  *  version Sep. 21, 2017
- * @version Oct. 25, 2017
+ *  version Oct. 25, 2017
+ * @version Nov.  6, 2017
  * @author  ASAMI, Tomoharu
  */
 case class Schema(
@@ -90,7 +91,7 @@ case class Schema(
   final def enableColumns(ps: Seq[String]): Schema =
     removeColumns(x => !ps.contains(x.name))
 
-  final def enableColumn(p: String, ps: String*): Schema = removeColumns(p +: ps)
+  final def enableColumn(p: String, ps: String*): Schema = enableColumns(p +: ps)
 
   final def removeColumns(f: Column => Boolean): Schema =
     copy(columns = columns.filterNot(f))
@@ -102,6 +103,18 @@ case class Schema(
 
   final def addColumns(cs: Seq[Column]): Schema = {
     copy(columns = this.columns ++ cs)
+  }
+
+  final def replaceColumn(name: String, column: Column): Schema = {
+    case class Z(r: Vector[Column] = Vector.empty) {
+      def +(rhs: Column) = {
+        if (rhs.name == name)
+          Z(r :+ column)
+        else
+          Z(r :+ rhs)
+      }
+    }
+    copy(columns = columns./:(Z())(_+_).r)
   }
 
   protected def map_Record(record: Record): Record = {
