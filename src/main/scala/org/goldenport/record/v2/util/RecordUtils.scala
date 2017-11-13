@@ -26,7 +26,8 @@ import org.goldenport.record.v2.bag.{RecordBag, CsvBag}
  *  version Jul. 11, 2017
  *  version Aug. 30, 2017
  *  version Sep. 15, 2017
- * @version Oct. 22, 2017
+ *  version Oct. 22, 2017
+ * @version Nov. 13, 2017
  * @author  ASAMI, Tomoharu
  */
 object RecordUtils {
@@ -80,10 +81,16 @@ object RecordUtils {
       case XInteger => AnyRefUtils.toBigInt(x)
       case XDecimal => AnyRefUtils.toBigDecimal(x)
       case XString => AnyRefUtils.toString(x)
+      case XNonEmptyString => AnyRefUtils.toString(x)
+      case XNonBlankString => AnyRefUtils.toString(x)
       case XToken => AnyRefUtils.toString(x)
+      case XNonEmptyToken => AnyRefUtils.toString(x)
+      case XNonBlankToken => AnyRefUtils.toString(x)
       case XText => AnyRefUtils.toString(x)
+      case XNonEmptyText => AnyRefUtils.toString(x)
+      case XNonBlankText => AnyRefUtils.toString(x)
       case XDate => AnyRefUtils.toDate(x)
-      case XTime => ???
+      case XTime => AnyRefUtils.toLocalTime(x)
       case XDateTime => AnyRefUtils.toTimestamp(x)
       case XBase64 => throw new UnsupportedOperationException(s"Not implemented yet: XBase64")
       case XBinary => throw new UnsupportedOperationException("Not implemented yet: XBinary")
@@ -98,11 +105,26 @@ object RecordUtils {
       case XImageLink => AnyRefUtils.toString(x)
       case XMoney => AnyRefUtils.toBigDecimal(x)
       case XPercent => AnyRefUtils.toFloat(x)
+      case XUnit => AnyRefUtils.toString(x)
+      case XColor => AnyRefUtils.toString(x)
+      case XFile => AnyRefUtils.toString(x)
+      case XMonth => AnyRefUtils.toInt(x)
+      case XMonthDay => AnyRefUtils.toString(x)
+      case XYear => AnyRefUtils.toInt(x)
+      case XYearEffective => AnyRefUtils.toInt(x)
+      case XYearPast => AnyRefUtils.toInt(x)
+      case XYearMonth => AnyRefUtils.toString(x)
+      case XDay => AnyRefUtils.toInt(x)
+      case XDuration => AnyRefUtils.toString(x)
+      case XPassword => AnyRefUtils.toString(x)
+      case t: XRange => AnyRefUtils.toString(x)
+      case XSearch => AnyRefUtils.toString(x)
+      case XTel => AnyRefUtils.toString(x)
+      case XWeek => AnyRefUtils.toString(x)
       case t: XPowertype => ???
       case t: XPowertypeReference => ???
       case t: XStateMachine => AnyRefUtils.toInt(x)
       case t: XStateMachineReference => ???
-      case XUnit => AnyRefUtils.toString(x)
       case XUuid => AnyRefUtils.toString(x)
       case XXml => AnyRefUtils.toString(x)
       case t: XValue => ???

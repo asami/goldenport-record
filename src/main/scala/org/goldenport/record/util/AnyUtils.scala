@@ -4,6 +4,7 @@ import java.util.Date
 import java.sql.Timestamp
 import java.net.{URL, URI}
 import java.io.File
+import org.joda.time.LocalTime
 import com.asamioffice.goldenport.io.UURL
 
 /*
@@ -13,7 +14,8 @@ import com.asamioffice.goldenport.io.UURL
  *  version Jan. 28, 2015
  *  version Oct. 24, 2015
  *  version Apr. 29, 2016
- * @version May. 25, 2017
+ *  version May. 25, 2017
+ * @version Nov. 13, 2017
  * @author  ASAMI, Tomoharu
  */
 object AnyUtils {
@@ -117,6 +119,7 @@ object AnyUtils {
       case s: String => DateUtils.parse(s)
     }
   }
+  def toLocalTime(x: Any): LocalTime = org.goldenport.util.AnyUtils.toLocalTime(x)
   def toUrl(x: Any): URL = {
     x match {
       case m: URL => m

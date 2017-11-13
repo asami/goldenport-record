@@ -22,7 +22,8 @@ import org.goldenport.i18n.I18NString
  *  version Jan. 15, 2017
  *  version Aug.  1, 2017
  *  version Sep. 27, 2017
- * @version Oct. 22, 2017
+ *  version Oct. 22, 2017
+ * @version Nov. 12, 2017
  * @author  ASAMI, Tomoharu
  */
 case class Column(
@@ -52,6 +53,7 @@ case class Column(
 ) extends ColumnSlot {
 //  def displayFormat = extension.displayFormat
   def withDatatype(p: DataType) = copy(datatype = p)
+  def withPlaceholder(p: String) = copy(form = form.withPlaceholder(p))
 
   def converter = extension.converter
   def importer = extension.importer
@@ -126,6 +128,9 @@ case class Column(
   def label(locale: Locale): String =
     i18nLabel.flatMap(_.get(locale)) orElse label getOrElse UString.capitalize(name)
 
+  def isRequired: Boolean = multiplicity == MOne || multiplicity == MOneMore
+  def getPlaceholder(locale: Locale): Option[String] = form.placeholder.flatMap(_.get(locale))
+
   /*
    * Format for display
    */
@@ -173,9 +178,11 @@ object Column {
   }
 
   case class Form(
-    readonly: Boolean = false
+    readonly: Boolean = false,
+    placeholder: Option[I18NString] = None
     // invisible: Boolean = false : Visibility
   ) {
+    def withPlaceholder(p: String) = copy(placeholder = Some(I18NString(p)))
     def isEmpty = this == Form.empty
   }
   object Form {
