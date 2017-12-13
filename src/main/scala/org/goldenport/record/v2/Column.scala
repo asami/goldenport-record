@@ -23,7 +23,8 @@ import org.goldenport.i18n.I18NString
  *  version Aug.  1, 2017
  *  version Sep. 27, 2017
  *  version Oct. 22, 2017
- * @version Nov. 12, 2017
+ *  version Nov. 12, 2017
+ * @version Dec. 13, 2017
  * @author  ASAMI, Tomoharu
  */
 case class Column(
@@ -52,6 +53,10 @@ case class Column(
 //  comment: String = ""
 ) extends ColumnSlot {
 //  def displayFormat = extension.displayFormat
+  override def toString() = s"Column(${show})"
+
+  def show: String = s"$name,${datatype.name},${multiplicity.mark}"
+
   def withDatatype(p: DataType) = copy(datatype = p)
   def withPlaceholder(p: String) = copy(form = form.withPlaceholder(p))
 

@@ -8,7 +8,9 @@ import org.goldenport.record.v2._
 /*
  * @since   Nov. 15, 2015
  *  version Dec.  4, 2015
- * @version Apr. 27, 2016
+ *  version Apr. 27, 2016
+ *  version Nov. 30, 2017
+ * @version Dec.  1, 2017
  * @author  ASAMI, Tomoharu
  */
 sealed trait UnitOfWork[+A] {
@@ -44,6 +46,7 @@ object UnitOfWork {
   case class BigIntRequest(v: BigInt) extends ServiceRequest
   case class BigDecimalRequest(v: BigDecimal) extends ServiceRequest
   case class StringRequest(v: String) extends ServiceRequest
+  case object UnitRequest extends ServiceRequest
   case class BooleanResponse(v: Boolean) extends ServiceResponse
   case class ByteResponse(v: Byte) extends ServiceResponse
   case class ShortResponse(v: Short) extends ServiceResponse
@@ -53,6 +56,7 @@ object UnitOfWork {
   case class BigIntResponse(v: BigInt) extends ServiceResponse
   case class BigDecimalResponse(v: BigDecimal) extends ServiceResponse
   case class StringResponse(v: String) extends ServiceResponse
+  case object UnitResponse extends ServiceResponse
 
   def invoke[T <: ServiceResponse](req: ServiceRequest): UnitOfWorkFM[T] =
     Free.liftFC(InvokeService(req)).asInstanceOf[UnitOfWorkFM[T]]
@@ -107,7 +111,7 @@ object UnitOfWork {
 
     def updates(
       store: Store, rs: Map[Store.Id, Record]
-    ) = StoreOperation.updates(store, rs).asInstanceOf[UnitOfWorkFM[Unit]]
+    ) = StoreOperation.updates(store, rs).asInstanceOf[UnitOfWorkFM[IndexedSeq[UpdateResult]]]
 
     def delete(
       store: Store, id: String

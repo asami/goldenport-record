@@ -36,7 +36,8 @@ import org.goldenport.record.v2.util.RecordUtils
  *  version Aug.  1, 2017
  *  version Sep. 21, 2017
  *  version Oct. 25, 2017
- * @version Nov.  6, 2017
+ *  version Nov. 23, 2017
+ * @version Dec. 13, 2017
  * @author  ASAMI, Tomoharu
  */
 case class Schema(
@@ -62,6 +63,8 @@ case class Schema(
     def append(f1: ValidationResult, f2: => ValidationResult) = f1 + f2
     def zero: ValidationResult = Valid
   } // TODO uses Validation.ValidationResultMonoid
+
+  override def toString() = s"""Schema(${columns.map(_.show).mkString(";")})"""
 
   final def getColumn(key: String) = {
     columns.find(_.name == key)
@@ -157,7 +160,12 @@ case class Schema(
 
   // TODO handle date, time and datetime here, instead of driver.
   protected final def filter_insert(f: Field): Option[Field] = {
-    columns.find(_.name == f.key.name) match {
+    val name = f.key.name
+    // val dummy = if (name == "company_id")
+    //   true
+    // else
+    //   false
+    columns.find(_.name == name) match {
       case Some(c) if is_create_update_principal_value(c, f) => {
 //        log_trace("Schema#filter_insert drop(%s) = %s".format(c, f))
         // f.copy(value = List(principal_id)).some
@@ -754,7 +762,7 @@ object VDescription {
   }
 
   def apply(name: String, issue: String, value: Seq[Any]): VDescription = {
-    VDescription(Some(name), I18NString(issue), Some(value))
+    VDescription(Some(name), I18NString(issue), if (value.isEmpty) None else Some(value))
   }
 
   def apply(name: Option[String], issue: String): VDescription = {
