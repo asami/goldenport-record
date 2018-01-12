@@ -47,7 +47,9 @@ import org.goldenport.util.{TimestampUtils, DateUtils, AnyUtils}
  *  version Oct. 18, 2016
  *  version Jan.  7, 2016
  *  version Sep.  4, 2017
- * @version Oct. 26, 2017
+ *  version Oct. 26, 2017
+ *  version Dec. 27, 2017
+ * @version Jan. 11, 2018
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -1040,12 +1042,12 @@ case class Record(
     copy(fields = fields.filter(x => keys.contains(x.key)))
   }
 
-  def removeField(key: String): Record = {
-    removeField(Symbol(key))
+  def removeField(key: String, keys: String*): Record = {
+    removeFields((key +: keys.toVector).map(Symbol(_)))
   }
 
-  def removeField(key: Symbol): Record = {
-    removeFields(Vector(key))
+  def removeField(key: Symbol, keys: Symbol*): Record = {
+    removeFields(key +: keys.toVector)
   }
 
   def removeFields(keys: Seq[Symbol]): Record = {
@@ -1101,12 +1103,25 @@ case class Record(
     "Record(" + fields + ", " + inputFiles + ")"
   }
 
-  def distillByPrefix(rec: Record, prefix: String): Record = {
+  // def distillByPrefix(rec: Record, prefix: String): Record = {
+  //   val prefixlength = prefix.length
+  //   if (prefixlength == 0)
+  //     rec
+  //   else
+  //     Record(rec.fields.flatMap { x =>
+  //       if (x.key.name.startsWith(prefix))
+  //         Some(x.updateKey(x.key.name.substring(prefixlength)))
+  //       else
+  //         None
+  //     })
+  // }
+
+  def distillByPrefix(prefix: String): Record = {
     val prefixlength = prefix.length
     if (prefixlength == 0)
-      rec
+      this
     else
-      Record(rec.fields.flatMap { x =>
+      Record(fields.flatMap { x =>
         if (x.key.name.startsWith(prefix))
           Some(x.updateKey(x.key.name.substring(prefixlength)))
         else
@@ -1565,6 +1580,21 @@ object Record {
     )
   }
 */
+
+  object json {
+    import play.api.libs.json._
+    import play.api.libs.functional.syntax._
+    import org.goldenport.json.JsonUtils.Implicits._
+    import org.goldenport.record.v2.util.RecordUtils
+
+    implicit object RecordFormat extends Format[Record] {
+      def reads(json: JsValue): JsResult[Record] = json match {
+        case m: JsObject => JsSuccess(RecordUtils.js2record(m))
+        case _ => JsError(s"Invalid Record($json)")
+      }
+      def writes(o: Record): JsValue = RecordUtils.record2Json(o)
+    }
+  }
 }
 
 case class MultiplicityChunk(
