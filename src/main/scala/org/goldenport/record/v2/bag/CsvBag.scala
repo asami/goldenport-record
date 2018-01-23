@@ -7,6 +7,7 @@ import scalaz.concurrent.Task
 import scalax.io._
 import java.io.{Writer, InputStream}
 import java.sql.ResultSet
+import java.nio.charset.Charset
 import au.com.bytecode.opencsv.CSVWriter
 import org.goldenport.Strings
 import org.goldenport.record.v2._
@@ -30,7 +31,8 @@ import RecordBag._
  *  version Aug. 31, 2016
  *  version Sep. 22, 2016
  *  version Aug. 30, 2017
- * @version Sep.  2, 2017
+ *  version Sep.  2, 2017
+ * @version Jan. 23, 2018
  * @author  ASAMI, Tomoharu
  */
 class CsvBag(
@@ -475,6 +477,11 @@ object CsvBag {
   def createForDownload(schema: Schema, name: String): CsvBag = {
     val codec = WINDOWS31J
     create(Some(BufferFileBag.create(codec)), Some(Strategy.WINDOWS31J), Some(schema), Some(true), Some(name))
+  }
+
+  def createForDownload(schema: Schema, name: String, charset: String): CsvBag = {
+    val codec = Codec(Charset forName charset)
+    create(Some(BufferFileBag.create(codec)), Some(codec), Some(schema), Some(true), Some(name))
   }
 
   def createForDownload(schema: Schema, header: HeaderPolicy): CsvBag = {

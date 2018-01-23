@@ -37,7 +37,8 @@ import org.goldenport.record.v2.util.RecordUtils
  *  version Sep. 21, 2017
  *  version Oct. 25, 2017
  *  version Nov. 23, 2017
- * @version Dec. 13, 2017
+ *  version Dec. 13, 2017
+ * @version Jan. 22, 2018
  * @author  ASAMI, Tomoharu
  */
 case class Schema(
@@ -385,7 +386,8 @@ object Schema {
       def reads(json: JsValue): JsResult[DataType] =
         json match {
           case JsString(s) => JsSuccess(DataType.to(s))
-          case m => RAISE.noReachDefect
+          case _: JsUndefined => JsError("Undefined.")
+          case m => JsError(s"Unknown element in columns: $m")
         }
       def writes(o: DataType): JsValue = JsString(o.name)
     }
@@ -393,7 +395,8 @@ object Schema {
       def reads(json: JsValue): JsResult[Multiplicity] =
         json match {
           case JsString(s) => JsSuccess(Multiplicity.to(s))
-          case m => RAISE.noReachDefect
+          case _: JsUndefined => JsError("Undefined.")
+          case m => JsError(s"Unknown element in columns: $m")
         }
       def writes(o: Multiplicity): JsValue = JsString(o.mark)
     }

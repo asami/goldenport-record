@@ -7,6 +7,7 @@ import scala.util.control.NonFatal
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 import play.api.libs.json._
+import org.goldenport.exception.RAISE
 import org.goldenport.Strings
 import org.goldenport.bag.BufferFileBag
 import org.goldenport.json.JsonUtils
@@ -27,7 +28,8 @@ import org.goldenport.record.v2.bag.{RecordBag, CsvBag}
  *  version Aug. 30, 2017
  *  version Sep. 15, 2017
  *  version Oct. 22, 2017
- * @version Nov. 13, 2017
+ *  version Nov. 13, 2017
+ * @version Jan. 21, 2018
  * @author  ASAMI, Tomoharu
  */
 object RecordUtils {
@@ -129,6 +131,7 @@ object RecordUtils {
       case XXml => AnyRefUtils.toString(x)
       case t: XValue => ???
       case t: XExternalDataType => AnyRefUtils.toString(x)
+      case XRecordInstance => RAISE.notImplementedYetDefect
     }
   }
 

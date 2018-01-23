@@ -32,7 +32,8 @@ import org.goldenport.record.util.{
  *  version Jan. 23, 2017
  *  version Sep. 21, 2017
  *  version Oct. 22, 2017
- * @version Nov. 13, 2017
+ *  version Nov. 13, 2017
+ * @version Jan. 21, 2018
  * @author  ASAMI, Tomoharu
  */
 sealed trait DataType {
@@ -128,7 +129,8 @@ object DataType {
     XEntityId,
     XEverforthid,
     XXml,
-    XHtml
+    XHtml,
+    XRecordInstance
     // XEntityReference, XValue, XEverforthObjectReference, XPowertype, XPowertypeReference, XStateMachine, XStateMachineReference, XExternalDataType
   )
 
@@ -154,7 +156,7 @@ object DataType {
         else
           unify(dt, guessed)
     }
-    ps match {
+    ps.toList match {
       case Nil => XString
       case x :: xs => go(xs, guess(x))
     }
@@ -178,6 +180,9 @@ object DataType {
     case _: Timestamp => XDateTime
     case _: DateTime => XDateTime
     case _: URL => XLink
+    case _: Record => XRecordInstance
+    case m: Seq[_] => guessSeq(m)
+    case m: Array[_] => guessSeq(m.toList)
     case _ => XString
   }
 
@@ -1340,6 +1345,19 @@ case class XValue(schema: Schema) extends DataType {
 
   def validate(d: Any): ValidationResult = Valid // TODO
   def label = "埋込み値"
+  override def isSqlString = false // typical case
+  override def isValue = true
+  override def isReference = false
+}
+
+case object XRecordInstance extends DataType {
+  type InstanceType = Record
+  def toInstance(x: Any): InstanceType = x match {
+    case m: Record => m
+  }
+
+  def validate(d: Any): ValidationResult = Valid // TODO
+  def label = "レコード値"
   override def isSqlString = false // typical case
   override def isValue = true
   override def isReference = false

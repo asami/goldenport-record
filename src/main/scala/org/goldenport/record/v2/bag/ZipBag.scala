@@ -12,10 +12,13 @@ import org.goldenport.bag._
  * @since   Dec. 18, 2014
  *  version Oct. 24, 2015
  *  version Jul. 25, 2017
- * @version Sep.  4, 2017
+ *  version Sep.  4, 2017
+ * @version Jan. 23, 2018
  * @author  ASAMI, Tomoharu
  */
-class ZipBag(val tree: Tree[ZipBag.Node]) extends Bag {
+class ZipBag(
+  val tree: Tree[ZipBag.Node]
+) extends Bag {
   import ZipBag._
 
   override def filenameSuffix = Some("zip")
@@ -26,6 +29,21 @@ class ZipBag(val tree: Tree[ZipBag.Node]) extends Bag {
     for {
       out <- resource.managed(buf.openOutputStream())
       zout <- resource.managed(new ZipOutputStream(out))
+      node <- tree.subForest
+    } {
+      _build(zout, node)
+    }
+    buf
+  }
+
+  def createChunkBag(charset: String): ChunkBag =
+    createChunkBag(Charset forName charset)
+
+  def createChunkBag(charset: Charset): ChunkBag = {
+    val buf = new BufferFileBag()
+    for {
+      out <- resource.managed(buf.openOutputStream())
+      zout <- resource.managed(new ZipOutputStream(out, charset))
       node <- tree.subForest
     } {
       _build(zout, node)
