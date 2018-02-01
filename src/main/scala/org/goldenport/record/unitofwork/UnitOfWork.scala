@@ -3,6 +3,8 @@ package org.goldenport.record.unitofwork
 import scala.language.higherKinds
 import scalaz._, Scalaz._
 import scalaz.concurrent.Task
+import scala.util.Try
+import scala.util.control.NonFatal
 import org.goldenport.record.v2._
 
 /*
@@ -10,7 +12,8 @@ import org.goldenport.record.v2._
  *  version Dec.  4, 2015
  *  version Apr. 27, 2016
  *  version Nov. 30, 2017
- * @version Dec.  1, 2017
+ *  version Dec.  1, 2017
+ * @version Jan. 31, 2018
  * @author  ASAMI, Tomoharu
  */
 sealed trait UnitOfWork[+A] {
@@ -30,6 +33,17 @@ object UnitOfWork {
 
   def lift[T[_] <: UnitOfWork[_], A](x: T[A]) = Free.liftFC(x)
   def lift[T](x: T): UnitOfWorkFM[T] = Free.liftFC(Value(x))
+
+  def liftTry[T](p: Try[T]): UnitOfWorkFM[T] = p match {
+    case scala.util.Success(s) => lift(s)
+    case scala.util.Failure(e) => raise(e)
+  }
+
+  def execute[T](body: => T): UnitOfWorkFM[T] = try {
+    lift(body)
+  } catch {
+    case NonFatal(e) => raise(e)
+  }
 
   def raise[T](e: Throwable): UnitOfWorkFM[T] = 
     Free.liftFC(Raise(e)).asInstanceOf[UnitOfWorkFM[T]]
