@@ -13,7 +13,8 @@ import org.goldenport.record.v2._
  *  version Apr. 27, 2016
  *  version Nov. 30, 2017
  *  version Dec.  1, 2017
- * @version Jan. 31, 2018
+ *  version Jan. 31, 2018
+ * @version Mar. 28, 2018
  * @author  ASAMI, Tomoharu
  */
 sealed trait UnitOfWork[+A] {
@@ -70,7 +71,7 @@ object UnitOfWork {
   case class BigIntResponse(v: BigInt) extends ServiceResponse
   case class BigDecimalResponse(v: BigDecimal) extends ServiceResponse
   case class StringResponse(v: String) extends ServiceResponse
-  case object UnitResponse extends ServiceResponse
+  case class UnitResponse() extends ServiceResponse
 
   def invoke[T <: ServiceResponse](req: ServiceRequest): UnitOfWorkFM[T] =
     Free.liftFC(InvokeService(req)).asInstanceOf[UnitOfWorkFM[T]]
@@ -96,6 +97,10 @@ object UnitOfWork {
 
   object store {
     def get(store: Store, id: Store.Id) = StoreOperation.get(store, id).asInstanceOf[UnitOfWorkFM[GetResult]]
+
+    def getShare(store: Store, id: Store.Id) = StoreOperation.getShare(store, id).asInstanceOf[UnitOfWorkFM[GetResult]]
+
+    def getExclusive(store: Store, id: Store.Id) = StoreOperation.getExclusive(store, id).asInstanceOf[UnitOfWorkFM[GetResult]]
 
     def gets(store: Store, ids: Seq[Store.Id]) = StoreOperation.gets(store, ids).asInstanceOf[UnitOfWorkFM[GetsResult]]
 

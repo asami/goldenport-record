@@ -8,7 +8,8 @@ import org.goldenport.record.v2._
 /*
  * @since   Nov. 15, 2015
  *  version Dec.  4, 2015
- * @version Apr. 27, 2016
+ *  version Apr. 27, 2016
+ * @version Mar. 28, 2018
  * @author  ASAMI, Tomoharu
  */
 sealed trait StoreOperation[+A] extends ExtensionUnitOfWork[A] {
@@ -16,9 +17,21 @@ sealed trait StoreOperation[+A] extends ExtensionUnitOfWork[A] {
 
 case class Get(store: Store, id: Store.Id) extends StoreOperation[GetResult]
 
+case class GetShare(store: Store, id: Store.Id) extends StoreOperation[GetResult]
+
+case class GetExclusive(store: Store, id: Store.Id) extends StoreOperation[GetResult]
+
 case class Gets(store: Store, ids: Seq[Store.Id]) extends StoreOperation[GetsResult]
 
+case class GetsShare(store: Store, ids: Seq[Store.Id]) extends StoreOperation[GetsResult]
+
+case class GetsExclusive(store: Store, ids: Seq[Store.Id]) extends StoreOperation[GetsResult]
+
 case class Select(store: Store, query: Query) extends StoreOperation[SelectResult]
+
+case class SelectShare(store: Store, query: Query) extends StoreOperation[SelectResult]
+
+case class SelectExclusive(store: Store, query: Query) extends StoreOperation[SelectResult]
 
 case class Insert(store: Store, rec: Record) extends StoreOperation[InsertResult]
 
@@ -60,6 +73,10 @@ object StoreOperation {
   type StoreOperationFMRaw[T] = Free[({type λ[α] = Coyoneda[StoreOperation, α]})#λ, T]
 
   def get(store: Store, id: Store.Id) = Free.liftFC(Get(store, id))
+
+  def getShare(store: Store, id: Store.Id) = Free.liftFC(GetShare(store, id))
+
+  def getExclusive(store: Store, id: Store.Id) = Free.liftFC(GetExclusive(store, id))
 
   def gets(store: Store, ids: Seq[Store.Id]) = Free.liftFC(Gets(store, ids))
 

@@ -1,19 +1,27 @@
 package org.goldenport.record.unitofwork.interpreter
 
 import scalaz.{Store => _, _}, Scalaz._
+import org.goldenport.exception.RAISE
 import org.goldenport.record.v2._
 import org.goldenport.record.unitofwork._
 
 /*
  * @since   Nov. 15, 2015
  *  version Dec.  4, 2015
- * @version Apr. 28, 2016
+ *  version Apr. 28, 2016
+ * @version Mar. 28, 2018
  * @author  ASAMI, Tomoharu
  */
 trait StoreOperationLogic extends LogicBase {
   def get(store: Store, id: Store.Id): GetResult
+  def getShare(store: Store, id: Store.Id): GetResult
+  def getExclusive(store: Store, id: Store.Id): GetResult
   def gets(store: Store, ids: Seq[Store.Id]): GetsResult
+  def getsShare(store: Store, ids: Seq[Store.Id]): GetsResult
+  def getsExclusive(store: Store, ids: Seq[Store.Id]): GetsResult
   def select(store: Store, query: Query): SelectResult
+  def selectShare(store: Store, query: Query): SelectResult
+  def selectExclusive(store: Store, query: Query): SelectResult
   def insert(store: Store, rec: Record): InsertResult
   def inserts(store: Store, rs: RecordSet): InsertsResult
   def update(store: Store, id: Store.Id, rec: Record): UpdateResult
@@ -29,12 +37,38 @@ object StoreOperationLogic {
       GetResult(None)
     }
 
+    def getShare(store: Store, id: Store.Id): GetResult = {
+      println(s"get: $store, $id")
+      GetResult(None)
+    }
+
+    def getExclusive(store: Store, id: Store.Id): GetResult = {
+      println(s"get: $store, $id")
+      GetResult(None)
+    }
+
     def gets(store: Store, ids: Seq[Store.Id]): GetsResult = {
-      ???
+      RAISE.notImplementedYetDefect
+    }
+
+    def getsShare(store: Store, ids: Seq[Store.Id]): GetsResult = {
+      RAISE.notImplementedYetDefect
+    }
+
+    def getsExclusive(store: Store, ids: Seq[Store.Id]): GetsResult = {
+      RAISE.notImplementedYetDefect
     }
 
     def select(store: Store, query: Query): SelectResult = {
-      ???
+      RAISE.notImplementedYetDefect
+    }
+
+    def selectShare(store: Store, query: Query): SelectResult = {
+      RAISE.notImplementedYetDefect
+    }
+
+    def selectExclusive(store: Store, query: Query): SelectResult = {
+      RAISE.notImplementedYetDefect
     }
 
     def insert(store: Store, rec: Record): InsertResult = {
@@ -43,30 +77,30 @@ object StoreOperationLogic {
     }
 
     def inserts(store: Store, rs: RecordSet): InsertsResult = {
-      ???
+      RAISE.notImplementedYetDefect
     }
 
     def update(store: Store, id: Store.Id, rec: Record): UpdateResult = {
-      ???
+      RAISE.notImplementedYetDefect
     }
 
     def updates(store: Store, rs: Map[Store.Id, Record]): UpdatesResult = {
-      ???
+      RAISE.notImplementedYetDefect
     }
 
     def delete(store: Store, id: Store.Id): Unit = {
-      ???
+      RAISE.notImplementedYetDefect
     }
 
     def deletes(store: Store, ids: Seq[Store.Id]): Unit = {
-      ???
+      RAISE.notImplementedYetDefect
     }
 
     def commit(): CommitResult = {
-      ???
+      RAISE.notImplementedYetDefect
     }
 
-    def abort(message: String): Unit = ???
-    def abort(e: Throwable): Unit = ???
+    def abort(message: String): Unit = RAISE.notImplementedYetDefect
+    def abort(e: Throwable): Unit = RAISE.notImplementedYetDefect
   }
 }
