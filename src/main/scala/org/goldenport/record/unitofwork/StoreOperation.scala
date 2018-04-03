@@ -9,7 +9,8 @@ import org.goldenport.record.v2._
  * @since   Nov. 15, 2015
  *  version Dec.  4, 2015
  *  version Apr. 27, 2016
- * @version Mar. 28, 2018
+ *  version Mar. 28, 2018
+ * @version Apr.  2, 2018
  * @author  ASAMI, Tomoharu
  */
 sealed trait StoreOperation[+A] extends ExtensionUnitOfWork[A] {
@@ -81,6 +82,10 @@ object StoreOperation {
   def gets(store: Store, ids: Seq[Store.Id]) = Free.liftFC(Gets(store, ids))
 
   def select(store: Store, query: Query) = Free.liftFC(Select(store, query))
+
+  def selectShare(store: Store, query: Query) = Free.liftFC(SelectShare(store, query))
+
+  def selectExclusive(store: Store, query: Query) = Free.liftFC(SelectExclusive(store, query))
 
   def insert(
     store: Store,

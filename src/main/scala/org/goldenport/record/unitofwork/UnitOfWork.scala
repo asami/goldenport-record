@@ -14,7 +14,8 @@ import org.goldenport.record.v2._
  *  version Nov. 30, 2017
  *  version Dec.  1, 2017
  *  version Jan. 31, 2018
- * @version Mar. 28, 2018
+ *  version Mar. 28, 2018
+ * @version Apr.  3, 2018
  * @author  ASAMI, Tomoharu
  */
 sealed trait UnitOfWork[+A] {
@@ -28,6 +29,11 @@ case class InvokeService(request: UnitOfWork.ServiceRequest) extends UnitOfWork[
 }
 
 case class Raise(e: Throwable) extends UnitOfWork[Throwable]
+
+case class UnitOfWorkResult[T](
+  result: T,
+  commit: CommitResult
+)
 
 object UnitOfWork {
   type UnitOfWorkFM[T] = Free.FreeC[UnitOfWork, T]
@@ -105,6 +111,10 @@ object UnitOfWork {
     def gets(store: Store, ids: Seq[Store.Id]) = StoreOperation.gets(store, ids).asInstanceOf[UnitOfWorkFM[GetsResult]]
 
     def select(store: Store, query: Query) = StoreOperation.select(store, query).asInstanceOf[UnitOfWorkFM[SelectResult]]
+
+    def selectShare(store: Store, query: Query) = StoreOperation.selectShare(store, query).asInstanceOf[UnitOfWorkFM[SelectResult]]
+
+    def selectExclusive(store: Store, query: Query) = StoreOperation.selectExclusive(store, query).asInstanceOf[UnitOfWorkFM[SelectResult]]
 
     def insert(
       store: Store,

@@ -2,7 +2,8 @@ package org.goldenport.record.unitofwork
 
 /*
  * @since   Nov. 15, 2015
- * @version Nov. 25, 2015
+ *  version Nov. 25, 2015
+ * @version Apr.  2, 2018
  * @author  ASAMI, Tomoharu
  */
 trait Store {
@@ -21,6 +22,10 @@ object Store {
     def s: String = toStringRepresentation
     def toStringRepresentation: String
     override def toString() = toStringRepresentation
+  }
+
+  object Id {
+    def apply(v: String): Id = StringId(v)
   }
 
   case class StringId(v: String) extends Id {
