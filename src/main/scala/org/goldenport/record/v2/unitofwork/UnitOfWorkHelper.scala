@@ -6,7 +6,7 @@ import org.goldenport.record.v2.Record
 
 /*
  * @since   Apr.  2, 2018
- * @version Apr.  3, 2018
+ * @version Apr.  7, 2018
  * @author  ASAMI, Tomoharu
  */
 trait UnitOfWorkHelper {
@@ -25,10 +25,12 @@ trait UnitOfWorkHelper {
   protected def service_invoke[T <: ServiceResponse](req: ServiceRequest): UnitOfWorkFM[T] =
     UnitOfWork.invoke(req)
 
-  protected def commit_flow[T](p: UnitOfWorkFM[T]): UnitOfWorkFM[UnitOfWorkResult[T]] = {
+  protected def commit_flow_condition[T](condition: T => Option[Throwable])(
+    p: UnitOfWorkFM[T]
+  ): UnitOfWorkFM[UnitOfWorkResult[T]] = {
     for {
       r <- p
-      c <- store_commit(r)
+      c <- store_commit(condition)(r)
     } yield UnitOfWorkResult(r, c)
   }
 
@@ -94,19 +96,13 @@ trait UnitOfWorkHelper {
     store: Store, records: Map[Store.Id, Record]
   ): UnitOfWorkFM[IndexedSeq[UpdateResult]] = UnitOfWork.store.updates(store, records)
 
-  protected def store_commit[T](
+  protected def store_commit[T](condition: T => Option[Throwable])(
     result: T
-  ): UnitOfWorkFM[CommitResult] = {
-    if (is_abort(result))
-      UnitOfWork.lift(CommitFailure(result.toString))
-    else
-      UnitOfWork.store.commit()
-  }
-
-  protected final def is_abort[T](result: T): Boolean =
-    is_Abort(result)
-
-  protected def is_Abort[T](result: T): Boolean
+  ): UnitOfWorkFM[CommitResult] =
+    condition(result) match {
+      case Some(x) => UnitOfWork.lift(CommitFailure(x.toString))
+      case None => UnitOfWork.store.commit()
+    }
 }
 object UnitOfWorkHelper {
   object Implicits {

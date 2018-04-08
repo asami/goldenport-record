@@ -10,7 +10,7 @@ import org.goldenport.record.v2._
  *  version Dec.  4, 2015
  *  version Apr. 27, 2016
  *  version Mar. 28, 2018
- * @version Apr.  2, 2018
+ * @version Apr.  7, 2018
  * @author  ASAMI, Tomoharu
  */
 sealed trait StoreOperation[+A] extends ExtensionUnitOfWork[A] {
