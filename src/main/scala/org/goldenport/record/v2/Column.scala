@@ -24,7 +24,8 @@ import org.goldenport.i18n.I18NString
  *  version Sep. 27, 2017
  *  version Oct. 22, 2017
  *  version Nov. 12, 2017
- * @version Dec. 13, 2017
+ *  version Dec. 13, 2017
+ * @version Apr. 10, 2018
  * @author  ASAMI, Tomoharu
  */
 case class Column(
@@ -183,8 +184,10 @@ object Column {
   }
 
   case class Form(
-    readonly: Boolean = false,
-    placeholder: Option[I18NString] = None
+    placeholder: Option[I18NString] = None,
+    value: Option[String] = None,
+    hidden: Boolean = false,
+    readonly: Boolean = false
     // invisible: Boolean = false : Visibility
   ) {
     def withPlaceholder(p: String) = copy(placeholder = Some(I18NString(p)))
