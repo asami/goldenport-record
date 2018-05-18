@@ -5,6 +5,7 @@ import org.goldenport.Strings
 import org.goldenport.record.v2._
 import org.goldenport.record.command.NullValue
 import org.goldenport.record.v2.util.RecordAux
+import org.goldenport.values.PathName
 
 /*
  * TODO FieldCommand integration.
@@ -17,13 +18,15 @@ import org.goldenport.record.v2.util.RecordAux
  *  version Aug. 31, 2016
  *  version Sep. 23, 2016
  *  version Jan. 21, 2017
- * @version Aug. 30, 2017
+ *  version Aug. 30, 2017
+ * @version May. 16, 2018
  * @author  ASAMI, Tomoharu
  */
 case class Projector(
   schema: Schema,
   policy: Projector.Policy = Projector.Policy.rigid
 ) {
+  import Projector._
   val multiplicityRegex = """^(.*)_(\d+)$""".r
 
   def apply(rec: Record): \/[ValidationResult, Record] = {
@@ -58,13 +61,55 @@ case class Projector(
           labelnamemap.get(k).cata(s => Map(s -> v), Map(k -> v))
       }
     }
-    val c: List[Field] = b.map {
+    val bb: Map[String, List[Any]] = {
+      val paths = schema.columns.
+        flatMap(c => c.aliases.map(PathSlot(c.name, _))).
+        filter(_.isAvailable)
+      // println(s"paths: $paths")
+      case class Z(xs: Map[String, List[Any]], resolved: Map[String, List[Any]] = Map.empty) {
+        def r = xs ++ resolved
+        def +(rhs: PathSlot) = {
+          @annotation.tailrec
+          def go(p: Any, path: List[String]): Option[Any] = {
+            p match {
+              case rec: Record => path match {
+                case Nil => None
+                case x :: xs => rec.get(x) match {
+                  case None => None
+                  case Some(s) => if (xs.isEmpty)
+                    Some(s)
+                  else
+                    go(s, xs)
+                }
+              }
+              case _ => None
+            }
+          }
+          // println(s"z: ${xs.get(rhs.path.firstComponent)}")
+          xs.get(rhs.path.firstComponent) match {
+            case None => this
+            case Some(s) => copy(resolved = resolved + (rhs.name -> _flatten(s.flatMap { x =>
+              go(x, rhs.path.components.tail)
+            })))
+          }
+        }
+      }
+      paths./:(Z(b))(_+_).r
+    }
+    // println("bb: " + bb)
+    val c: List[Field] = bb.map {
       case (k, v) => Field(Symbol(k), v)
     }.toList
     val d = _normalize_form(c)
     val e = _normalize_datatype(d)
     rec.copy(fields = e)
   }
+
+  private def _flatten(ps: List[Any]): List[Any] =
+    ps.flatMap {
+      case xs: List[_] => _flatten(xs)
+      case x => List(x)
+    }
 
   private def _can_multiple(key: String) = {
     schema.getColumn(Symbol(key)) match {
@@ -189,5 +234,12 @@ object Projector {
     val update = Severe(false, false, false, true, false)
     val updateForm = Severe(false, false, false, true, true)
     val loose = Severe(false, false, false, false, true)
+  }
+
+  case class PathSlot(name: String, path: PathName) {
+    def isAvailable = path.components.length > 1
+  }
+  object PathSlot {
+    def apply(name: String, path: String): PathSlot = PathSlot(name, PathName(path))
   }
 }

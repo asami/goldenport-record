@@ -38,7 +38,8 @@ import org.goldenport.record.v2.util.RecordUtils
  *  version Oct. 25, 2017
  *  version Nov. 23, 2017
  *  version Dec. 13, 2017
- * @version Jan. 22, 2018
+ *  version Jan. 22, 2018
+ * @version May. 16, 2018
  * @author  ASAMI, Tomoharu
  */
 case class Schema(
@@ -276,7 +277,7 @@ case class Schema(
     val a: Seq[ValidationResult] = f.values.map(
       _ match {
         case m: ValueCommand => Valid
-        case xs: Seq[_] => sys.error("???")
+        case xs: Seq[_] => xs.map(x => c.datatype.validate(x).enkey(f.key.name)).toVector.suml
         case x => c.datatype.validate(x).enkey(f.key.name)
       }
     )
