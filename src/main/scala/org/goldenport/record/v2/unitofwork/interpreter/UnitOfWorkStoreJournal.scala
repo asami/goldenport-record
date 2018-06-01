@@ -8,7 +8,7 @@ import org.goldenport.record.unitofwork.UnitOfWork._
 
 /*
  * @since   Apr.  3, 2018
- * @version Apr.  3, 2018
+ * @version May. 31, 2018
  * @author  ASAMI, Tomoharu
  */
 class UnitOfWorkStoreJournal(val store: Store) {
@@ -36,6 +36,16 @@ class UnitOfWorkStoreJournal(val store: Store) {
     _history.append(j)
   }
 
+  def delete(id: Store.Id): Unit = {
+    val j = Delete(id)
+    _objects.put(id, j)
+    _history.append(j)
+  }
+
+  def deletes(ids: Seq[Store.Id]): Unit = {
+    ids.foreach(delete)
+  }
+
   def commitHistory(): Vector[JournalEntry] = {
     _objects.values.toVector
   }
@@ -61,6 +71,14 @@ object UnitOfWorkStoreJournal {
       "kind" -> "update",
       "id" -> id,
       "record" -> record
+    )
+  }
+  case class Delete(id: Store.Id) extends JournalEntry {
+    val record = Record.empty
+    def update(rec: Record) = throw new IOException(s"UnitOfWorkStoreJournal: Already deleted: $id")
+    def toLogRecord: Record = Record.dataApp(
+      "kind" -> "delete",
+      "id" -> id
     )
   }
 }

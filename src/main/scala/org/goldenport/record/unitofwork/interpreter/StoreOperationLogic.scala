@@ -9,7 +9,8 @@ import org.goldenport.record.unitofwork._
  * @since   Nov. 15, 2015
  *  version Dec.  4, 2015
  *  version Apr. 28, 2016
- * @version Mar. 28, 2018
+ *  version Mar. 28, 2018
+ * @version May. 31, 2018
  * @author  ASAMI, Tomoharu
  */
 trait StoreOperationLogic extends LogicBase {
@@ -26,8 +27,8 @@ trait StoreOperationLogic extends LogicBase {
   def inserts(store: Store, rs: RecordSet): InsertsResult
   def update(store: Store, id: Store.Id, rec: Record): UpdateResult
   def updates(store: Store, rs: Map[Store.Id, Record]): UpdatesResult
-  def delete(store: Store, id: Store.Id): Unit // DeleteResult
-  def deletes(store: Store, ids: Seq[Store.Id]): Unit // DeletesResult
+  def delete(store: Store, id: Store.Id): DeleteResult
+  def deletes(store: Store, ids: Seq[Store.Id]): DeletesResult
 }
 
 object StoreOperationLogic {
@@ -88,11 +89,11 @@ object StoreOperationLogic {
       RAISE.notImplementedYetDefect
     }
 
-    def delete(store: Store, id: Store.Id): Unit = {
+    def delete(store: Store, id: Store.Id): DeleteResult = {
       RAISE.notImplementedYetDefect
     }
 
-    def deletes(store: Store, ids: Seq[Store.Id]): Unit = {
+    def deletes(store: Store, ids: Seq[Store.Id]): DeletesResult = {
       RAISE.notImplementedYetDefect
     }
 

@@ -8,7 +8,8 @@ import org.goldenport.record.unitofwork.UnitOfWork._
 
 /*
  * @since   Apr.  3, 2018
- * @version Apr.  3, 2018
+ *  version Apr.  3, 2018
+ * @version May. 31, 2018
  * @author  ASAMI, Tomoharu
  */
 class UnitOfWorkStoreSetJournal() {
@@ -31,6 +32,12 @@ class UnitOfWorkStoreSetJournal() {
 
   def update(store: Store, id: Store.Id, rec: Record): Unit =
     _store(store).update(id, rec)
+
+  def delete(store: Store, id: Store.Id): Unit =
+    _store(store).delete(id)
+
+  def deletes(store: Store, ids: Seq[Store.Id]): Unit =
+    _store(store).deletes(ids)
 
   def commitHistory(): CommitHistory = {
     val a = _journal.toVector map {

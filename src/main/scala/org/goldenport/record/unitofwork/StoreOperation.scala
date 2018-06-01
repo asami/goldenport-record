@@ -10,7 +10,8 @@ import org.goldenport.record.v2._
  *  version Dec.  4, 2015
  *  version Apr. 27, 2016
  *  version Mar. 28, 2018
- * @version Apr.  7, 2018
+ *  version Apr.  7, 2018
+ * @version May. 31, 2018
  * @author  ASAMI, Tomoharu
  */
 sealed trait StoreOperation[+A] extends ExtensionUnitOfWork[A] {
@@ -42,9 +43,9 @@ case class Update(store: Store, id: Store.Id, rec: Record) extends StoreOperatio
 
 case class Updates(store: Store, rs: Map[Store.Id, Record]) extends StoreOperation[IndexedSeq[UpdateResult]]
 
-case class Delete(store: Store, id: Store.Id) extends StoreOperation[Unit]
+case class Delete(store: Store, id: Store.Id) extends StoreOperation[DeleteResult]
 
-case class Deletes(store: Store, ids: Seq[Store.Id]) extends StoreOperation[Unit]
+case class Deletes(store: Store, ids: Seq[Store.Id]) extends StoreOperation[IndexedSeq[DeleteResult]]
 
 case class Commit() extends StoreOperation[CommitResult]
 
@@ -61,6 +62,11 @@ case class UpdateResult(
   items: IndexedSeq[Store.Id] = Vector.empty
 )
 case class UpdatesResult(updates: IndexedSeq[UpdateResult])
+case class DeleteResult(
+  id: Store.Id,
+  items: IndexedSeq[Store.Id] = Vector.empty
+)
+case class DeletesResult(ids: IndexedSeq[Store.Id])
 sealed trait CommitResult {
   def log: String
 }
@@ -106,6 +112,8 @@ object StoreOperation {
   def updatesS(store: Store, rs: Map[String, Record]) = Free.liftFC(Updates(store, rs.map(kv => Store.StringId(kv._1) -> kv._2)))
 
   def delete(store: Store, id: String) = Free.liftFC(Delete(store, Store.StringId(id)))
+
+  def delete(store: Store, id: Store.Id) = Free.liftFC(Delete(store, id))
 
   def deletes(store: Store, ids: Seq[Store.Id]) = Free.liftFC(Deletes(store, ids))
 

@@ -8,7 +8,8 @@ import scala.math.{BigInt, BigDecimal}
 import org.goldenport.Strings
 import org.goldenport.Strings.notblankp
 import org.goldenport.record.command.NullValue
-import org.goldenport.util.{TimestampUtils, DateUtils, AnyUtils}
+import org.goldenport.record.util.AnyUtils
+import org.goldenport.util.{TimestampUtils, DateUtils}
 
 /*
  * derived from org.goldenport.g3.message.
@@ -49,7 +50,8 @@ import org.goldenport.util.{TimestampUtils, DateUtils, AnyUtils}
  *  version Sep.  4, 2017
  *  version Oct. 26, 2017
  *  version Dec. 27, 2017
- * @version Jan. 11, 2018
+ *  version Jan. 11, 2018
+ * @version Jun.  1, 2018
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -255,6 +257,8 @@ case class Record(
 
   def getUri(key: Symbol): Option[URI] = getOne(key).map(AnyUtils.toUri)
 
+  def getRecord(key: Symbol): Option[Record] = getOne(key).map(AnyUtils.toRecord)
+
   def getList(key: Symbol): List[Any] = {
     get(key) getOrElse Nil
   }
@@ -403,6 +407,8 @@ case class Record(
   def getBigDecimal(key: String): Option[BigDecimal] = {
     getBigDecimal(Symbol(key))
   }
+
+  def getRecord(key: String): Option[Record] = getRecord(Symbol(key))
 
   def getList(key: String): List[Any] = {
     getList(Symbol(key))

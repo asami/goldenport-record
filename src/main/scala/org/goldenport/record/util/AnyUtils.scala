@@ -6,6 +6,8 @@ import java.net.{URL, URI}
 import java.io.File
 import org.joda.time.LocalTime
 import com.asamioffice.goldenport.io.UURL
+import org.goldenport.record.v2.Record
+import org.goldenport.util.{AnyUtils => LibAnyUtils}
 
 /*
  * See com.everforth.lib.util.AnyUtils
@@ -15,7 +17,8 @@ import com.asamioffice.goldenport.io.UURL
  *  version Oct. 24, 2015
  *  version Apr. 29, 2016
  *  version May. 25, 2017
- * @version Nov. 13, 2017
+ *  version Nov. 13, 2017
+ * @version Jun.  1, 2018
  * @author  ASAMI, Tomoharu
  */
 object AnyUtils {
@@ -127,5 +130,12 @@ object AnyUtils {
       case m: File => m.toURI.toURL
       case s: String => UURL.getURLFromFileOrURLName(s)
     }
+  }
+  def toUri(x: Any): URI = LibAnyUtils.toUri(x)
+  // V2
+  def toRecord(x: Any): Record = x match {
+    case m: Record => m
+    case m: String => org.goldenport.record.v2.util.RecordUtils.fromJsonString(m)
+    case m => throw new IllegalArgumentException(s"No record: $x")
   }
 }

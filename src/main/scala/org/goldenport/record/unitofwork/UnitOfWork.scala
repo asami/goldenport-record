@@ -15,7 +15,8 @@ import org.goldenport.record.v2._
  *  version Dec.  1, 2017
  *  version Jan. 31, 2018
  *  version Mar. 28, 2018
- * @version Apr.  3, 2018
+ *  version Apr.  3, 2018
+ * @version May. 31, 2018
  * @author  ASAMI, Tomoharu
  */
 sealed trait UnitOfWork[+A] {
@@ -144,12 +145,16 @@ object UnitOfWork {
 
     def delete(
       store: Store, id: String
-    ) = StoreOperation.delete(store, id).asInstanceOf[UnitOfWorkFM[Unit]]
+    ) = StoreOperation.delete(store, Store.Id(id)).asInstanceOf[UnitOfWorkFM[DeleteResult]]
+
+    def delete(
+      store: Store, id: Store.Id
+    ) = StoreOperation.delete(store, id).asInstanceOf[UnitOfWorkFM[DeleteResult]]
 
     def deletes(
       store: Store,
       ids: Seq[Store.Id]
-    ) = StoreOperation.deletes(store, ids).asInstanceOf[UnitOfWorkFM[Unit]]
+    ) = StoreOperation.deletes(store, ids).asInstanceOf[UnitOfWorkFM[DeletesResult]]
 
     def commit() = StoreOperation.commit().asInstanceOf[UnitOfWorkFM[CommitResult]]
 
