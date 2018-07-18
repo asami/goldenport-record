@@ -5,8 +5,10 @@ import java.sql.Timestamp
 import java.net.{URL, URI}
 import java.io.File
 import org.joda.time.LocalTime
+import play.api.libs.json.JsValue
 import com.asamioffice.goldenport.io.UURL
 import org.goldenport.record.v2.Record
+import org.goldenport.record.v2.util.RecordUtils
 import org.goldenport.util.{AnyUtils => LibAnyUtils}
 
 /*
@@ -18,7 +20,8 @@ import org.goldenport.util.{AnyUtils => LibAnyUtils}
  *  version Apr. 29, 2016
  *  version May. 25, 2017
  *  version Nov. 13, 2017
- * @version Jun.  1, 2018
+ *  version Jun. 27, 2018
+ * @version Jul. 18, 2018
  * @author  ASAMI, Tomoharu
  */
 object AnyUtils {
@@ -28,6 +31,8 @@ object AnyUtils {
       case v: Symbol => v.name
       case m: Seq[_] => m.map(toString(_)).mkString(",")
       case m: Array[_] => m.map(toString(_)).mkString(",")
+      case m: Record => RecordUtils.toJsonString(m)
+      case m: JsValue => m.toString
       case _ => x.toString
     }
   }

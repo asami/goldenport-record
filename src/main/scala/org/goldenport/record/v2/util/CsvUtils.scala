@@ -19,30 +19,40 @@ import com.asamioffice.goldenport.text.UString
  *  version Nov. 26, 2015
  *  version Mar.  1, 2016
  *  version Sep. 22, 2016
- * @version Aug. 30, 2017
+ *  version Aug. 30, 2017
+ * @version Jul. 18, 2018
  * @author  ASAMI, Tomoharu
  */
 object CsvUtils {
   private lazy val _parser = new CSVParser()
 
-  def makeLine(xs: Seq[String]): String = {
-    xs.map(makeField).mkString(",")
+  def makeLine(xs: Seq[String], isforcedoublequote: Boolean): String = {
+    xs.map(makeField(_, isforcedoublequote)).mkString(",")
   }
 
-  def makeField(x: String): String = {
+  def makeField(x: String, isforcedoublequote: Boolean): String = {
     def f(s: String) = s.replaceAllLiterally("\"", "\"\"")
-    if (x.contains(',') || x.contains('"') || x.contains('\n') || x.contains('\r'))
+    if (x.contains(',') || x.contains('"') || x.contains('\n') || x.contains('\r') || isforcedoublequote)
       "\"" + f(x) + "\""
     else
       x
   }
 
-  def writeHeader(writer: Writer, schema: Schema, lineend: String) {
-    writer.write(makeHeader(schema))
+  def writeHeader(
+    writer: Writer,
+    schema: Schema,
+    lineend: String,
+    isforcedoublequote: Boolean
+  ) {
+    writer.write(makeHeader(schema, isforcedoublequote))
     writer.write(lineend)
   }
 
-  private def _create_csv_writer(writer: Writer, lineend: String) = {
+  private def _create_csv_writer(
+    writer: Writer,
+    lineend: String,
+    isforcedoublequote: Boolean // TODO disable quote feature in CSVWriter
+  ) = {
     new CSVWriter(
       writer,
       CSVWriter.DEFAULT_SEPARATOR,
@@ -51,59 +61,97 @@ object CsvUtils {
     )
   }
 
-  def write(writer: Writer, lineend: String, lines: Seq[Seq[String]]) {
+  def write(
+    writer: Writer,
+    lineend: String,
+    lines: Seq[Seq[String]],
+    isforcedoublequote: Boolean
+  ) {
     import scala.collection.JavaConverters._
-    for (out <- resource.managed(_create_csv_writer(writer, lineend))) {
+    for (out <- resource.managed(_create_csv_writer(writer, lineend, isforcedoublequote))) {
       val a = lines.map(_.toArray).asJava
       out.writeAll(a)
     }
   }
 
-  def write(writer: Writer, lineend: String, rs: ResultSet): Int = {
+  def write(
+    writer: Writer,
+    lineend: String,
+    rs: ResultSet,
+    isforcedoublequote: Boolean
+  ): Int = {
     var count = 0
-    for (out <- resource.managed(_create_csv_writer(writer, lineend))) {
+    for (out <- resource.managed(_create_csv_writer(writer, lineend, isforcedoublequote))) {
       out.writeAll(rs, false)
       count += 1
     }
     count
   }
 
-  def write(writer: Writer, lineend: String, rs: Iterator[Record]): Int = {
+  def write(
+    writer: Writer,
+    lineend: String,
+    rs: Iterator[Record],
+    isforcedoublequote: Boolean
+  ): Int = {
     var count = 0
-    for (out <- resource.managed(_create_csv_writer(writer, lineend))) {
+    for (out <- resource.managed(_create_csv_writer(writer, lineend, isforcedoublequote))) {
       for (rec <- rs) {
-        out.writeNext(record2Values(rec))
+        out.writeNext(record2Values(rec, isforcedoublequote))
         count += 1
       }
     }
     count
   }
 
-  def write(writer: Writer, schema: Schema, lineend: String, rs: Iterator[Record]): Int = {
+  def write(
+    writer: Writer,
+    schema: Schema,
+    lineend: String,
+    rs: Iterator[Record],
+    isforcedoublequote: Boolean
+  ): Int = {
     var count = 0
-    for (out <- resource.managed(_create_csv_writer(writer, lineend))) {
+    for (out <- resource.managed(_create_csv_writer(writer, lineend, isforcedoublequote))) {
       for (rec <- rs) {
-        out.writeNext(record2Values(rec, schema))
+        out.writeNext(record2Values(rec, schema, isforcedoublequote))
         count += 1
       }
     }
     count
   }
 
-  def append(writer: Writer, schema: Schema, lineend: String, map: Map[String, String]) {
-    val line = makeLine(map2Values(map, schema))
+  def append(
+    writer: Writer,
+    schema: Schema,
+    lineend: String,
+    map: Map[String, String],
+    isforcedoublequote: Boolean
+  ) {
+    val line = makeLine(map2Values(map, schema), isforcedoublequote)
     writer.write(line)
     writer.write(lineend)
   }
 
-  def append(writer: Writer, lineend: String, rec: Record) {
-    val line = makeLine(record2Values(rec))
+  def append(
+    writer: Writer,
+    lineend: String,
+    rec: Record,
+    isforcedoublequote: Boolean
+  ) {
+    val line = makeLine(record2Values(rec), isforcedoublequote)
     writer.write(line)
     writer.write(lineend)
   }
 
-  def append(writer: Writer, schema: Schema, lineend: String, rec: Record) {
-    val line = makeLine(record2Values(rec, schema))
+  def append(
+    writer: Writer,
+    schema: Schema,
+    lineend: String,
+    rec: Record,
+    isforcedoublequote: Boolean
+  ) {
+    val line = makeLine(record2Values(rec, schema), isforcedoublequote)
     writer.write(line)
     writer.write(lineend)
   }
@@ -116,23 +164,69 @@ object CsvUtils {
 //    rec.getOne(key).map(toCsvValue(_)) getOrElse ""
     rec.getList(key) match {
       case Nil => ""
-      case x :: Nil => toCsvValue(x)
-      case xs => toCsvValue(xs)
+      case x :: Nil => toCsvValue(x, false)
+      case xs => toCsvValue(xs, false)
     }
   }
 
-  def record2Values(rec: Record): Array[String] = {
+  def getValue(
+    rec: Record,
+    key: String,
+    isforcedoublequote: Boolean
+  ): String = {
+    getValue(rec, Symbol(key), isforcedoublequote)
+  }
+
+  def getValue(
+    rec: Record,
+    key: Symbol,
+    isforcedoublequote: Boolean
+  ): String = {
+//    rec.getOne(key).map(toCsvValue(_)) getOrElse ""
+    rec.getList(key) match {
+      case Nil => ""
+      case x :: Nil => toCsvValue(x, isforcedoublequote)
+      case xs => toCsvValue(xs, isforcedoublequote)
+    }
+  }
+
+  def record2Values(
+    rec: Record
+  ): Array[String] = record2Values(rec, false)
+
+  def record2Values(
+    rec: Record,
+    isforcedoublequote: Boolean
+  ): Array[String] = {
     val keys = rec.fields.map(_.key)
-    keys.map(x => getValue(rec, x)).toArray
+    keys.map(x => getValue(rec, x, isforcedoublequote)).toArray
   }
 
-  def record2Values(rec: Record, schema: Schema): Array[String] = {
+  def record2Values(
+    rec: Record,
+    schema: Schema
+  ): Array[String] = record2Values(rec, schema, false)
+
+  def record2Values(
+    rec: Record,
+    schema: Schema,
+    isforcedoublequote: Boolean
+  ): Array[String] = {
     val keys = schema.columns.map(_.name)
-    keys.map(x => getValue(rec, x)).toArray
+    keys.map(x => getValue(rec, x, isforcedoublequote)).toArray
   }
 
-  def map2Values(map: Map[String, String], schema: Schema): Array[String] = {
-    def getvalue(key: String) = map.get(key).orZero
+  def map2Values(
+    map: Map[String, String],
+    schema: Schema
+  ): Array[String] = map2Values(map, schema, false)
+
+  def map2Values(
+    map: Map[String, String],
+    schema: Schema,
+    isforcedoublequote: Boolean
+  ): Array[String] = {
+    def getvalue(key: String) = makeField(map.get(key).orZero, isforcedoublequote)
     val keys = schema.columns.map(_.name)
     keys.map(getvalue).toArray
   }
@@ -145,8 +239,8 @@ object CsvUtils {
   //   CsvLineMaker.parse(line)
   // }
 
-  def makeHeader(schema: Schema): String = {
-    makeLine(schema.header)
+  def makeHeader(schema: Schema, isforcedoublequote: Boolean): String = {
+    makeLine(schema.header, isforcedoublequote)
   }
 
   def makeTupleVector(schema: Schema, fields: Seq[String]): Vector[(String, String)] = {
@@ -187,13 +281,27 @@ object CsvUtils {
     Record.create(makeTupleVectorNullable(schema, fields))
   }
 
-  def toCsvValues(vs: Seq[Any], tz: DateTimeZone = DateTimeUtils.jodajst): Seq[String] = vs.map(toCsvValue(_, tz))
+  def toCsvValues(
+    vs: Seq[Any],
+    isforcedoublequote: Boolean,
+    tz: DateTimeZone = DateTimeUtils.jodajst
+  ): Seq[String] = vs.map(toCsvValue(_, isforcedoublequote, tz))
 
-  def toCsvValue(v: Any, tz: DateTimeZone = DateTimeUtils.jodajst): String = {
+  def toCsvValue(
+    v: Any,
+    isforcedoublequote: Boolean,
+    tz: DateTimeZone = DateTimeUtils.jodajst
+  ): String =
+    makeField(_to_csv_value(v, tz), isforcedoublequote)
+
+  private def _to_csv_value(
+    v: Any,
+    tz: DateTimeZone = DateTimeUtils.jodajst
+  ): String = {
     v match {
       case null => ""
       case None => ""
-      case Some(x) => toCsvValue(x)
+      case Some(x) => _to_csv_value(x)
       case x: String => x
       case x: Boolean => x.toString
       case x: Byte => x.toString
@@ -213,8 +321,8 @@ object CsvUtils {
 //      case x: RecordSet => toJsValue(x)
 //      case xs: Seq[_] => JsArray(xs.map(anyToJsValue))
       case Nil => ""
-      case x :: Nil => toCsvValue(x)
-      case xs: List[_] => xs.map(toCsvValue(_)).mkString(",")
+      case x :: Nil => _to_csv_value(x)
+      case xs: List[_] => xs.map(_to_csv_value(_)).mkString(",")
       case x => x.toString
     }
   }

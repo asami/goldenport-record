@@ -19,7 +19,8 @@ import org.goldenport.values.PathName
  *  version Sep. 23, 2016
  *  version Jan. 21, 2017
  *  version Aug. 30, 2017
- * @version May. 16, 2018
+ *  version May. 16, 2018
+ * @version Jul. 18, 2018
  * @author  ASAMI, Tomoharu
  */
 case class Projector(
@@ -31,9 +32,10 @@ case class Projector(
 
   def apply(rec: Record): \/[ValidationResult, Record] = {
     val a = _normalize(rec)
-    schema.validate(a) match {
-      case Valid => _project(a).right
-      case x: Warning => _project(a).right
+    val r = schema.complement(rec)
+    schema.validate(r) match {
+      case Valid => _project(r).right
+      case x: Warning => _project(r).right
       case x: Invalid => x.left
     }
   }

@@ -32,7 +32,8 @@ import RecordBag._
  *  version Sep. 22, 2016
  *  version Aug. 30, 2017
  *  version Sep.  2, 2017
- * @version Jan. 23, 2018
+ *  version Jan. 23, 2018
+ * @version Jul. 18, 2018
  * @author  ASAMI, Tomoharu
  */
 class CsvBag(
@@ -42,7 +43,8 @@ class CsvBag(
 //  val headerPolicy: RecordBag.HeaderPolicy = RecordBag.noHeader,
   val strategy: RecordBag.Strategy = RecordBag.Strategy.plainAuto,
   override val name: String = "data",
-  val lineEnd: String = "\r\n"
+  val lineEnd: String = "\r\n",
+  val isForceDoubleQuote: Boolean = false
 ) extends RecordBag {
   import CsvBag._
 
@@ -116,7 +118,7 @@ class CsvBag(
   private def _complement_physical_header(writer: Writer) {
     if (headerPolicy.isComplementPhysicalHeader && !isNoSchema && _is_empty) {
       assume (_count.isEmpty, "count should be None")
-      CsvUtils.writeHeader(writer, schema, lineEnd)
+      CsvUtils.writeHeader(writer, schema, lineEnd, isForceDoubleQuote)
       count_up()
     }
   }
@@ -136,7 +138,7 @@ class CsvBag(
     try {
       get_schema_in_init match {
         case Some(s) => throw new UnsupportedOperationException("Not support schema ")
-        case None => CsvUtils.write(writer, lineEnd, lines)
+        case None => CsvUtils.write(writer, lineEnd, lines, isForceDoubleQuote)
       }
       add_count(lines.length)
     } finally {
@@ -149,7 +151,7 @@ class CsvBag(
     try {
       val n = get_schema_in_init match {
         case Some(s) => throw new UnsupportedOperationException("Not support schema ")
-        case None => CsvUtils.write(writer, lineEnd, rs)
+        case None => CsvUtils.write(writer, lineEnd, rs, isForceDoubleQuote)
       }
       add_count(n)
     } finally {
@@ -161,9 +163,9 @@ class CsvBag(
     val writer = openWriter
     try {
       val n = if (is_no_schema_in_init)
-        CsvUtils.write(writer, lineEnd, rs)
+        CsvUtils.write(writer, lineEnd, rs, isForceDoubleQuote)
       else
-        CsvUtils.write(writer, schema, lineEnd, rs)
+        CsvUtils.write(writer, schema, lineEnd, rs, isForceDoubleQuote)
       add_count(n)
     } finally {
       writer.close()
@@ -173,7 +175,7 @@ class CsvBag(
   def writeRecordsWithSchema(rs: Iterator[Record]) {
     val writer = openWriter
     try {
-      val n = CsvUtils.write(writer, schema, lineEnd, rs)
+      val n = CsvUtils.write(writer, schema, lineEnd, rs, isForceDoubleQuote)
       add_count(n)
     } finally {
       writer.close()
@@ -191,7 +193,7 @@ class CsvBag(
   def linesR: Process[Task, String] = {
     def f(s: (String, Int)): Vector[String] = {
       if (s._2 == 0)
-        Vector(CsvUtils.makeHeader(schema), s._1)
+        Vector(CsvUtils.makeHeader(schema, isForceDoubleQuote), s._1)
       else
         Vector(s._1)
     }
@@ -206,7 +208,7 @@ class CsvBag(
   def stringsR: Process[Task, String] = {
     def f(s: (String, Int)): Vector[String] = {
       if (s._2 == 0)
-        Vector(CsvUtils.makeHeader(schema), s._1)
+        Vector(CsvUtils.makeHeader(schema, isForceDoubleQuote), s._1)
       else
         Vector(s._1)
     }
@@ -258,7 +260,7 @@ class CsvBag(
     def release(writer: Writer) = Task.delay(writer.close())
     io.resource(acquire)(release) { writer =>
       Task.now((map: Map[String, String]) => Task.delay {
-        CsvUtils.append(writer, schema, lineEnd, map)
+        CsvUtils.append(writer, schema, lineEnd, map, isForceDoubleQuote)
         add_count(map.size)
       })
     }
@@ -275,9 +277,9 @@ class CsvBag(
     io.resource(_acquire)(_release) { writer =>
       Task.now((rec: Record) => Task.delay {
         val n = if (is_no_schema_in_init)
-          CsvUtils.append(writer, lineEnd, rec)
+          CsvUtils.append(writer, lineEnd, rec, isForceDoubleQuote)
         else
-          CsvUtils.append(writer, schema, lineEnd, rec)
+          CsvUtils.append(writer, schema, lineEnd, rec, isForceDoubleQuote)
         count_up()
       })
     }
@@ -288,9 +290,9 @@ class CsvBag(
       Task.now((rs: Seq[Record]) => Task.delay {
         for (rec <- rs)
           if (is_no_schema_in_init)
-            CsvUtils.append(writer, lineEnd, rec)
+            CsvUtils.append(writer, lineEnd, rec, isForceDoubleQuote)
           else
-            CsvUtils.append(writer, schema, lineEnd, rec)
+            CsvUtils.append(writer, schema, lineEnd, rec, isForceDoubleQuote)
         add_count(rs.length)
       })
     }
@@ -335,8 +337,8 @@ class CsvBag(
 
     def append(rec: Record) {
       get_schema_in_init match {
-        case Some(s) => out.writeNext(CsvUtils.record2Values(rec, s))
-        case None => out.writeNext(CsvUtils.record2Values(rec))
+        case Some(s) => out.writeNext(CsvUtils.record2Values(rec, s, isForceDoubleQuote))
+        case None => out.writeNext(CsvUtils.record2Values(rec, isForceDoubleQuote))
       }
       count_up()
     }
@@ -344,7 +346,7 @@ class CsvBag(
     def append(values: Seq[Any]) {
       get_schema_in_init match {
         case Some(s) => throw new UnsupportedOperationException("Not support schema ")
-        case None => out.writeNext(values.map(CsvUtils.toCsvValue(_)).toArray)
+        case None => out.writeNext(values.map(CsvUtils.toCsvValue(_, isForceDoubleQuote)).toArray)
       }
       count_up()
     }
@@ -375,7 +377,8 @@ object CsvBag {
     codec: Option[Codec],
     schema: Option[Schema],
     withHeader: Option[Boolean],
-    name: Option[String]
+    name: Option[String],
+    isforcedoublequote: Option[Boolean]
   ): CsvBag = {
     val b = bag getOrElse new BufferFileBag()
     val c = codec getOrElse Strategy.UTF8
@@ -386,7 +389,11 @@ object CsvBag {
     }
     val eliminate = false
     val strategy = Strategy(c, h, a, eliminate)
-    name.cata(new CsvBag(b, strategy, _), new CsvBag(b, strategy))
+    val dqp = isforcedoublequote getOrElse false
+    name.cata(
+      new CsvBag(b, strategy, _, isForceDoubleQuote = dqp),
+      new CsvBag(b, strategy, isForceDoubleQuote = dqp)
+    )
   }
 
   // def create(
@@ -476,12 +483,17 @@ object CsvBag {
 
   def createForDownload(schema: Schema, name: String): CsvBag = {
     val codec = WINDOWS31J
-    create(Some(BufferFileBag.create(codec)), Some(Strategy.WINDOWS31J), Some(schema), Some(true), Some(name))
+    create(Some(BufferFileBag.create(codec)), Some(Strategy.WINDOWS31J), Some(schema), Some(true), Some(name), None)
   }
 
-  def createForDownload(schema: Schema, name: String, charset: String): CsvBag = {
+  def createForDownload(
+    schema: Schema,
+    name: String,
+    charset: String,
+    isforcedoublequote: Boolean
+  ): CsvBag = {
     val codec = Codec(Charset forName charset)
-    create(Some(BufferFileBag.create(codec)), Some(codec), Some(schema), Some(true), Some(name))
+    create(Some(BufferFileBag.create(codec)), Some(codec), Some(schema), Some(true), Some(name), Some(isforcedoublequote))
   }
 
   def createForDownload(schema: Schema, header: HeaderPolicy): CsvBag = {

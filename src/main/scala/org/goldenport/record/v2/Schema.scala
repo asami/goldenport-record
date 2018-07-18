@@ -39,7 +39,8 @@ import org.goldenport.record.v2.util.RecordUtils
  *  version Nov. 23, 2017
  *  version Dec. 13, 2017
  *  version Jan. 22, 2018
- * @version May. 16, 2018
+ *  version May. 16, 2018
+ * @version Jul. 18, 2018
  * @author  ASAMI, Tomoharu
  */
 case class Schema(
@@ -209,6 +210,20 @@ case class Schema(
   protected final def is_update_principal(c: Column) = {
     (c.name.endsWith("_by") && // TODO adds specific flag
      c.sql.isAutoUpdate)
+  }
+
+  def complement(p: Record): Record = {
+    case class Z(r: Record) {
+      def +(rhs: Column) = {
+        if (_requiredp(rhs))
+          rhs.form.value.fold(this) { x => 
+            Z(r = r ::+ (rhs.name -> x))
+          }
+        else
+          this
+      }
+    }
+    columns./:(Z(p))(_+_).r
   }
 
   /*
@@ -699,6 +714,7 @@ sealed trait ValidationResult {
   def +(a: ValidationResult): ValidationResult
   def enkey(key: String): ValidationResult = this
   def enlabel(label: String): ValidationResult = this
+  def i18nMessage: I18NString
 }
 
 case object Valid extends ValidationResult {
@@ -709,6 +725,7 @@ case object Valid extends ValidationResult {
       case i: Invalid => i
     }
   }
+  def i18nMessage = I18NString("Valid")
 }
 
 case class VDescription(
@@ -804,6 +821,7 @@ trait Warning extends ValidationResult {
   def descriptions: Vector[VDescription]
   def messages: Vector[String] = descriptions.map(_.message)
   def i18nMessages: Vector[I18NString] = descriptions.map(_.i18nMessage)
+  def i18nMessage: I18NString = I18NString.concat(i18nMessages)
 }
 
 case class CompoundWarning(warnings: Vector[Warning]) extends Warning {
@@ -872,6 +890,7 @@ trait Invalid extends ValidationResult {
   def getWarning(): Option[Warning] = None
   def messages: Vector[String] = descriptions.map(_.message)
   def i18nMessages: Vector[I18NString] = descriptions.map(_.i18nMessage)
+  def i18nMessage: I18NString = I18NString.concat(i18nMessages)
 }
 
 case class CompoundFailure(failures: Vector[Invalid], warning: Option[Warning] = None) extends Invalid {
@@ -960,14 +979,14 @@ case class DataTypeFailure(datatype: DataType, value: Seq[String], key: Option[S
       case xs => xs
     }
   }
-  protected final def message = value_label + "は" + datatype.label + "ではありません。"
-  protected final def i18nMessage = I18NString(
+  private final def _message = value_label + "は" + datatype.label + "ではありません。"
+  private final def _i18n_message = I18NString(
     "{0} is not {1}.",
     "{0} は {1} ではありません。",
     Vector(value_label, datatype.label)
   )
   def descriptions = {
-    Vector(VDescription(label orElse key, i18nMessage, value))
+    Vector(VDescription(label orElse key, _i18n_message, value))
   }
 }
 
