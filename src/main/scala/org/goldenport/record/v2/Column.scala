@@ -25,7 +25,8 @@ import org.goldenport.i18n.I18NString
  *  version Oct. 22, 2017
  *  version Nov. 12, 2017
  *  version Dec. 13, 2017
- * @version Apr. 10, 2018
+ *  version Apr. 10, 2018
+ * @version Jul. 20, 2018
  * @author  ASAMI, Tomoharu
  */
 case class Column(
@@ -164,7 +165,12 @@ case class Column(
   /*
    * Import/Export and Convert
    */
-  def importIn(rec: Record): Record = importer.fold(rec)(x => _transform(x.apply, rec))
+  def importIn(rec: Record): Record = importIn(rec, rec)
+  def importIn(src: Record, sink: Record): Record = {
+    importer.fold(sink)(_.apply(this, src).
+      fold(sink)(x => sink.update(name -> x))
+    )
+  }
   def exportOut(rec: Record): Record = exporter.fold(rec)(x => _transform(x.apply, rec))
   def convertIn(rec: Record): Record = converter.fold(rec)(x => _transform(x.convertIn, rec))
   def convertOut(rec: Record): Record = converter.fold(rec)(x => _transform(x.convertOut, rec))
@@ -207,7 +213,10 @@ object Column {
   object Extension {
     val empty = Extension(None, None, None)
 
-//    def apply(p: DisplayFormat): Extension = Extension(Some(p), None, None, None)
+    def create(importer: Importer): Extension = Extension(None, Some(importer), None)
+
+    //    def apply(p: DisplayFormat): Extension = Extension(Some(p), None, None, None)
+
   }
 }
 

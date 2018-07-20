@@ -20,19 +20,22 @@ import org.goldenport.values.PathName
  *  version Jan. 21, 2017
  *  version Aug. 30, 2017
  *  version May. 16, 2018
- * @version Jul. 18, 2018
+ * @version Jul. 20, 2018
  * @author  ASAMI, Tomoharu
  */
 case class Projector(
   schema: Schema,
-  policy: Projector.Policy = Projector.Policy.rigid
+  policy: Projector.Policy = Projector.Policy.rigid,
+  builder: Option[Builder] = None
 ) {
   import Projector._
   val multiplicityRegex = """^(.*)_(\d+)$""".r
 
   def apply(rec: Record): \/[ValidationResult, Record] = {
-    val a = _normalize(rec)
-    val r = schema.complement(rec)
+    val a = builder.fold(rec)(_.apply(rec, rec))
+    val b = schema.importIn(a)
+    val c = _normalize(b)
+    val r = schema.complement(c)
     schema.validate(r) match {
       case Valid => _project(r).right
       case x: Warning => _project(r).right
