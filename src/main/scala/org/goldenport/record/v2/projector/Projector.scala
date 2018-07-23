@@ -20,7 +20,7 @@ import org.goldenport.values.PathName
  *  version Jan. 21, 2017
  *  version Aug. 30, 2017
  *  version May. 16, 2018
- * @version Jul. 20, 2018
+ * @version Jul. 22, 2018
  * @author  ASAMI, Tomoharu
  */
 case class Projector(
@@ -31,12 +31,15 @@ case class Projector(
   import Projector._
   val multiplicityRegex = """^(.*)_(\d+)$""".r
 
-  def apply(rec: Record): \/[ValidationResult, Record] = {
-    val a = builder.fold(rec)(_.apply(rec, rec))
+  def apply(rec: Record): \/[ValidationResult, Record] = apply(rec, rec)
+
+  def apply(src: Record, sink: Record): \/[ValidationResult, Record] = {
+    implicit val ctx: ProjectorContext = ProjectorContext.default
+    val a = builder.fold(src)(_.apply(src, sink))
     val b = schema.importIn(a)
     val c = _normalize(b)
     val r = schema.complement(c)
-    schema.validate(r) match {
+    schema.validate(r, policy) match {
       case Valid => _project(r).right
       case x: Warning => _project(r).right
       case x: Invalid => x.left
@@ -223,6 +226,7 @@ object Projector {
     val rigid = Policy(Severe.rigid)
     val update = Policy(Severe.update)
     val updateForm = Policy(Severe.updateForm)
+    val export = Policy(Severe.export)
     val loose = Policy(Severe.loose)
   }
 
@@ -238,6 +242,7 @@ object Projector {
     val rigid = Severe(true, true, true, true, false)
     val update = Severe(false, false, false, true, false)
     val updateForm = Severe(false, false, false, true, true)
+    val export = Severe(false, true, false, true, false)
     val loose = Severe(false, false, false, false, true)
   }
 

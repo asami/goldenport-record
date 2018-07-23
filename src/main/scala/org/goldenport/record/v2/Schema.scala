@@ -9,6 +9,7 @@ import org.goldenport.exception.RAISE
 import org.goldenport.i18n.I18NString
 import org.goldenport.util.AnyUtils
 import org.goldenport.record.command.ValueCommand
+import org.goldenport.record.v2.projector.Projector
 import org.goldenport.record.v2.util.RecordUtils
 
 /*
@@ -40,7 +41,7 @@ import org.goldenport.record.v2.util.RecordUtils
  *  version Dec. 13, 2017
  *  version Jan. 22, 2018
  *  version May. 16, 2018
- * @version Jul. 18, 2018
+ * @version Jul. 22, 2018
  * @author  ASAMI, Tomoharu
  */
 case class Schema(
@@ -251,7 +252,16 @@ case class Schema(
          _validate_missing_fields(r),
          _validate_datatype(r),
          _validate_validators(r)
-       ).toVector.suml
+    ).suml
+  }
+
+  def validate(r: Record, policy: Projector.Policy): ValidationResult = {
+    List(
+      policy.severe.redundancyField ?? _validate_redumental_fields(r),
+      policy.severe.missingField ?? _validate_missing_fields(r),
+      policy.severe.datatype ?? _validate_datatype(r),
+      policy.severe.datatype ?? _validate_validators(r)
+    ).suml
   }
 
   private def _validate_redumental_fields(r: Record): ValidationResult = {
