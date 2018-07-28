@@ -1,12 +1,15 @@
 package org.goldenport.record.v2
 
+import org.goldenport.record.v2.projector.ProjectorContext
+
 /*
  * @since   Jan. 15, 2017
- * @version Jul. 20, 2018
+ * @version Jul. 28, 2018
  * @author  ASAMI, Tomoharu
  */
 trait Importer {
   def apply(column: Column, src: Record): Option[Any]
+  def apply(ctx: ProjectorContext, column: Column, src: Record): Option[Any] = apply(column, src)
 }
 
 trait ValueImporter extends Importer {

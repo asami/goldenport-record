@@ -20,7 +20,7 @@ import org.goldenport.values.PathName
  *  version Jan. 21, 2017
  *  version Aug. 30, 2017
  *  version May. 16, 2018
- * @version Jul. 22, 2018
+ * @version Jul. 28, 2018
  * @author  ASAMI, Tomoharu
  */
 case class Projector(
@@ -37,6 +37,20 @@ case class Projector(
     implicit val ctx: ProjectorContext = ProjectorContext.default
     val a = builder.fold(src)(_.apply(src, sink))
     val b = schema.importIn(a)
+    val c = _normalize(b)
+    val r = schema.complement(c)
+    schema.validate(r, policy) match {
+      case Valid => _project(r).right
+      case x: Warning => _project(r).right
+      case x: Invalid => x.left
+    }
+  }
+
+  def apply(ctx: ProjectorContext, rec: Record): \/[ValidationResult, Record] = apply(ctx, rec, rec)
+
+  def apply(ctx: ProjectorContext, src: Record, sink: Record): \/[ValidationResult, Record] = {
+    val a = builder.fold(src)(_.apply(src, sink)(ctx))
+    val b = schema.importIn(ctx, a)
     val c = _normalize(b)
     val r = schema.complement(c)
     schema.validate(r, policy) match {

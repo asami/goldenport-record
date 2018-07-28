@@ -6,6 +6,7 @@ import java.util.Locale
 import com.asamioffice.goldenport.text.UString
 import org.smartdox.Description
 import org.goldenport.i18n.I18NString
+import org.goldenport.record.v2.projector.ProjectorContext
 
 /*
  * @since   Dec.  8, 2012
@@ -26,7 +27,7 @@ import org.goldenport.i18n.I18NString
  *  version Nov. 12, 2017
  *  version Dec. 13, 2017
  *  version Apr. 10, 2018
- * @version Jul. 20, 2018
+ * @version Jul. 28, 2018
  * @author  ASAMI, Tomoharu
  */
 case class Column(
@@ -168,6 +169,12 @@ case class Column(
   def importIn(rec: Record): Record = importIn(rec, rec)
   def importIn(src: Record, sink: Record): Record = {
     importer.fold(sink)(_.apply(this, src).
+      fold(sink)(x => sink.update(name -> x))
+    )
+  }
+  def importIn(ctx: ProjectorContext, rec: Record): Record = importIn(ctx, rec, rec)
+  def importIn(ctx: ProjectorContext, src: Record, sink: Record): Record = {
+    importer.fold(sink)(_.apply(ctx, this, src).
       fold(sink)(x => sink.update(name -> x))
     )
   }

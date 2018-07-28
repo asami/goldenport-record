@@ -9,7 +9,7 @@ import org.goldenport.exception.RAISE
 import org.goldenport.i18n.I18NString
 import org.goldenport.util.AnyUtils
 import org.goldenport.record.command.ValueCommand
-import org.goldenport.record.v2.projector.Projector
+import org.goldenport.record.v2.projector.{Projector, ProjectorContext}
 import org.goldenport.record.v2.util.RecordUtils
 
 /*
@@ -41,7 +41,7 @@ import org.goldenport.record.v2.util.RecordUtils
  *  version Dec. 13, 2017
  *  version Jan. 22, 2018
  *  version May. 16, 2018
- * @version Jul. 22, 2018
+ * @version Jul. 28, 2018
  * @author  ASAMI, Tomoharu
  */
 case class Schema(
@@ -372,6 +372,7 @@ case class Schema(
    * Import/Export and Convert
    */
   def importIn(rec: Record): Record = columns.foldLeft(rec)((z, x) => x importIn z)
+  def importIn(ctx: ProjectorContext, rec: Record): Record = columns.foldLeft(rec)((z, x) => x.importIn(ctx, z))
   def exportOut(rec: Record): Record = columns.foldLeft(rec)((z, x) => x exportOut z)
 
   def convertIn(rec: Record): Record = columns.foldLeft(rec)((z, x) => x convertIn z)
