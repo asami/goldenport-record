@@ -2,6 +2,7 @@ package org.goldenport.record.v2.projector
 
 import scalaz._, Scalaz._
 import org.goldenport.Strings
+import org.goldenport.exception.RAISE
 import org.goldenport.record.v2._
 import org.goldenport.record.command.NullValue
 import org.goldenport.record.v2.util.RecordAux
@@ -20,7 +21,8 @@ import org.goldenport.values.PathName
  *  version Jan. 21, 2017
  *  version Aug. 30, 2017
  *  version May. 16, 2018
- * @version Jul. 28, 2018
+ *  version Jul. 28, 2018
+ * @version Aug. 30, 2018
  * @author  ASAMI, Tomoharu
  */
 case class Projector(
@@ -234,6 +236,9 @@ case class Projector(
 }
 
 object Projector {
+  val empty = Projector(Schema.empty)
+  private val _default_projector = Projector(Schema.empty)
+
   case class Policy(severe: Severe)
 
   object Policy {
@@ -242,6 +247,62 @@ object Projector {
     val updateForm = Policy(Severe.updateForm)
     val export = Policy(Severe.export)
     val loose = Policy(Severe.loose)
+
+    object json {
+      import play.api.libs.json._
+      import play.api.libs.functional.syntax._
+
+      implicit val PolicyFormat = new Format[Policy] {
+        def reads(json: JsValue): JsResult[Policy] =
+          json match {
+            case JsString(s) =>
+              val a = _policy_pf(s)
+              JsSuccess(a)
+            case _: JsUndefined => JsError("Undefined.")
+            case m => JsError(s"Unknown element in columns: $m") // TODO
+          }
+        def writes(o: Policy): JsValue = {
+          val s = if (o == rigid)
+            "rigid"
+          else if (o == update)
+            "update"
+          else if (o == updateForm)
+            "updateForm"
+          else if (o == export)
+            "export"
+          else if (o == loose)
+            "loose"
+          else
+            "rigid"
+          JsString(s)
+        }
+
+        private def _policy(ps: Seq[(String, JsValue)]) = {
+          val m = ps.toMap
+          val schema = m.get("schema")
+          val policy = m.get("policy")
+          ProjectorBuilder(
+            schema.map(Schema.json.unmarshall),
+            policy.map(Policy.json.unmarshall)
+          ).build(_default_projector)
+        }
+      }
+
+      def marshall(p: Policy): String = Json.toJson(p).toString
+      def unmarshall(p: JsValue): Policy = p match {
+        case JsString(s) => _policy_pf(s)
+        case m => RAISE.noReachDefect
+      }
+      def unmarshall(p: String): Policy = Json.parse(p).as[Policy]
+
+      private val _policy_pf: PartialFunction[String, Policy] = {
+        case "rigid" => rigid
+        case "update" => update
+        case "updateForm" => updateForm
+        case "export" => export
+        case "loose" => loose
+      }
+    }
   }
 
   case class Severe(
@@ -265,5 +326,53 @@ object Projector {
   }
   object PathSlot {
     def apply(name: String, path: String): PathSlot = PathSlot(name, PathName(path))
+  }
+
+  case class ProjectorBuilder(
+    schema: Option[Schema] = None,
+    policy: Option[Policy] = None,
+    builder: Option[Builder] = None
+  ) {
+    def build(
+      default: Projector
+    ): Projector = Projector(
+      schema getOrElse default.schema,
+      policy getOrElse default.policy,
+      builder orElse default.builder
+    )
+  }
+
+  object json {
+    import play.api.libs.json._
+    import play.api.libs.functional.syntax._
+
+    implicit val ProjectorFormat = new Format[Projector] {
+      def reads(json: JsValue): JsResult[Projector] =
+        json match {
+          case JsObject(o) => JsSuccess(_projector(o))
+          case _: JsUndefined => JsError("Undefined.")
+          case m => JsError(s"Unknown element in columns: $m") // TODO
+        }
+      def writes(o: Projector): JsValue = RAISE.notImplementedYetDefect
+
+      private def _projector(ps: Seq[(String, JsValue)]) = {
+        val m = ps.toMap
+        val schema = m.get("schema")
+        val policy = m.get("policy")
+        ProjectorBuilder(
+          schema.map(Schema.json.unmarshall),
+          policy.map(Policy.json.unmarshall)
+        ).build(_default_projector)
+      }
+    }
+
+    def marshall(p: Projector): String = Json.toJson(p).toString
+    def unmarshall(p: String): Projector = Json.parse(p).as[Projector]
+  }
+
+  object csv {
+  }
+
+  object record {
   }
 }

@@ -41,7 +41,8 @@ import org.goldenport.record.v2.util.RecordUtils
  *  version Dec. 13, 2017
  *  version Jan. 22, 2018
  *  version May. 16, 2018
- * @version Jul. 28, 2018
+ *  version Jul. 28, 2018
+ * @version Aug. 29, 2018
  * @author  ASAMI, Tomoharu
  */
 case class Schema(
@@ -470,6 +471,15 @@ object Schema {
       case JsSuccess(s, _) => s
       case m: JsError => throw new IllegalArgumentException(m.toString)
     }
+  }
+
+  object csv {
+    def unmarshall(p: String): Schema = RAISE.notImplementedYetDefect
+  }
+
+  object record {
+    def unmarshall(ps: Seq[Record]): Schema =
+      Schema(ps.map(Column.record.unmarshall))
   }
 }
 

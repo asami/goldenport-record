@@ -27,7 +27,8 @@ import org.goldenport.record.v2.projector.ProjectorContext
  *  version Nov. 12, 2017
  *  version Dec. 13, 2017
  *  version Apr. 10, 2018
- * @version Jul. 28, 2018
+ *  version Jul. 28, 2018
+ * @version Aug. 24, 2018
  * @author  ASAMI, Tomoharu
  */
 case class Column(
@@ -186,6 +187,13 @@ case class Column(
 }
 
 object Column {
+  val PROP_NAME = "name"
+  val PROP_DATATYPE = "datatype"
+  val PROP_MULTIPLICITY = "multiplicity"
+  val PROP_LABEL = "label"
+  val PROP_I18N_LABEL = "labelI18N"
+  val PROP_FROM = "form"
+
   case class Grid(fraction: Int, denominator: Int)
 
   case class Layout(
@@ -224,6 +232,22 @@ object Column {
 
     //    def apply(p: DisplayFormat): Extension = Extension(Some(p), None, None, None)
 
+  }
+
+  object record {
+    def unmarshall(p: Record): Column = {
+      val name = p.asString(PROP_NAME)
+      val datatype = p.getConcreteString(PROP_NAME).map(DataType.to) getOrElse XString
+      val multiplicity = p.getConcreteString(PROP_MULTIPLICITY).map(Multiplicity.to) getOrElse MOne
+      val label = p.getConcreteString(PROP_LABEL)
+      val i18nLabel = None // TODO
+      val form = Form.empty // TODO
+      Column(name, datatype, multiplicity,
+        label = label,
+        i18nLabel = i18nLabel,
+        form = form
+      )
+    }
   }
 }
 

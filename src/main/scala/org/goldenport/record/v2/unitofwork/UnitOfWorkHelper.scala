@@ -6,8 +6,8 @@ import org.goldenport.record.v2.Record
 
 /*
  * @since   Apr.  2, 2018
-records: Map[Store.Id, Record] *  version Apr.  7, 2018
-records: Map[Store.Id, Record] * @version May. 31, 2018
+ *  version Apr.  7, 2018
+ * @version May. 31, 2018
  * @author  ASAMI, Tomoharu
  */
 trait UnitOfWorkHelper {
