@@ -1,7 +1,9 @@
 package org.goldenport.record.v3
 
 import java.sql.Timestamp
+import java.util.Locale
 import org.joda.time.DateTime
+import org.goldenport.record.v2.Column
 
 /*
  * derived from org.goldenport.g3.message.
@@ -27,10 +29,15 @@ import org.joda.time.DateTime
  *  version Oct.  2, 2014
  *  version Nov. 29, 2014
  *  version Dec. 31, 2014
- * @version Jan.  2, 2015
+ *  version Jan.  2, 2015
+ * @version Aug. 24, 2018
  * @author  ASAMI, Tomoharu
  */
-case class Field(key: Symbol, value: FieldValue) {
+case class Field(
+  key: Symbol,
+  value: FieldValue,
+  meta: Field.MetaData = Field.MetaData.empty
+) {
   def asString: String = value.asString
   def asInt: Int = value.asInt
   def asLong: Long = value.asLong
@@ -55,6 +62,22 @@ case class Field(key: Symbol, value: FieldValue) {
 }
 
 object Field {
+  case class MetaData(
+    column: Option[Column]
+  ) {
+    def name = column.map(_.name)
+    def datatype = column.map(_.datatype)
+    def multiplicity = column.map(_.multiplicity)
+    def label(locale: Locale) = column.map(_.label(locale))
+    def constraints = column.map(_.constraints)
+    def displayFormat = column.flatMap(_.displayFormat) // CSS
+    def layout = column.map(_.layout) // Bootstrap grid
+    def form = column.map(_.form) // HTML FORM
+  }
+  object MetaData {
+    val empty = MetaData(None)
+  }
+
   def create(key: Symbol, value: Any): Field = {
     value match {
       case Some(x) => create(key, x)

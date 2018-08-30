@@ -1,9 +1,10 @@
 package org.goldenport.record.v3
 
+import scalaz._, Scalaz._
 import java.sql.Timestamp
 import org.goldenport.record.util.StringUtils
-import org.goldenport.record.util.JsonUtils
 import org.joda.time.DateTime
+import org.goldenport.record.v2.Schema
 
 /*
  * derived from org.goldenport.g3.message.
@@ -29,17 +30,21 @@ import org.joda.time.DateTime
  *  version Oct.  2, 2014
  *  version Nov. 29, 2014
  *  version Dec. 31, 2014
- * @version Jan.  2, 2015
+ *  version Jan.  2, 2015
+ * @version Aug. 29, 2018
  * @author  ASAMI, Tomoharu
  */
 case class Record(
-  fields: Seq[Field]
-) {
+  fields: Seq[Field],
+  meta: Record.MetaData = Record.MetaData.empty
+) extends IRecord
+    with HttpPart with XmlPart with JsonPart with CsvPart with LtsvPart
+    with CompatibilityPart {
   def isDefined(key: Symbol): Boolean = {
     fields.exists(_.key == key)
   }
 
-  def nonDefinded(key: Symbol): Boolean = {
+  def nonDefined(key: Symbol): Boolean = {
     !isDefined(key)
   }
 
@@ -99,9 +104,18 @@ case class Record(
     getString(Symbol(key))
   }
 
+  def keyStringValues: Seq[(String, Any)] = {
+    fields.flatMap(_.keyStringValue)
+  }
+
   /*
    * Mutation
    */
+  def +(rhs: Record): Record = update(rhs)
+
+  def update(rec: Record): Record =
+    rec.fields.foldLeft(this)((z, x) => z.updateField(x.key, x.value))
+
   def update(kv: (Symbol, Any)*): Record = {
     kv.foldLeft(this)((z, x) => z.update(x._1, x._2))
   }
@@ -115,54 +129,32 @@ case class Record(
     copy(fields = r)
   }
 
-  /*
-   * LTSV
-   */
-  def toLtsv: String = {
-    fields.map(_.toLtsv).mkString("\t")
-  }
-
-  def toLtsvPart: String = {
-    fields.map(x => "\t" + x.toLtsv).mkString
-  }
-
-  /*
-   * Json
-   */
-  def toJsonString: String = {
-    val buf = new StringBuilder
-    buildJsonString(buf)
-    buf.toString
-  }
-
-
-  def buildJsonString(buf: StringBuilder) {
-    def buildfield(kv: (String, Any)) {
-      buf.append("\"")
-      buf.append(kv._1)
-      buf.append("\":")
-      JsonUtils.data2json(buf, kv._2)
+  def updateField(key: Symbol, value: FieldValue): Record = {
+    val (prefix, suffix) = fields.span(_.key != key) // XXX isMatch?
+    val r = suffix match {
+      case Nil => prefix :+ Field.create(key, value)
+      case x :: xs => prefix ++ (Field.create(key, value) :: xs)
     }
-
-    buf.append("{")
-    val fs = keyStringValues
-    if (fs.nonEmpty) {
-      buildfield(fs.head)
-      for (f <- fs.tail) {
-        buf.append(",")
-        buildfield(f)
-      }
-    }
-    buf.append("}")
-  }
-
-  def keyStringValues: Seq[(String, Any)] = {
-    fields.flatMap(_.keyStringValue)
+    copy(fields = r)
   }
 }
 
 object Record {
   val empty = Record(Vector.empty)
+
+  case class MetaData(
+    schema: Option[Schema]
+  ) {
+    def columns: Option[List[Field.MetaData]] = schema.map(_.columns.map(x => Field.MetaData(Some(x))).toList)
+  }
+  object MetaData {
+    val empty = MetaData(None)
+  }
+
+  implicit object RecordMonoid extends Monoid[Record] {
+    def zero = Record.empty
+    def append(lhs: Record, rhs: => Record) = lhs + rhs
+  }
 
   def fromDataSeq(data: Seq[(String, Any)]): Record = {
     Record(data.map(Field.fromData).toList)
