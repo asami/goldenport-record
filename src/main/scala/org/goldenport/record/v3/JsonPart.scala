@@ -1,14 +1,20 @@
 package org.goldenport.record.v3
 
+import play.api.libs.json._
 import org.goldenport.exception.RAISE
 import org.goldenport.record.util.JsonUtils
 
 /*
  * @since   Aug. 23, 2018
- * @version Aug. 24, 2018
+ * @version Sep.  4, 2018
  * @author  ASAMI, Tomoharu
  */
 trait JsonPart { self: Record =>
+  def toJson: JsObject = {
+    val xs = fields.flatMap(_.getJsonField)
+    JsObject(xs)
+  }
+
   def toJsonString: String = {
     val buf = new StringBuilder
     buildJsonString(buf)

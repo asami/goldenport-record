@@ -1,10 +1,11 @@
 package org.goldenport.record.v2.projector
 
+import play.api.libs.json._
 import org.goldenport.record.v2._
 
 /*
  * @since   Jul. 19, 2018
- * @version Jul. 28, 2018
+ * @version Sep.  5, 2018
  * @author  ASAMI, Tomoharu
  */
 trait Importer extends org.goldenport.record.v2.Importer {
@@ -19,6 +20,17 @@ trait Importer extends org.goldenport.record.v2.Importer {
 }
 
 object Importer {
+  import org.goldenport.json.JsonObject.Implicits._
+
+  val defaultImporterClass = new ImporterClass {
+    def unmarshall(name: String, p: JsObject): Option[Importer] =
+      name match {
+        case "pathname" => Some(pathname(p.asString("pathname")))
+        case "yyyymmdd" => Some(yyyymmdd)
+        case _ => None
+      }
+  }
+
   def fetcher(p: Fetcher): Importer = FetcherImporter(p, None)
   def fetcher(p: Fetcher, d: Any): Importer = FetcherImporter(p, Some(d))
 

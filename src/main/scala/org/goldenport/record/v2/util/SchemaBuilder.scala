@@ -2,6 +2,7 @@ package org.goldenport.record.v2.util
 
 import scalaz._, Scalaz._
 import org.goldenport.i18n.I18NString
+import org.goldenport.record.util.AnyUtils
 import org.goldenport.record.v2._
 
 /*
@@ -13,7 +14,7 @@ import org.goldenport.record.v2._
  *  version Jan. 19, 2017
  *  version Aug.  3, 2017
  *  version Sep. 27, 2017
- * @version Oct. 12, 2017
+ * @version Sep.  4, 2018
  * @author  ASAMI, Tomoharu
  */
 case class SchemaBuilder(columns: Vector[Column] = Vector.empty) {
@@ -49,7 +50,7 @@ object SchemaBuilder {
       name, XString, MZeroOne, label = Some(label))
   }
 
-  case class CLi(name: String, en: String, ja: String) extends CBase {
+  case class CLej(name: String, en: String, ja: String) extends CBase {
     def toColumn = Column(
       name, XString, MZeroOne, i18nLabel = Some(I18NString(en, ja)))
   }
@@ -59,7 +60,7 @@ object SchemaBuilder {
       name, datatype, MZeroOne, label = Some(label))
   }
 
-  case class CLiT(name: String, en: String, ja: String, datatype: DataType) extends CBase {
+  case class CLejT(name: String, en: String, ja: String, datatype: DataType) extends CBase {
     def toColumn = Column(
       name, datatype, MZeroOne, i18nLabel = Some(I18NString(en, ja)))
   }
@@ -87,6 +88,34 @@ object SchemaBuilder {
   case class CLD(name: String, label: String, displayformat: DisplayFormat) extends CBase {
     def toColumn = Column(
       name, XString, MZeroOne, label = Some(label), displayFormat = Some(displayformat))
+  }
+
+  case class CLV(name: String, label: String, value: Any) extends CBase {
+    def toColumn = Column(
+      name, XString, label = Some(label), form = Column.Form(
+        value = Some(AnyUtils.toString(value))
+      )
+    )
+  }
+
+  case class CLTV(name: String, label: String, datatype: DataType, value: Any) extends CBase {
+    def toColumn = Column(
+      name, datatype, label = Some(label), form = Column.Form(
+        value = Some(AnyUtils.toString(value))
+      )
+    )
+  }
+
+  case class CLI(name: String, label: String, importer: Importer) extends CBase {
+    def toColumn = Column(
+      name, label = Some(label), extension = Column.Extension.create(importer)
+    )
+  }
+
+  case class CLTI(name: String, label: String, datatype: DataType, importer: Importer) extends CBase {
+    def toColumn = Column(
+      name, datatype, label = Some(label), extension = Column.Extension.create(importer)
+    )
   }
 
   case class CT(name: String, datatype: DataType) extends CBase {

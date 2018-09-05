@@ -28,7 +28,8 @@ import org.goldenport.record.v2.projector.ProjectorContext
  *  version Dec. 13, 2017
  *  version Apr. 10, 2018
  *  version Jul. 28, 2018
- * @version Aug. 24, 2018
+ *  version Aug. 24, 2018
+ * @version Sep.  4, 2018
  * @author  ASAMI, Tomoharu
  */
 case class Column(
@@ -57,9 +58,13 @@ case class Column(
 //  comment: String = ""
 ) extends ColumnSlot {
 //  def displayFormat = extension.displayFormat
-  override def toString() = s"Column(${show})"
+  override def toString() = if (Schema.isDebug)
+    s"Column(${showlong})"
+  else
+    s"Column(${show})"
 
   def show: String = s"$name,${datatype.name},${multiplicity.mark}"
+  def showlong: String = s"${show},${form},${extension}"
 
   def withDatatype(p: DataType) = copy(datatype = p)
   def withPlaceholder(p: String) = copy(form = form.withPlaceholder(p))
@@ -194,6 +199,15 @@ object Column {
   val PROP_I18N_LABEL = "labelI18N"
   val PROP_FROM = "form"
 
+  def comp(lhs: Column, rhs: Column): List[String] =
+    List(
+      lhs.name != rhs.name option s"name(${lhs.name}, ${rhs.name})",
+      lhs.datatype != rhs.datatype option s"datatype(${lhs.datatype}, ${rhs.datatype}",
+      lhs.label != rhs.label option s"label(${lhs.label}, ${rhs.label}",
+      lhs.form != rhs.form option s"form(${lhs.form}, ${rhs.form}",
+      lhs.extension != rhs.extension option s"extension(${lhs.extension}, ${rhs.extension}"
+    ).flatten
+
   case class Grid(fraction: Int, denominator: Int)
 
   case class Layout(
@@ -212,6 +226,7 @@ object Column {
     // invisible: Boolean = false : Visibility
   ) {
     def withPlaceholder(p: String) = copy(placeholder = Some(I18NString(p)))
+    def withValueOption(p: Option[String]) = p.fold(this)(x => copy(value = Some(x)))
     def isEmpty = this == Form.empty
   }
   object Form {

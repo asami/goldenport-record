@@ -22,7 +22,8 @@ import org.goldenport.values.PathName
  *  version Aug. 30, 2017
  *  version May. 16, 2018
  *  version Jul. 28, 2018
- * @version Aug. 30, 2018
+ *  version Aug. 30, 2018
+ * @version Sep.  3, 2018
  * @author  ASAMI, Tomoharu
  */
 case class Projector(
@@ -237,7 +238,7 @@ case class Projector(
 
 object Projector {
   val empty = Projector(Schema.empty)
-  private val _default_projector = Projector(Schema.empty)
+  val default = Projector(Schema.empty)
 
   case class Policy(severe: Severe)
 
@@ -284,7 +285,7 @@ object Projector {
           ProjectorBuilder(
             schema.map(Schema.json.unmarshall),
             policy.map(Policy.json.unmarshall)
-          ).build(_default_projector)
+          ).build(default)
         }
       }
 
@@ -362,7 +363,7 @@ object Projector {
         ProjectorBuilder(
           schema.map(Schema.json.unmarshall),
           policy.map(Policy.json.unmarshall)
-        ).build(_default_projector)
+        ).build(default)
       }
     }
 

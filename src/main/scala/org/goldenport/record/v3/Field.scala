@@ -3,6 +3,7 @@ package org.goldenport.record.v3
 import java.sql.Timestamp
 import java.util.Locale
 import org.joda.time.DateTime
+import play.api.libs.json._
 import org.goldenport.record.v2.Column
 
 /*
@@ -30,7 +31,8 @@ import org.goldenport.record.v2.Column
  *  version Nov. 29, 2014
  *  version Dec. 31, 2014
  *  version Jan.  2, 2015
- * @version Aug. 24, 2018
+ *  version Aug. 31, 2018
+ * @version Sep.  4, 2018
  * @author  ASAMI, Tomoharu
  */
 case class Field(
@@ -38,11 +40,16 @@ case class Field(
   value: FieldValue,
   meta: Field.MetaData = Field.MetaData.empty
 ) {
+  def name: String = key.name
   def asString: String = value.asString
   def asInt: Int = value.asInt
   def asLong: Long = value.asLong
   def asTimestamp: Timestamp = value.asTimestamp
   def asDateTime: DateTime = value.asDateTime
+  def asRecord: Record = value.asRecord
+  def asRecordList: List[Record] = value.asRecordList
+
+  // def getConcreteStringList: List[String] = RAISE.unsupportedOperationFault
 
   def keyValue: Option[(Symbol, Any)] = {
     val data = value.getValue
@@ -55,10 +62,14 @@ case class Field(
     }
   }
 
+  def getJsonField: Option[(String, JsValue)] = value.getJson.map(x => name -> x)
+
   def toLtsv: String = {
     val v = asString // TODO normalize (replace with space)
     key.name + ":" + v
   }
+
+  def normalizeHttp: Field = copy(value = value.normalizeHttp)
 }
 
 object Field {
@@ -91,7 +102,9 @@ object Field {
     create(data._1, data._2)
   }
 
-  def fromData(data: (String, Any)): Field = {
+  def createData(data: (String, Any)): Field = {
     create(Symbol(data._1), data._2)
   }
+
+  def create(key: String, p: JsValue): Field = Field(Symbol(key), FieldValue.create(p))
 }

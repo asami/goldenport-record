@@ -42,7 +42,8 @@ import org.goldenport.record.v2.util.RecordUtils
  *  version Jan. 22, 2018
  *  version May. 16, 2018
  *  version Jul. 28, 2018
- * @version Aug. 29, 2018
+ *  version Aug. 29, 2018
+ * @version Sep.  5, 2018
  * @author  ASAMI, Tomoharu
  */
 case class Schema(
@@ -69,7 +70,10 @@ case class Schema(
     def zero: ValidationResult = Valid
   } // TODO uses Validation.ValidationResultMonoid
 
-  override def toString() = s"""Schema(${columns.map(_.show).mkString(";")})"""
+  override def toString() = if (Schema.isDebug)
+    s"""Schema(${columns.map(_.showlong).mkString(";")})"""
+  else
+    s"""Schema(${columns.map(_.show).mkString(";")})"""
 
   final def getColumn(key: String) = {
     columns.find(_.name == key)
@@ -403,6 +407,13 @@ object NullSchema extends Schema(Nil)
 
 object Schema {
   val empty = NullSchema
+  val isDebug: Boolean = false // turn on if debug.
+
+  def comp(lhs: Schema, rhs: Schema): List[String] = {
+    if (lhs.columns.length != rhs.columns.length)
+      RAISE.noReachDefect
+    lhs.columns.zip(rhs.columns).toList.flatMap(x => Column.comp(x._1, x._2))
+  }
 
   object json {
     import play.api.libs.json._
@@ -437,7 +448,12 @@ object Schema {
         val label = (json \ "label").asOpt[String]
         val i18nLabel = (json \ "i18nLabel").asOpt[I18NString]
         val form = (json \ "form").asOpt[Form] getOrElse Form.empty
-        JsSuccess(Column(name, datatype, multiplicity, label = label, i18nLabel = i18nLabel, form = form))
+        JsSuccess(
+          Column(name, datatype, multiplicity,
+            label = label, i18nLabel = i18nLabel,
+            form = form
+          )
+        )
       }
       def writes(o: Column): JsValue = JsObject(
         List(
@@ -447,7 +463,8 @@ object Schema {
         ) ++ List(
           o.label.map(x => "label" -> JsString(x)),
           o.i18nLabel.map(x => "i18nLabel" -> Json.toJson(x)),
-          if (o.form.isEmpty) None else Some("form" -> Json.toJson(o.form))
+          if (o.form.isEmpty) None else Some("form" -> Json.toJson(o.form)),
+          o.importer.map(x => "importer" -> x.toJson)
         ).flatten
       )
     }
