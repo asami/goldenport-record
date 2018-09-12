@@ -34,7 +34,7 @@ import org.goldenport.record.v2.util.RecordUtils
  *  version Dec. 31, 2014
  *  version Jan.  2, 2015
  *  version Aug. 31, 2018
- * @version Sep.  4, 2018
+ * @version Sep.  5, 2018
  * @author  ASAMI, Tomoharu
  */
 case class Record(
@@ -85,6 +85,10 @@ case class Record(
     }
   }
 
+  def takeStringList(key: Symbol): List[String] = ???
+
+  def takeStringList(key: String): List[String] = ???
+
   def getInt(key: Symbol): Option[Int] = getField(key).map(_.asInt)
   def getInt(key: String): Option[Int] = getField(key).map(_.asInt)
 
@@ -119,8 +123,8 @@ case class Record(
   def getRecord(key: Symbol): Option[Record] = getField(key).map(_.asRecord)
   def getRecord(key: String): Option[Record] = getField(key).map(_.asRecord)
 
-  def getRecordList(key: Symbol): List[Record] = getField(key).map(_.asRecordList).getOrElse(Nil)
-  def getRecordList(key: String): List[Record] = getField(key).map(_.asRecordList).getOrElse(Nil)
+  def takeRecordList(key: Symbol): List[Record] = getField(key).map(_.asRecordList).getOrElse(Nil)
+  def takeRecordList(key: String): List[Record] = getField(key).map(_.asRecordList).getOrElse(Nil)
 
   def keyStringValues: Seq[(String, Any)] = {
     fields.flatMap(_.keyStringValue)

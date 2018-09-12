@@ -4,6 +4,7 @@ import java.sql.Timestamp
 import java.util.Locale
 import org.joda.time.DateTime
 import play.api.libs.json._
+import org.goldenport.exception.RAISE
 import org.goldenport.record.v2.Column
 
 /*
@@ -32,7 +33,7 @@ import org.goldenport.record.v2.Column
  *  version Dec. 31, 2014
  *  version Jan.  2, 2015
  *  version Aug. 31, 2018
- * @version Sep.  4, 2018
+ * @version Sep.  5, 2018
  * @author  ASAMI, Tomoharu
  */
 case class Field(
@@ -42,14 +43,13 @@ case class Field(
 ) {
   def name: String = key.name
   def asString: String = value.asString
+  def asStringList: List[String] = RAISE.unsupportedOperationFault
   def asInt: Int = value.asInt
   def asLong: Long = value.asLong
   def asTimestamp: Timestamp = value.asTimestamp
   def asDateTime: DateTime = value.asDateTime
   def asRecord: Record = value.asRecord
   def asRecordList: List[Record] = value.asRecordList
-
-  // def getConcreteStringList: List[String] = RAISE.unsupportedOperationFault
 
   def keyValue: Option[(Symbol, Any)] = {
     val data = value.getValue

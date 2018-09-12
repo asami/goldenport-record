@@ -7,7 +7,7 @@ import org.goldenport.exception.RAISE
 
 /*
  * @since   Aug. 23, 2018
- * @version Sep.  4, 2018
+ * @version Sep.  5, 2018
  * @author  ASAMI, Tomoharu
  */
 trait IRecord {
@@ -20,12 +20,14 @@ trait IRecord {
   def get(key: Symbol): Option[Any]
   def getString(key: String): Option[String]
   def getString(key: Symbol): Option[String]
+  def takeStringList(key: String): List[String]
+  def takeStringList(key: Symbol): List[String]
   def getInt(key: String): Option[Int]
   def getInt(key: Symbol): Option[Int]
   def getRecord(key: String): Option[Record]
   def getRecord(key: Symbol): Option[Record]
-  def getRecordList(key: String): List[Record]
-  def getRecordList(key: Symbol): List[Record]
+  def takeRecordList(key: String): List[Record]
+  def takeRecordList(key: Symbol): List[Record]
   def +(rhs: IRecord): IRecord
 
   def asJson: JsObject = RAISE.notImplementedYetDefect
