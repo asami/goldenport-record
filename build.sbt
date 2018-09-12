@@ -2,7 +2,7 @@ organization := "org.goldenport"
 
 name := "goldenport-record"
 
-version := "1.2.22"
+version := "1.2.23"
 
 scalaVersion := "2.10.3"
 // crossScalaVersions := Seq("2.9.2", "2.9.1")
@@ -27,7 +27,7 @@ libraryDependencies += "org.goldenport" %% "goldenport-scala-lib" % "1.2.26"
 
 libraryDependencies += "org.smartdox" %% "smartdox" % "1.2.2"
 
-libraryDependencies += "com.typesafe.play" %% "play-json" % "2.2.2" % "provided" exclude("org.scala-stm", "scala-stm_2.10.0")
+libraryDependencies += "com.typesafe.play" %% "play-json" % "2.2.2" % "provided"
 
 libraryDependencies += "net.sf.opencsv" % "opencsv" % "2.3" % "provided"
 
