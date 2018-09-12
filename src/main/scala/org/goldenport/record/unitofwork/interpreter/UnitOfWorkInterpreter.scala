@@ -3,13 +3,15 @@ package org.goldenport.record.unitofwork.interpreter
 import scala.language.higherKinds
 import scalaz.{Store => _, Value => _, _}, Scalaz._
 import scalaz.concurrent.Task
+import org.goldenport.exception.RAISE
 import org.goldenport.record.v2._
 import org.goldenport.record.unitofwork._
 
 /*
  * @since   Nov. 15, 2015
  *  version Dec.  2, 2015
- * @version Apr. 28, 2016
+ *  version Apr. 28, 2016
+ * @version Sep. 11, 2018
  * @author  ASAMI, Tomoharu
  */
 trait UnitOfWorkInterpreter[+F[_]] extends NaturalTransformation[UnitOfWork, F] {
@@ -44,6 +46,7 @@ trait UnitOfWorkInterpreter[+F[_]] extends NaturalTransformation[UnitOfWork, F] 
       case Raise(e) => raise_exception(e)
       case InvokeService(req) => invokeService(req)
       case Value(v) => value(v)
+      case m: Flush => flush()
       case m: StoreOperation[_] => storeOperation(m)
       case m: ExtensionUnitOfWork[_] => extension(m)
     }
@@ -56,6 +59,7 @@ trait UnitOfWorkInterpreter[+F[_]] extends NaturalTransformation[UnitOfWork, F] 
   def raise[T](e: Throwable): F[T]
   def invokeService[T](req: UnitOfWork.ServiceRequest): F[T]
   def value[T](v: T): F[T]
+  def flush[T](): F[T]
   def extension[T](p: ExtensionUnitOfWork[_]): F[T]
 }
 
@@ -67,12 +71,13 @@ class IdUnitOfWorkInterpreter(
     logic.invokeService(req).asInstanceOf[T]
   }
 
-  def raise[T](e: Throwable): T = ???
+  def raise[T](e: Throwable): T = RAISE.notImplementedYetDefect
   def value[T](v: T) = v
-  def extension[T](p: ExtensionUnitOfWork[_]): T = ???
+  def flush[T]() = RAISE.notImplementedYetDefect
+  def extension[T](p: ExtensionUnitOfWork[_]): T = RAISE.notImplementedYetDefect
 
-  protected def interpreter_Abort(message: String): Unit = ???
-  protected def interpreter_Abort(e: Throwable): Unit = ???
+  protected def interpreter_Abort(message: String): Unit = RAISE.notImplementedYetDefect
+  protected def interpreter_Abort(e: Throwable): Unit = RAISE.notImplementedYetDefect
 }
 
 trait UnitOfWorkInterpreterBase[F[_]] extends UnitOfWorkInterpreter[F] {
@@ -89,6 +94,8 @@ trait UnitOfWorkInterpreterBase[F[_]] extends UnitOfWorkInterpreter[F] {
   def value[T](v: T): F[T] = {
     typeclass.point(v)
   }
+
+  def flush[T](): F[T] = typeclass.point(logic.commit().asInstanceOf[T])
 
   def extension[T](p: ExtensionUnitOfWork[_]): F[T] = {
     typeclass.point(logic.extension(p).asInstanceOf[T])

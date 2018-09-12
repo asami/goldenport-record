@@ -6,8 +6,8 @@ import org.goldenport.record.v2.Record
 
 /*
  * @since   Apr.  2, 2018
- *  version Apr.  7, 2018
- * @version May. 31, 2018
+ *  version May. 31, 2018
+ * @version Sep. 12, 2018
  * @author  ASAMI, Tomoharu
  */
 trait UnitOfWorkHelper {
@@ -23,6 +23,14 @@ trait UnitOfWorkHelper {
 
   protected lazy val uow_unit: UnitOfWorkFM[Unit] = UnitOfWork.lift(Unit)
 
+  protected def uow_flush[T](condition: T => Option[Throwable])(
+    result: T
+  ): UnitOfWorkFM[CommitResult] =
+    condition(result) match {
+      case Some(x) => UnitOfWork.raise(x)
+      case None => UnitOfWork.flush()
+    }
+
   protected def service_invoke[T <: ServiceResponse](req: ServiceRequest): UnitOfWorkFM[T] =
     UnitOfWork.invoke(req)
 
@@ -32,6 +40,7 @@ trait UnitOfWorkHelper {
     for {
       r <- p
       c <- store_commit(condition)(r)
+      _ <- uow_flush(condition)(r)
     } yield UnitOfWorkResult(r, c)
   }
 

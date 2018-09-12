@@ -16,7 +16,8 @@ import org.goldenport.record.v2._
  *  version Jan. 31, 2018
  *  version Mar. 28, 2018
  *  version Apr.  3, 2018
- * @version May. 31, 2018
+ *  version May. 31, 2018
+ * @version Sep. 12, 2018
  * @author  ASAMI, Tomoharu
  */
 sealed trait UnitOfWork[+A] {
@@ -25,6 +26,8 @@ sealed trait UnitOfWork[+A] {
 trait ExtensionUnitOfWork[+A] extends UnitOfWork[A]
 
 case class Value[T](v: T) extends UnitOfWork[T]
+
+case class Flush() extends UnitOfWork[CommitResult]
 
 case class InvokeService(request: UnitOfWork.ServiceRequest) extends UnitOfWork[UnitOfWork.ServiceResponse] {
 }
@@ -55,6 +58,9 @@ object UnitOfWork {
 
   def raise[T](e: Throwable): UnitOfWorkFM[T] = 
     Free.liftFC(Raise(e)).asInstanceOf[UnitOfWorkFM[T]]
+
+  def flush[T](): UnitOfWorkFM[T] =
+    Free.liftFC(Flush()).asInstanceOf[UnitOfWorkFM[T]]
 
   trait ServiceRequest
   trait ServiceResponse
