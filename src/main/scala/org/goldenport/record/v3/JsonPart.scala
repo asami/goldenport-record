@@ -6,7 +6,7 @@ import org.goldenport.record.util.JsonUtils
 
 /*
  * @since   Aug. 23, 2018
- * @version Sep.  4, 2018
+ * @version Sep. 17, 2018
  * @author  ASAMI, Tomoharu
  */
 trait JsonPart { self: Record =>
@@ -30,7 +30,7 @@ trait JsonPart { self: Record =>
     }
 
     buf.append("{")
-    val fs = keyStringValues
+    val fs = nameStrings
     if (fs.nonEmpty) {
       buildfield(fs.head)
       for (f <- fs.tail) {

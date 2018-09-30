@@ -7,10 +7,10 @@ import org.goldenport.exception.RAISE
 
 /*
  * @since   Aug. 23, 2018
- * @version Sep.  5, 2018
+ * @version Sep. 20, 2018
  * @author  ASAMI, Tomoharu
  */
-trait IRecord {
+trait IRecord extends org.w3c.dom.Element with DomPart {
   def toRecord: Record
   def fields: Seq[Field]
   def isEmpty: Boolean

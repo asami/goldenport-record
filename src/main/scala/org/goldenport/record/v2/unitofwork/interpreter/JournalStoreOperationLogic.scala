@@ -2,6 +2,7 @@ package org.goldenport.record.v2.unitofwork.interpreter
 
 import java.io.IOException
 import scala.collection.mutable
+import org.goldenport.exception.RAISE
 import org.goldenport.record.v2.{Record, RecordSet}
 import org.goldenport.record.unitofwork._
 import org.goldenport.record.unitofwork.interpreter._
@@ -9,14 +10,14 @@ import org.goldenport.record.unitofwork.UnitOfWork._
 
 /*
  * @since   Sep.  9, 2018
- * @version Sep.  9, 2018
+ * @version Sep. 15, 2018
  * @author  ASAMI, Tomoharu
  */
 trait JournalStoreOperationLogic extends StoreOperationLogic {
   import JournalStoreOperationLogic._
   protected val store_journal = new UnitOfWorkStoreSetJournal()
 
-  def commit(): CommitResult = ???
+  def commit(): CommitResult = RAISE.notImplementedYetDefect("Implement concrete store logic.")
   def abort(message: String): Unit = {}
   def abort(e: Throwable): Unit = {}
 

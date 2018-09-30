@@ -6,6 +6,7 @@ import org.joda.time.DateTime
 import play.api.libs.json._
 import org.goldenport.exception.RAISE
 import org.goldenport.record.v2.Column
+import org.goldenport.record.util.AnyUtils
 
 /*
  * derived from org.goldenport.g3.message.
@@ -33,7 +34,7 @@ import org.goldenport.record.v2.Column
  *  version Dec. 31, 2014
  *  version Jan.  2, 2015
  *  version Aug. 31, 2018
- * @version Sep.  5, 2018
+ * @version Sep. 17, 2018
  * @author  ASAMI, Tomoharu
  */
 case class Field(
@@ -56,9 +57,15 @@ case class Field(
     data.map(x => key -> x)
   }
 
-  def keyStringValue: Option[(String, Any)] = {
+  def nameValue: Option[(String, Any)] = {
     keyValue map {
       case (k, v) => k.name -> v
+    }
+  }
+
+  def nameString: Option[(String, String)] = {
+    keyValue map {
+      case (k, v) => k.name -> AnyUtils.toString(v)
     }
   }
 

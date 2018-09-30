@@ -34,7 +34,7 @@ import org.goldenport.record.v2.util.RecordUtils
  *  version Dec. 31, 2014
  *  version Jan.  2, 2015
  *  version Aug. 31, 2018
- * @version Sep.  5, 2018
+ * @version Sep. 17, 2018
  * @author  ASAMI, Tomoharu
  */
 case class Record(
@@ -45,7 +45,7 @@ case class Record(
     with HttpPart with SqlPart
     with CompatibilityPart {
   def toRecord = this
-  def toRecord2: Record2 = Record2.createApp(keyStringValues)
+  def toRecord2: Record2 = Record2.createApp(nameValues)
 
   def isEmpty: Boolean = fields.isEmpty
   def isDefined(key: Symbol): Boolean = fields.exists(_.key == key)
@@ -126,9 +126,9 @@ case class Record(
   def takeRecordList(key: Symbol): List[Record] = getField(key).map(_.asRecordList).getOrElse(Nil)
   def takeRecordList(key: String): List[Record] = getField(key).map(_.asRecordList).getOrElse(Nil)
 
-  def keyStringValues: Seq[(String, Any)] = {
-    fields.flatMap(_.keyStringValue)
-  }
+  def keyValues: Seq[(Symbol, Any)] = fields.flatMap(_.keyValue)
+  def nameValues: Seq[(String, Any)] = fields.flatMap(_.nameValue)
+  def nameStrings: Seq[(String, String)] = fields.flatMap(_.nameString)
 
   /*
    * Mutation
