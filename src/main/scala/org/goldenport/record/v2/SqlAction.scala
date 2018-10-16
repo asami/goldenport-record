@@ -11,7 +11,8 @@ import java.net.URI
  *  version Apr. 26, 2013
  *  version Jun. 24, 2013
  *  version Feb.  6, 2014
- * @version Jan. 27, 2015
+ *  version Jan. 27, 2015
+ * @version May. 26, 2017
  * @author  ASAMI, Tomoharu
  */
 trait SqlAction {
@@ -62,11 +63,11 @@ trait SqlActionCommand {
     before_Insert(xs)
   }
 
-  def afterInsert(source: ActionContext) {
+  def afterInsert(source: ActionContext): ActionContext = {
     after_Insert(source)
   }
 
-  def afterInsert(xs: Seq[ActionContext]) {
+  def afterInsert(xs: Seq[ActionContext]): Seq[ActionContext] = {
     after_Insert(xs)
   }
 
@@ -78,11 +79,11 @@ trait SqlActionCommand {
     before_Update(xs)
   }
 
-  def afterUpdate(source: ActionContext) {
+  def afterUpdate(source: ActionContext): ActionContext = {
     after_Update(source)
   }
 
-  def afterUpdate(xs: Seq[ActionContext]) {
+  def afterUpdate(xs: Seq[ActionContext]): Seq[ActionContext] = {
     after_Update(xs)
   }
 
@@ -94,11 +95,11 @@ trait SqlActionCommand {
     before_Delete(xs)
   }
 
-  def afterDelete(source: ActionContext) {
+  def afterDelete(source: ActionContext): ActionContext = {
     after_Delete(source)
   }
 
-  def afterDelete(xs: Seq[ActionContext]) {
+  def afterDelete(xs: Seq[ActionContext]): Seq[ActionContext] = {
     after_Delete(xs)
   }
 
@@ -110,10 +111,10 @@ trait SqlActionCommand {
     xs.map(before_Insert(_))
   }
 
-  protected def after_Insert(source: ActionContext) {}
+  protected def after_Insert(source: ActionContext): ActionContext = source
 
-  protected def after_Insert(xs: Seq[ActionContext]) {
-    xs.foreach(after_Insert(_))
+  protected def after_Insert(xs: Seq[ActionContext]): Seq[ActionContext] = {
+    xs.map(after_Insert(_))
   }
 
   protected def before_Update(source: ActionContext): ActionContext = {
@@ -124,10 +125,10 @@ trait SqlActionCommand {
     xs.map(before_Update(_))
   }
 
-  protected def after_Update(source: ActionContext) {}
+  protected def after_Update(source: ActionContext): ActionContext = source
 
-  protected def after_Update(xs: Seq[ActionContext]) {
-    xs.foreach(after_Update(_))
+  protected def after_Update(xs: Seq[ActionContext]): Seq[ActionContext] = {
+    xs.map(after_Update(_))
   }
 
   protected def before_Delete(source: ActionContext): ActionContext = {
@@ -138,10 +139,11 @@ trait SqlActionCommand {
     xs.map(before_Delete(_))
   }
 
-  protected def after_Delete(source: ActionContext) {}
+  protected def after_Delete(source: ActionContext): ActionContext =
+    source
 
-  protected def after_Delete(xs: Seq[ActionContext]) {
-    xs.foreach(after_Delete(_))
+  protected def after_Delete(xs: Seq[ActionContext]): Seq[ActionContext] = {
+    xs.map(after_Delete(_))
   }
 
   protected def before_records(source: ActionContext): ActionContext = {
@@ -236,13 +238,11 @@ case class SqlActionCommands(commands: Seq[SqlActionCommand]) {
     commands.foldLeft(acs)((a, x) => x.beforeInsert(a))
   }
 
-  def afterInsert(record: ActionContext) {
-    commands.foreach(_.afterInsert(record))
-  }
+  def afterInsert(source: ActionContext): ActionContext =
+    commands./:(source)((z, x) => x.afterInsert(z))
 
-  def afterInsert(rs: Seq[ActionContext]) {
-    commands.foreach(_.afterInsert(rs))
-  }
+  def afterInsert(rs: Seq[ActionContext]): Seq[ActionContext] =
+    rs.map(afterInsert)
 
   def beforeUpdate(
     record: Record,
@@ -259,13 +259,11 @@ case class SqlActionCommands(commands: Seq[SqlActionCommand]) {
     commands.foldLeft(acs)((a, x) => x.beforeUpdate(a))
   }
 
-  def afterUpdate(record: ActionContext) {
-    commands.foreach(_.afterUpdate(record))
-  }
+  def afterUpdate(source: ActionContext): ActionContext =
+    commands./:(source)((z, x) => x.afterUpdate(z))
 
-  def afterUpdate(rs: Seq[ActionContext]) {
-    commands.foreach(_.afterUpdate(rs))
-  }
+  def afterUpdate(rs: Seq[ActionContext]): Seq[ActionContext] =
+    rs.map(afterUpdate)
 
   def beforeDelete(
     record: Record,
@@ -282,13 +280,11 @@ case class SqlActionCommands(commands: Seq[SqlActionCommand]) {
     commands.foldLeft(acs)((a, x) => x.beforeDelete(a))
   }
 
-  def afterDelete(record: ActionContext) {
-    commands.foreach(_.afterDelete(record))
-  }
+  def afterDelete(source: ActionContext): ActionContext =
+    commands./:(source)((z, x) => x.afterDelete(z))
 
-  def afterDelete(rs: Seq[ActionContext]) {
-    commands.foreach(_.afterDelete(rs))
-  }
+  def afterDelete(rs: Seq[ActionContext]): Seq[ActionContext] =
+    rs.map(afterDelete)
 }
 
 /*
@@ -377,11 +373,12 @@ case class AssociationActionCommand(
   columns: Seq[(Column, SqlMethodCommand)],
   ids: Seq[Column]
 ) extends SqlActionCommand {
-  override def after_Insert(context: ActionContext) {
+  override def after_Insert(context: ActionContext) = {
 //    log_trace("AssociationActionCommand#after_Insert = " + context)
     val a = context.buildMainReference(action.mainColumnName, action.referenceColumnName)
     val b = after_records(a)
     insert_records_driver(action.association, b)
+    context
   }
 }
 
@@ -461,8 +458,9 @@ case class TargetFileAssociationActionCommand(
     source |> target.beforeInsert |> association.beforeInsert
   }
 
-  override def after_Insert(source: ActionContext) {
+  override def after_Insert(source: ActionContext) = {
     target.afterInsert(source)
     association.afterInsert(source)
+    source
   }
 }

@@ -3,19 +3,23 @@ package org.goldenport.record.v2
 import scala.util.control.NonFatal
 import scala.math.BigInt
 import scala.math.BigDecimal
+import java.util.Locale
+import org.goldenport.i18n.I18NString
 
 /*
  * @since   Aug. 12, 2015
  *  version Sep. 25, 2015
  *  version Oct. 25, 2015
  *  version Nov. 23, 2015
- * @version Dec.  9, 2015
+ *  version Dec.  9, 2015
+ * @version Nov. 12, 2017
  * @author  ASAMI, Tomoharu
  */
 trait Powertype {
   def value: Int
   def name: String
   def label: String = name
+  def i18nLabel: Option[I18NString] = None
   def aliases: Seq[String] = Nil
   def mark: Option[String] = None
   def isMark(c: Character): Boolean = {
@@ -32,6 +36,8 @@ trait Powertype {
         None
     }
   }
+
+  def label(locale: Locale): String = i18nLabel.flatMap(_.get(locale)).getOrElse(label)
 }
 
 trait PowertypeClass {

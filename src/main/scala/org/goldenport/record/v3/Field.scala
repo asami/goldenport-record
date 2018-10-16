@@ -1,8 +1,13 @@
 package org.goldenport.record.v3
 
 import java.sql.Timestamp
+import java.util.Locale
 import org.joda.time.DateTime
 import org.goldenport.record.v2.{ValidationResult, Valid, Warning, Invalid}
+import play.api.libs.json._
+import org.goldenport.exception.RAISE
+import org.goldenport.record.v2.Column
+import org.goldenport.record.util.AnyUtils
 
 /*
  * derived from org.goldenport.g3.message.
@@ -30,12 +35,15 @@ import org.goldenport.record.v2.{ValidationResult, Valid, Warning, Invalid}
  *  version Dec. 31, 2014
  *  version Jan.  2, 2015
  *  version Jun. 21, 2015
- * @version Jul. 14, 2015
+ *  version Jul. 14, 2015
+ *  version Aug. 31, 2018
+ * @version Sep. 17, 2018
  * @author  ASAMI, Tomoharu
  */
 case class Field(
   key: Symbol,
   value: FieldValue,
+  meta: Field.MetaData = Field.MetaData.empty,
   validation: ValidationResult = Valid
 ) {
   def isValid: Boolean = validation == Valid
@@ -45,12 +53,15 @@ case class Field(
     case _ => false
   }
   def isInvalid: Boolean = validation.isInstanceOf[Invalid]
-
+  def name: String = key.name
   def asString: String = value.asString
+  def asStringList: List[String] = RAISE.unsupportedOperationFault
   def asInt: Int = value.asInt
   def asLong: Long = value.asLong
   def asTimestamp: Timestamp = value.asTimestamp
   def asDateTime: DateTime = value.asDateTime
+  def asRecord: Record = value.asRecord
+  def asRecordList: List[Record] = value.asRecordList
 
   def string: String = value.string
   def int: Int = value.int
@@ -63,19 +74,45 @@ case class Field(
     data.map(x => key -> x)
   }
 
-  def keyStringValue: Option[(String, Any)] = {
+  def nameValue: Option[(String, Any)] = {
     keyValue map {
       case (k, v) => k.name -> v
     }
   }
 
+  def nameString: Option[(String, String)] = {
+    keyValue map {
+      case (k, v) => k.name -> AnyUtils.toString(v)
+    }
+  }
+
+  def getJsonField: Option[(String, JsValue)] = value.getJson.map(x => name -> x)
+
   def toLtsv: String = {
     val v = asString // TODO normalize (replace with space)
     key.name + ":" + v
   }
+
+  def normalizeHttp: Field = copy(value = value.normalizeHttp)
 }
 
 object Field {
+  case class MetaData(
+    column: Option[Column]
+  ) {
+    def name = column.map(_.name)
+    def datatype = column.map(_.datatype)
+    def multiplicity = column.map(_.multiplicity)
+    def label(locale: Locale) = column.map(_.label(locale))
+    def constraints = column.map(_.constraints)
+    def displayFormat = column.flatMap(_.displayFormat) // CSS
+    def layout = column.map(_.layout) // Bootstrap grid
+    def form = column.map(_.form) // HTML FORM
+  }
+  object MetaData {
+    val empty = MetaData(None)
+  }
+
   def create(key: Symbol, value: Any): Field = {
     value match {
       case Some(x) => create(key, x)
@@ -89,7 +126,9 @@ object Field {
     create(data._1, data._2)
   }
 
-  def fromData(data: (String, Any)): Field = {
+  def createData(data: (String, Any)): Field = {
     create(Symbol(data._1), data._2)
   }
+
+  def create(key: String, p: JsValue): Field = Field(Symbol(key), FieldValue.create(p))
 }

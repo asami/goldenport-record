@@ -9,6 +9,9 @@ import org.goldenport.record.v2._
  * @since   Nov. 15, 2015
  *  version Dec.  4, 2015
  *  version Apr. 27, 2016
+ *  version Mar. 28, 2018
+ *  version Apr.  7, 2018
+ *  version May. 31, 2018
  * @version Oct. 16, 2018
  * @author  ASAMI, Tomoharu
  */
@@ -17,9 +20,21 @@ sealed trait StoreOperation[+A] extends ExtensionUnitOfWork[A] {
 
 case class Get(store: Store, id: Store.Id) extends StoreOperation[GetResult]
 
+case class GetShare(store: Store, id: Store.Id) extends StoreOperation[GetResult]
+
+case class GetExclusive(store: Store, id: Store.Id) extends StoreOperation[GetResult]
+
 case class Gets(store: Store, ids: Seq[Store.Id]) extends StoreOperation[GetsResult]
 
+case class GetsShare(store: Store, ids: Seq[Store.Id]) extends StoreOperation[GetsResult]
+
+case class GetsExclusive(store: Store, ids: Seq[Store.Id]) extends StoreOperation[GetsResult]
+
 case class Select(store: Store, query: Query) extends StoreOperation[SelectResult]
+
+case class SelectShare(store: Store, query: Query) extends StoreOperation[SelectResult]
+
+case class SelectExclusive(store: Store, query: Query) extends StoreOperation[SelectResult]
 
 case class Insert(store: Store, rec: Record) extends StoreOperation[InsertResult]
 
@@ -29,9 +44,9 @@ case class Update(store: Store, id: Store.Id, rec: Record) extends StoreOperatio
 
 case class Updates(store: Store, rs: Map[Store.Id, Record]) extends StoreOperation[IndexedSeq[UpdateResult]]
 
-case class Delete(store: Store, id: Store.Id) extends StoreOperation[Unit]
+case class Delete(store: Store, id: Store.Id) extends StoreOperation[DeleteResult]
 
-case class Deletes(store: Store, ids: Seq[Store.Id]) extends StoreOperation[Unit]
+case class Deletes(store: Store, ids: Seq[Store.Id]) extends StoreOperation[IndexedSeq[DeleteResult]]
 
 case class Commit() extends StoreOperation[CommitResult]
 
@@ -48,6 +63,11 @@ case class UpdateResult(
   items: IndexedSeq[Store.Id] = Vector.empty
 )
 case class UpdatesResult(updates: IndexedSeq[UpdateResult])
+case class DeleteResult(
+  id: Store.Id,
+  items: IndexedSeq[Store.Id] = Vector.empty
+)
+case class DeletesResult(ids: IndexedSeq[Store.Id])
 sealed trait CommitResult {
   def log: String
 }
@@ -62,9 +82,17 @@ object StoreOperation {
 
   def get(store: Store, id: Store.Id) = Free.liftF(Get(store, id))
 
+  def getShare(store: Store, id: Store.Id) = Free.liftF(GetShare(store, id))
+
+  def getExclusive(store: Store, id: Store.Id) = Free.liftF(GetExclusive(store, id))
+
   def gets(store: Store, ids: Seq[Store.Id]) = Free.liftF(Gets(store, ids))
 
   def select(store: Store, query: Query) = Free.liftF(Select(store, query))
+
+  def selectShare(store: Store, query: Query) = Free.liftF(SelectShare(store, query))
+
+  def selectExclusive(store: Store, query: Query) = Free.liftF(SelectExclusive(store, query))
 
   def insert(
     store: Store,
@@ -85,6 +113,8 @@ object StoreOperation {
   def updatesS(store: Store, rs: Map[String, Record]) = Free.liftF(Updates(store, rs.map(kv => Store.StringId(kv._1) -> kv._2)))
 
   def delete(store: Store, id: String) = Free.liftF(Delete(store, Store.StringId(id)))
+
+  def delete(store: Store, id: Store.Id) = Free.liftF(Delete(store, id))
 
   def deletes(store: Store, ids: Seq[Store.Id]) = Free.liftF(Deletes(store, ids))
 

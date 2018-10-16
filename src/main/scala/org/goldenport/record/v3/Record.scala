@@ -1,13 +1,16 @@
 package org.goldenport.record.v3
 
+import scalaz._, Scalaz._
 import java.sql.Timestamp
-import org.goldenport.record.util.StringUtils
-import org.goldenport.record.util.JsonUtils
+import play.api.libs.json._
 import org.joda.time.DateTime
+import org.goldenport.record.util.{StringUtils, JsonUtils}
 import org.goldenport.record.v2.{
   ValidationResult, Valid, Warning, Invalid,
   Schema
 }
+import org.goldenport.record.v2.{Record => Record2, Schema}
+import org.goldenport.record.v2.util.RecordUtils
 
 /*
  * derived from org.goldenport.g3.message.
@@ -37,16 +40,26 @@ import org.goldenport.record.v2.{
  *  version May. 29, 2015
  *  version Jun. 21, 2015
  *  version Jul. 31, 2015
- * @version Aug. 10, 2015
+ *  version Aug. 10, 2015
+ *  version Aug. 31, 2018
+ *  version Sep. 17, 2018
+ * @version Oct. 16, 2018
  * @author  ASAMI, Tomoharu
  */
 case class Record(
   fields: IndexedSeq[Field],
-  timestamp: Long = System.currentTimeMillis,
-  validation: ValidationResult = Valid,
-  source: IndexedSeq[Record] = IndexedSeq.empty,
-  exception: Option[Throwable] = None
-) {
+  meta: Record.MetaData = Record.MetaData.empty, // XXX (composite record?)
+  timestamp: Long = System.currentTimeMillis, // XXX (composite record?)
+  validation: ValidationResult = Valid, // XXX (composite record?)
+  source: IndexedSeq[Record] = IndexedSeq.empty, // XXX (composite record?)
+  exception: Option[Throwable] = None // XXX (composite record?)
+) extends IRecord
+    with XmlPart with JsonPart with CsvPart with LtsvPart
+    with HttpPart with SqlPart
+    with CompatibilityPart {
+  def toRecord = this
+  def toRecord2: Record2 = Record2.createApp(nameValues)
+
   override def equals(o: Any): Boolean = {
     o match {
       case rec: Record if length == rec.length =>
@@ -58,14 +71,15 @@ case class Record(
   def length(): Int = fields.length
   def isEmpty() = fields.isEmpty
   def nonEmpty() = fields.nonEmpty
+  def isDefined(key: Symbol): Boolean = fields.exists(_.key == key)
+  def isDefined(key: String): Boolean = isDefined(Symbol(key))
 
-  def isDefined(key: Symbol): Boolean = {
-    fields.exists(_.key == key)
-  }
+  def nonDefined(key: Symbol): Boolean = !isDefined(key)
+  def nonDefined(key: String): Boolean = !isDefined(key)
 
-  def nonDefinded(key: Symbol): Boolean = {
-    !isDefined(key)
-  }
+  def get(key: String): Option[Any] = getField(key).flatMap(_.value.getValue)
+
+  def get(key: Symbol): Option[Any] = getField(key).flatMap(_.value.getValue)
 
   def isValid: Boolean = {
     validation == Valid && fields.forall(_.isValid)
@@ -102,12 +116,35 @@ case class Record(
     getField(key).map(_.asString)
   }
 
-  def getInt(key: Symbol): Option[Int] = {
-    getField(key).map(_.asInt)
+  def getString(key: String): Option[String] = {
+    getString(Symbol(key))
+  }
+
+  def asString(key: Symbol): String = {
+    getString(key) getOrElse {
+      throw new IllegalArgumentException(s"Missing string '$key.name'")
+    }
+  }
+
+  def takeStringList(key: Symbol): List[String] = ???
+
+  def takeStringList(key: String): List[String] = ???
+
+  def getInt(key: Symbol): Option[Int] = getField(key).map(_.asInt)
+  def getInt(key: String): Option[Int] = getField(key).map(_.asInt)
+
+  def asInt(key: Symbol): Int = getInt(key) getOrElse {
+    throw new IllegalArgumentException(s"Missing int '$key.name'")
   }
 
   def getLong(key: Symbol): Option[Long] = {
     getField(key).map(_.asLong)
+  }
+
+  def asLong(key: Symbol): Long = {
+    getLong(key) getOrElse {
+      throw new IllegalArgumentException(s"Missing int '$key.name'")
+    }
   }
 
   def getTimestamp(key: Symbol): Option[Timestamp] = {
@@ -118,37 +155,21 @@ case class Record(
     getField(key).map(_.asDateTime)
   }
 
-  def asString(key: Symbol): String = {
-    getString(key) getOrElse {
-      throw new IllegalArgumentException(s"Missing string '$key.name'")
-    }
-  }
-
-  def asInt(key: Symbol): Int = {
-    getInt(key) getOrElse {
-      throw new IllegalArgumentException(s"Missing int '$key.name'")
-    }
-  }
-
-  def asLong(key: Symbol): Long = {
-    getLong(key) getOrElse {
-      throw new IllegalArgumentException(s"Missing int '$key.name'")
-    }
-  }
-
   def asDateTime(key: Symbol): DateTime = {
     getDateTime(key) getOrElse {
       throw new IllegalArgumentException(s"Missing datetime '$key.name'")
     }
   }
 
-  def getString(key: String): Option[String] = {
-    getString(Symbol(key))
-  }
+  def getRecord(key: Symbol): Option[Record] = getField(key).map(_.asRecord)
+  def getRecord(key: String): Option[Record] = getField(key).map(_.asRecord)
 
-  def getInt(key: String): Option[Int] = {
-    getInt(Symbol(key))
-  }
+  def takeRecordList(key: Symbol): List[Record] = getField(key).map(_.asRecordList).getOrElse(Nil)
+  def takeRecordList(key: String): List[Record] = getField(key).map(_.asRecordList).getOrElse(Nil)
+
+  def keyValues: Seq[(Symbol, Any)] = fields.flatMap(_.keyValue)
+  def nameValues: Seq[(String, Any)] = fields.flatMap(_.nameValue)
+  def nameStrings: Seq[(String, String)] = fields.flatMap(_.nameString)
 
   /*
    * Predicates
@@ -172,6 +193,12 @@ case class Record(
   /*
    * Mutation
    */
+  def +(rhs: Record): Record = update(rhs)
+  def +(rhs: IRecord): IRecord = update(rhs.toRecord)
+
+  def update(rec: Record): Record =
+    rec.fields.foldLeft(this)((z, x) => z.updateField(x.key, x.value))
+
   def update(kv: (Symbol, Any)*): Record = {
     kv.foldLeft(this)((z, x) => z.update(x._1, x._2))
   }
@@ -203,9 +230,9 @@ case class Record(
   ): Record = {
     val (prefix, suffix) = fields.span(_.key != key) // XXX isMatch?
     val r = if (suffix.isEmpty) {
-      prefix :+ Field(key, value, validation)
+      prefix :+ Field(key, value, validation = validation)
     } else {
-      prefix ++ (Field(key, value, validation) +: suffix.tail)
+      prefix ++ (Field(key, value, validation = validation) +: suffix.tail)
     }
     copy(timestamp = System.currentTimeMillis, fields = r)
   }
@@ -281,24 +308,26 @@ case class Record(
     schema.columns.toVector.map(c => getString(c.name) getOrElse "")
   }
 
-  /*
-   * LTSV
-   */
-  def toLtsv: String = {
-    fields.map(_.toLtsv).mkString("\t")
+  def updateField(key: Symbol, value: FieldValue): Record = {
+    val (prefix, suffix) = fields.span(_.key != key) // XXX isMatch?
+    val r = suffix.toList match {
+      case Nil => prefix :+ Field.create(key, value)
+      case x :: xs => prefix ++ (Field.create(key, value) :: xs)
+    }
+    copy(fields = r)
   }
+}
 
-  def toLtsvPart: String = {
-    fields.map(x => "\t" + x.toLtsv).mkString
+object Record {
+  val empty = Record(Vector.empty)
+
+  case class MetaData(
+    schema: Option[Schema]
+  ) {
+    def columns: Option[List[Field.MetaData]] = schema.map(_.columns.map(x => Field.MetaData(Some(x))).toList)
   }
-
-  /*
-   * Json
-   */
-  def toJsonString: String = {
-    val buf = new StringBuilder
-    buildJsonString(buf)
-    buf.toString
+  object MetaData {
+    val empty = MetaData(None)
   }
 
   def buildJsonString(buf: StringBuilder) {
@@ -308,62 +337,25 @@ case class Record(
       buf.append("\":")
       JsonUtils.data2json(buf, kv._2)
     }
-
-    buf.append("{")
-    val fs = keyStringValues
-    if (fs.nonEmpty) {
-      buildfield(fs.head)
-      for (f <- fs.tail) {
-        buf.append(",")
-        buildfield(f)
-      }
-    }
-    buf.append("}")
   }
 
-  def keyStringValues: Seq[(String, Any)] = {
-    fields.flatMap(_.keyStringValue)
+  implicit object RecordMonoid extends Monoid[Record] {
+    def zero = Record.empty
+    def append(lhs: Record, rhs: => Record) = lhs + rhs
   }
 
-  /*
-   * Log
-   */
-  def toLog: String = {
-    val buf = new StringBuilder
-    def key(k: Symbol) {
-      buf.append("\"")
-      buf.append(k.name)
-      buf.append("\":")
-    }
-    def field(k: Symbol, v: Any) {
-      key(k)
-      JsonUtils.data2json(buf, v)
-    }
-    buf.append("{")
-    field('timestamp, timestamp)
-    buf.append(",")
-    key('data)
-    buildJsonString(buf)
-    buf.append(",")
-    field('validation, validation)
-    if (source.nonEmpty) {
-      buf.append(",")
-      key('source)
-      buf.append("[")
-      buf.append(source.map(_.toLog).mkString(","))
-      buf.append("]")
-    }
-    for (e <- exception) {
-      buf.append(",")
-      field('exception, e)
-    }
-    buf.append("}")
-    buf.toString
-  }
-}
+  def data(data: (String, Any)*): Record = createDataSeq(data)
 
-object Record {
-  val empty = Record(Vector.empty)
+  def dataOption(data: (String, Option[Any])*): Record = {
+    val xs = data.collect {
+      case (k, Some(v)) => k -> v
+    }
+    create(xs)
+  }
+
+  def create(map: scala.collection.Map[String, Any]): Record = create(map.toVector)
+
+  def create(data: Seq[(String, Any)]): Record = createDataSeq(data)
 
   def data(xs: (Symbol, Any)*): Record = {
     Record(xs.map(Field.create).toVector)
@@ -377,20 +369,29 @@ object Record {
     data(a: _*)
   }
 
-  def fromDataSeq(data: Seq[(String, Any)]): Record = {
-    Record(data.map(Field.fromData).toVector)
-  }
+  // def fromDataSeq(data: Seq[(String, Any)]): Record = {
+  //   Record(data.map(Field.fromData).toVector)
+  // }
 
-  def fromDataOptionSeq(data: Seq[(String, Any)]): Record = {
-    val a = data flatMap {
-      case (k, Some(v)) => Some(k -> v)
-      case (k, None) => None
-    }
-    fromDataSeq(a)
-  }
+  // def fromDataOptionSeq(data: Seq[(String, Any)]): Record = {
+  //   val a = data flatMap {
+  //     case (k, Some(v)) => Some(k -> v)
+  //     case (k, None) => None
+  //   }
+  //   fromDataSeq(a)
+  // }
+
+  def createDataSeq(data: Seq[(String, Any)]): Record =
+    Record(data.map(Field.createData).toVector)
+
+  def createHttp(data: Map[String, List[String]]): Record =
+    create(data).http.request.normalize
+
+  def createHttp(data: Seq[(String, List[String])]): Record =
+    create(data).http.request.normalize
 
   def fromLtsv(ltsv: String): Record = {
-    Record.fromDataSeq(StringUtils.ltsv2seq(ltsv))
+    Record.createDataSeq(StringUtils.ltsv2seq(ltsv))
   }
 
   def fromLtsv(ltsv: Option[String]): Record = {
@@ -399,5 +400,43 @@ object Record {
 
   def fromException(e: Throwable): Record = {
     Record(Vector.empty, exception = Some(e))
+  }
+
+  def fromJson(p: String): Record = create(Json.parse(p))
+
+  def create(p: JsValue): Record = p match {
+    case null => Record.empty
+    case JsNull => Record.empty
+    case m: JsObject => create(m)
+    case _: JsArray => throw new IllegalArgumentException(s"Array: $p")
+    case _ => throw new IllegalArgumentException(s"Not object: $p")
+  }
+
+  def create(p: JsObject): Record = {
+    val xs = p.fields.map {
+      case (k, v) => Field.create(k, v)
+    }
+    Record(xs.toVector)
+  }
+
+  def buildSchema(p: IRecord): Schema = RecordUtils.buildSchema(p.toRecord.toRecord2)
+  def buildSchema(ps: Seq[IRecord]): Schema = {
+    val xs = ps.map(_.toRecord.toRecord2)
+    RecordUtils.buildSchema(xs)
+  }
+
+  object json {
+    import play.api.libs.json._
+    import play.api.libs.functional.syntax._
+    import org.goldenport.json.JsonUtils.Implicits._
+    import org.goldenport.record.v2.util.RecordUtils
+
+    implicit object RecordFormat extends Format[Record] {
+      def reads(json: JsValue): JsResult[Record] = json match {
+        case m: JsObject => JsSuccess(create(m))
+        case _ => JsError(s"Invalid Record($json)")
+      }
+      def writes(o: Record): JsValue = o.toJson
+    }
   }
 }

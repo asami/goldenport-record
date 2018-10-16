@@ -2,10 +2,14 @@ package org.goldenport.record.v2
 
 import scalaz._, Scalaz._
 import Validator._
+import java.util.Locale
+import com.asamioffice.goldenport.text.UString
 import org.smartdox.Description
+import org.goldenport.i18n.I18NString
+import org.goldenport.record.v2.projector.ProjectorContext
 
 /*
- * @snice   Dec.  8, 2012
+ * @since   Dec.  8, 2012
  *  version Dec. 12, 2012
  *  version Feb. 20, 2013
  *  version Mar.  3, 2013
@@ -15,7 +19,17 @@ import org.smartdox.Description
  *  version Aug. 11, 2014
  *  version Oct. 27, 2015
  *  version Nov.  8, 2015
- * @version Feb. 26, 2016
+ *  version Feb. 26, 2016
+ *  version Jan. 15, 2017
+ *  version Aug.  1, 2017
+ *  version Sep. 27, 2017
+ *  version Oct. 22, 2017
+ *  version Nov. 12, 2017
+ *  version Dec. 13, 2017
+ *  version Apr. 10, 2018
+ *  version Jul. 28, 2018
+ *  version Aug. 24, 2018
+ * @version Sep.  4, 2018
  * @author  ASAMI, Tomoharu
  */
 case class Column(
@@ -26,19 +40,38 @@ case class Column(
   constraints: List[Constraint] = Nil,
 //  orderBy: Option[SqlOrder] = None, // displayFormat
   visibility: Visibility = PlainVisibility,
-  label: Option[String] = None,
+  label: Option[String] = None, // C locale and last resort
+  i18nLabel: Option[I18NString] = None,
   aliases: List[String] = Nil,
   sql: SqlColumn = NullSqlColumn,
-  formatter: Option[Formatter] = None,
-  displaySequence: Option[Int] = None, // TODO unify displayFormat
+  // formatter: Option[Formatter] = None, // unify displayFormat
+  displaySequence: Option[Int] = None, // compatibility, unify displayFormat
   displayFormat: Option[DisplayFormat] = None,
-  desc: Description = Description.empty
+  desc: Description = Description.empty,
+  layout: Column.Layout = Column.Layout.empty,
+  form: Column.Form = Column.Form.empty,
+  extension: Column.Extension = Column.Extension.empty
 //  operations: Seq[Operation] = Nil,
 //  extjs: Map[String, Any] = Map.empty,
 //  isAvailableMode: ExecutionMode => Boolean = _ => true,
 //  properties: Map[String, Any] = Map.empty,
 //  comment: String = ""
 ) extends ColumnSlot {
+//  def displayFormat = extension.displayFormat
+  override def toString() = if (Schema.isDebug)
+    s"Column(${showlong})"
+  else
+    s"Column(${show})"
+
+  def show: String = s"$name,${datatype.name},${multiplicity.mark}"
+  def showlong: String = s"${show},${form},${extension}"
+
+  def withDatatype(p: DataType) = copy(datatype = p)
+  def withPlaceholder(p: String) = copy(form = form.withPlaceholder(p))
+
+  def converter = extension.converter
+  def importer = extension.importer
+  def exporter = extension.exporter
   def orderBy: Option[SqlOrder] = displayFormat.flatMap(_.orderBy)
 
   def validate(f: Field): ValidationResult = {
@@ -106,22 +139,131 @@ case class Column(
   lazy val nameCandidates: Vector[String] =
     Vector(name) ++ aliases ++ label.toVector
 
+  def label(locale: Locale): String =
+    i18nLabel.flatMap(_.get(locale)) orElse label getOrElse UString.capitalize(name)
+
+  def isRequired: Boolean = multiplicity == MOne || multiplicity == MOneMore
+  def getPlaceholder(locale: Locale): Option[String] = form.placeholder.flatMap(_.get(locale))
+
   /*
-   * Formatter
+   * Format for display
    */
   def format(value: Option[List[Any]]): String = {
     def otherwise = value match {
       case None => ""
       case Some(xs) => xs.map(datatype.format).mkString(",")
     }
-    formatter match {
+    displayFormat.flatMap(_.formatter) match {
       case Some(f) => f.format(this, value) getOrElse otherwise
       case None => otherwise
     }
   }
+  // def format(value: Option[List[Any]]): String = {
+  //   def otherwise = value match {
+  //     case None => ""
+  //     case Some(xs) => xs.map(datatype.format).mkString(",")
+  //   }
+  //   formatter match {
+  //     case Some(f) => f.format(this, value) getOrElse otherwise
+  //     case None => otherwise
+  //   }
+  // }
+
+  /*
+   * Import/Export and Convert
+   */
+  def importIn(rec: Record): Record = importIn(rec, rec)
+  def importIn(src: Record, sink: Record): Record = {
+    importer.fold(sink)(_.apply(this, src).
+      fold(sink)(x => sink.update(name -> x))
+    )
+  }
+  def importIn(ctx: ProjectorContext, rec: Record): Record = importIn(ctx, rec, rec)
+  def importIn(ctx: ProjectorContext, src: Record, sink: Record): Record = {
+    importer.fold(sink)(_.apply(ctx, this, src).
+      fold(sink)(x => sink.update(name -> x))
+    )
+  }
+  def exportOut(rec: Record): Record = exporter.fold(rec)(x => _transform(x.apply, rec))
+  def convertIn(rec: Record): Record = converter.fold(rec)(x => _transform(x.convertIn, rec))
+  def convertOut(rec: Record): Record = converter.fold(rec)(x => _transform(x.convertOut, rec))
+  private def _transform(f: Any => Any, rec: Record): Record =
+    rec.get(name).fold(rec)(x => rec.update(name -> x))
 }
 
 object Column {
+  val PROP_NAME = "name"
+  val PROP_DATATYPE = "datatype"
+  val PROP_MULTIPLICITY = "multiplicity"
+  val PROP_LABEL = "label"
+  val PROP_I18N_LABEL = "labelI18N"
+  val PROP_FROM = "form"
+
+  def comp(lhs: Column, rhs: Column): List[String] =
+    List(
+      lhs.name != rhs.name option s"name(${lhs.name}, ${rhs.name})",
+      lhs.datatype != rhs.datatype option s"datatype(${lhs.datatype}, ${rhs.datatype}",
+      lhs.label != rhs.label option s"label(${lhs.label}, ${rhs.label}",
+      lhs.form != rhs.form option s"form(${lhs.form}, ${rhs.form}",
+      lhs.extension != rhs.extension option s"extension(${lhs.extension}, ${rhs.extension}"
+    ).flatten
+
+  case class Grid(fraction: Int, denominator: Int)
+
+  case class Layout(
+    optional: Boolean = false,
+    grid: Option[Grid] = None
+  )
+  object Layout {
+    val empty = Layout()
+  }
+
+  case class Form(
+    placeholder: Option[I18NString] = None,
+    value: Option[String] = None,
+    hidden: Boolean = false,
+    readonly: Boolean = false
+    // invisible: Boolean = false : Visibility
+  ) {
+    def withPlaceholder(p: String) = copy(placeholder = Some(I18NString(p)))
+    def withValueOption(p: Option[String]) = p.fold(this)(x => copy(value = Some(x)))
+    def isEmpty = this == Form.empty
+  }
+  object Form {
+    val empty = Form()
+  }
+
+  case class Extension(
+//    displayFormat: Option[DisplayFormat],
+    converter: Option[Converter], // convert to/from internal datatype
+    importer: Option[Importer], // import data to represent datattype
+    exporter: Option[Exporter] // export data from represent datatype
+  )
+
+  object Extension {
+    val empty = Extension(None, None, None)
+
+    def create(importer: Importer): Extension = Extension(None, Some(importer), None)
+
+    //    def apply(p: DisplayFormat): Extension = Extension(Some(p), None, None, None)
+
+  }
+
+  object record {
+    def unmarshall(p: Record): Column = {
+      val name = p.asString(PROP_NAME)
+      val datatype = p.getConcreteString(PROP_NAME).map(DataType.to) getOrElse XString
+      val multiplicity = p.getConcreteString(PROP_MULTIPLICITY).map(Multiplicity.to) getOrElse MOne
+      val label = p.getConcreteString(PROP_LABEL)
+      val i18nLabel = None // TODO
+      val form = Form.empty // TODO
+      Column(name, datatype, multiplicity,
+        label = label,
+        i18nLabel = i18nLabel,
+        form = form
+      )
+    }
+  }
 }
 
 sealed trait ColumnKind {

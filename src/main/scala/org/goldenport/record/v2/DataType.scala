@@ -2,7 +2,7 @@ package org.goldenport.record.v2
 
 import java.util.UUID
 import java.sql.{Timestamp, Date, Time}
-import java.net.URL
+import java.net.{URL, URI}
 import java.text.SimpleDateFormat
 import com.asamioffice.goldenport.io.UURL
 import org.joda.time._
@@ -10,11 +10,14 @@ import scala.util.control.NonFatal
 import scala.math._
 import scalaz._, Scalaz._
 import Validator._
+import org.goldenport.Strings
+import org.goldenport.exception.RAISE
+import org.goldenport.i18n.I18NString
 import org.goldenport.record.util.{
-  DateUtils, TimeUtils, TimestampUtils, DateTimeUtils}
+  DateUtils, TimeUtils, TimestampUtils, DateTimeUtils, AnyUtils}
 
 /*
- * @snice   Nov. 23, 2012
+ * @since   Nov. 23, 2012
  *  version Dec. 18, 2012
  *  version Jan. 29, 2013
  *  version Feb. 20, 2013
@@ -24,7 +27,13 @@ import org.goldenport.record.util.{
  *  version Feb.  6, 2014
  *  version May. 15, 2014
  *  version Jul. 27, 2014
- * @version Sep. 25, 2015
+ *  version Sep. 25, 2015
+ *  version Jun. 16, 2016
+ *  version Jan. 23, 2017
+ *  version Sep. 21, 2017
+ *  version Oct. 22, 2017
+ *  version Nov. 13, 2017
+ * @version Jan. 21, 2018
  * @author  ASAMI, Tomoharu
  */
 sealed trait DataType {
@@ -33,6 +42,7 @@ sealed trait DataType {
   def toInstance(v: Any): InstanceType
   def validate(d: Any): ValidationResult
   def label: String
+  def labelI18N: I18NString = I18NString(label)
   def mapData(s: String): String = s
   def toDouble(s: String): Validation[Throwable, Double] = new NumberFormatException(s).failure
   def toDecimal(s: String): Validation[Throwable, BigDecimal] = {
@@ -46,6 +56,7 @@ sealed trait DataType {
   def isReference: Boolean = !isValue
   def isSqlString: Boolean = true
   def getXmlDatatypeName: Option[String] = None
+  def getHtmlInputTypeName: Option[String] = None
 
   def format(value: Any): String = value.toString
 
@@ -65,6 +76,238 @@ sealed trait DataType {
     else
       DataTypeFailure.create(this, v)
   }
+}
+
+object DataType {
+  private val _datatypes = Vector(
+    XBoolean,
+    XByte,
+    XShort,
+    XInt,
+    XLong,
+    XFloat,
+    XFloat1,
+    XDouble,
+    XInteger,
+    XDecimal,
+    XString,
+    XNonEmptyString,
+    XNonBlankString,
+    XToken,
+    XNonEmptyToken,
+    XNonBlankToken,
+    XDate,
+    XTime,
+    XDateTime,
+    XText,
+    XNonEmptyText,
+    XNonBlankText,
+    XBase64,
+    XBinary,
+    XLink,
+    XImageLink,
+    XEMail,
+    XMoney,
+    XPercent,
+    XUnit,
+    XColor,
+    XFile,
+    XMonth,
+    XMonthDay,
+    XYear,
+    XYearEffective,
+    XYearPast,
+    XYearMonth,
+    XDay,
+    XDuration,
+    XPassword,
+    // XRange
+    XSearch,
+    XTel,
+    XWeek,
+    XUuid,
+    XEntityId,
+    XEverforthid,
+    XXml,
+    XHtml,
+    XRecordInstance
+    // XEntityReference, XValue, XEverforthObjectReference, XPowertype, XPowertypeReference, XStateMachine, XStateMachineReference, XExternalDataType
+  )
+
+  def get(p: String): Option[DataType] = _datatypes.find(_.name == p) orElse {
+    val pf: PartialFunction[String, DataType] = {
+      case "statemachine" => XStateMachine()
+    }
+    pf.lift(p)
+  }
+
+  def to(p: String): DataType = get(p) getOrElse {
+    throw new NoSuchElementException(s"Unavailable datatype: $p")
+  }
+
+  def guessSeq(ps: Seq[Any]): DataType =  {
+    @annotation.tailrec
+    def go(p: List[Any], dt: DataType): DataType = p match {
+      case Nil => dt
+      case x :: xs =>
+        val guessed = guess(x)
+        if (dt == guessed)
+          go(xs, dt)
+        else
+          unify(dt, guessed)
+    }
+    ps.toList match {
+      case Nil => XString
+      case x :: xs => go(xs, guess(x))
+    }
+  }
+
+  def guess(p: Any): DataType = p match {
+    case _: String => XString
+    case _: Boolean => XBoolean
+    case _: Byte => XByte
+    case _: Short => XShort
+    case _: Int => XInt
+    case _: Long => XLong
+    case _: Float => XFloat
+    case _: Double => XDouble
+    case _: BigInt => XInteger
+    case _: BigDecimal => XDecimal
+    case _: Date => XDate
+    case _: LocalDate => XDate
+    case _: Time => XTime
+    case _: LocalTime => XTime
+    case _: Timestamp => XDateTime
+    case _: DateTime => XDateTime
+    case _: URL => XLink
+    case _: Record => XRecordInstance
+    case m: Seq[_] => guessSeq(m)
+    case m: Array[_] => guessSeq(m.toList)
+    case _ => XString
+  }
+
+  def unify(lhs: DataType, rhs: DataType): DataType =
+    lhs match {
+      case XString => XString
+      case XBoolean => rhs match {
+        case XString => XString
+        case XBoolean => XBoolean
+        case XByte => XByte
+        case XShort => XShort
+        case XInt => XInt
+        case XLong => XLong
+        case XFloat => XFloat
+        case XDouble => XDouble
+        case XInteger => XInteger
+        case XDecimal => XDecimal
+        case _ => XString
+      }
+      case XByte => rhs match {
+        case XString => XString
+        case XBoolean => XByte
+        case XByte => XByte
+        case XShort => XShort
+        case XInt => XInt
+        case XLong => XLong
+        case XFloat => XFloat
+        case XDouble => XDouble
+        case XInteger => XInteger
+        case XDecimal => XDecimal
+        case _ => XString
+      }
+      case XShort => rhs match {
+        case XString => XString
+        case XBoolean => XShort
+        case XByte => XShort
+        case XShort => XShort
+        case XInt => XInt
+        case XLong => XLong
+        case XFloat => XFloat
+        case XDouble => XDouble
+        case XInteger => XInteger
+        case XDecimal => XDecimal
+        case _ => XString
+      }
+      case XInt => rhs match {
+        case XString => XString
+        case XBoolean => XInt
+        case XByte => XInt
+        case XShort => XInt
+        case XInt => XInt
+        case XLong => XLong
+        case XFloat => XFloat
+        case XDouble => XDouble
+        case XInteger => XInteger
+        case XDecimal => XDecimal
+        case _ => XString
+      }
+      case XLong => rhs match {
+        case XString => XString
+        case XBoolean => XLong
+        case XByte => XLong
+        case XShort => XLong
+        case XInt => XLong
+        case XLong => XLong
+        case XFloat => XFloat
+        case XDouble => XDouble
+        case XInteger => XInteger
+        case XDecimal => XDecimal
+        case _ => XString
+      }
+      case XFloat => rhs match {
+        case XString => XString
+        case XBoolean => XFloat
+        case XByte => XFloat
+        case XShort => XFloat
+        case XInt => XFloat
+        case XLong => XFloat
+        case XFloat => XFloat
+        case XDouble => XDouble
+        case XInteger => XInteger
+        case XDecimal => XDecimal
+        case _ => XString
+      }
+      case XDouble => rhs match {
+        case XString => XString
+        case XBoolean => XDouble
+        case XByte => XDouble
+        case XShort => XDouble
+        case XInt => XDouble
+        case XLong => XDouble
+        case XFloat => XDouble
+        case XDouble => XDouble
+        case XInteger => XInteger
+        case XDecimal => XDecimal
+        case _ => XString
+      }
+      case XInteger => rhs match {
+        case XString => XString
+        case XBoolean => XInteger
+        case XByte => XInteger
+        case XShort => XInteger
+        case XInt => XInteger
+        case XLong => XInteger
+        case XFloat => XDecimal
+        case XDouble => XDecimal
+        case XInteger => XInteger
+        case XDecimal => XDecimal
+        case _ => XString
+      }
+      case XDecimal => rhs match {
+        case XString => XString
+        case XBoolean => XDecimal
+        case XByte => XDecimal
+        case XShort => XDecimal
+        case XInt => XDecimal
+        case XLong => XDecimal
+        case XFloat => XDecimal
+        case XDouble => XDecimal
+        case XInteger => XDecimal
+        case XDecimal => XDecimal
+        case _ => XString
+      }
+      case _ => if (lhs == rhs) lhs else XString
+    }
 }
 
 case object XBoolean extends DataType {
@@ -102,6 +345,7 @@ case object XBoolean extends DataType {
   def label = "Bool値"
   override def isSqlString = false
   override def getXmlDatatypeName = Some("boolean")
+  override def getHtmlInputTypeName = Some("checkbox")
 }
 
 case object XByte extends DataType {
@@ -135,6 +379,7 @@ case object XByte extends DataType {
   def label = "整数値(-128~127)"
   override def isSqlString = false
   override def getXmlDatatypeName = Some("byte")
+  override def getHtmlInputTypeName = Some("number")
 }
 
 case object XShort extends DataType {
@@ -169,6 +414,7 @@ case object XShort extends DataType {
   def label = "整数値(-32768~32767)"
   override def isSqlString = false
   override def getXmlDatatypeName = Some("short")
+  override def getHtmlInputTypeName = Some("number")
 }
 
 case object XInt extends DataType {
@@ -206,6 +452,7 @@ case object XInt extends DataType {
   def label = "整数値(-2^31~2^31、約20億)"
   override def isSqlString = false
   override def getXmlDatatypeName = Some("int")
+  override def getHtmlInputTypeName = Some("number")
 }
 
 case object XLong extends DataType {
@@ -243,6 +490,7 @@ case object XLong extends DataType {
   def label = "整数値(-2^63~2^63)"
   override def isSqlString = false
   override def getXmlDatatypeName = Some("long")
+  override def getHtmlInputTypeName = Some("number")
 }
 
 case object XFloat extends DataType {
@@ -279,6 +527,7 @@ case object XFloat extends DataType {
   def label = "浮動小数点値"
   override def isSqlString = false
   override def getXmlDatatypeName = Some("float")
+  override def getHtmlInputTypeName = Some("number")
 }
 
 case object XFloat1 extends DataType {
@@ -315,6 +564,7 @@ case object XFloat1 extends DataType {
   def label = "浮動小数点値"
   override def isSqlString = false
   override def getXmlDatatypeName = Some("float")
+  override def getHtmlInputTypeName = Some("number")
 }
 
 case object XDouble extends DataType {
@@ -348,6 +598,7 @@ case object XDouble extends DataType {
   def label = "浮動小数点値"
   override def isSqlString = false
   override def getXmlDatatypeName = Some("double")
+  override def getHtmlInputTypeName = Some("number")
 }
 
 case object XInteger extends DataType {
@@ -385,6 +636,7 @@ case object XInteger extends DataType {
   def label = "整数値"
   override def isSqlString = false
   override def getXmlDatatypeName = Some("integer")
+  override def getHtmlInputTypeName = Some("number")
 }
 
 case object XDecimal extends DataType {
@@ -428,6 +680,7 @@ case object XDecimal extends DataType {
   def label = "数値"
   override def isSqlString = false
   override def getXmlDatatypeName = Some("decimal")
+  override def getHtmlInputTypeName = Some("number")
 }
 
 case object XString extends DataType {
@@ -439,6 +692,45 @@ case object XString extends DataType {
   def validate(d: Any): ValidationResult = Valid
   def label = "文字列"
   override def getXmlDatatypeName = Some("string")
+  override def getHtmlInputTypeName = Some("text")
+}
+
+case object XNonEmptyString extends DataType {
+  type InstanceType = String
+  def toInstance(x: Any): InstanceType = XString.toInstance(x)
+  def validate(d: Any): ValidationResult = {
+    XString.validate(d) match {
+      case Valid =>
+        val v: String = XString.toInstance(d)
+        if (Strings.notemptyp(v))
+          Valid
+        else
+          ValueDomainFailure(s"Empty String", v)
+      case m => m
+    }
+  }
+  def label = XString.label
+  override def getXmlDatatypeName = XString.getXmlDatatypeName
+  override def format(value: Any): String = XString.format(value)
+}
+
+case object XNonBlankString extends DataType {
+  type InstanceType = String
+  def toInstance(x: Any): InstanceType = XString.toInstance(x)
+  def validate(d: Any): ValidationResult = {
+    XString.validate(d) match {
+      case Valid =>
+        val v: String = XString.toInstance(d)
+        if (Strings.notblankp(v))
+          Valid
+        else
+          ValueDomainFailure(s"Blank String", v)
+      case m => m
+    }
+  }
+  def label = XString.label
+  override def getXmlDatatypeName = XString.getXmlDatatypeName
+  override def format(value: Any): String = XString.format(value)
 }
 
 case object XToken extends DataType {
@@ -463,6 +755,45 @@ case object XToken extends DataType {
     s.replace("　", " ").trim
   }
   override def getXmlDatatypeName = Some("token")
+  override def getHtmlInputTypeName = Some("text")
+}
+
+case object XNonEmptyToken extends DataType {
+  type InstanceType = String
+  def toInstance(x: Any): InstanceType = XToken.toInstance(x)
+  def validate(d: Any): ValidationResult = {
+    XToken.validate(d) match {
+      case Valid =>
+        val v: String = XToken.toInstance(d)
+        if (Strings.notemptyp(v))
+          Valid
+        else
+          ValueDomainFailure(s"Empty Token", v)
+      case m => m
+    }
+  }
+  def label = XToken.label
+  override def getXmlDatatypeName = XToken.getXmlDatatypeName
+  override def format(value: Any): String = XToken.format(value)
+}
+
+case object XNonBlankToken extends DataType {
+  type InstanceType = String
+  def toInstance(x: Any): InstanceType = XToken.toInstance(x)
+  def validate(d: Any): ValidationResult = {
+    XToken.validate(d) match {
+      case Valid =>
+        val v: String = XToken.toInstance(d)
+        if (Strings.notblankp(v))
+          Valid
+        else
+          ValueDomainFailure(s"Blank String", v)
+      case m => m
+    }
+  }
+  def label = XToken.label
+  override def getXmlDatatypeName = XToken.getXmlDatatypeName
+  override def format(value: Any): String = XToken.format(value)
 }
 
 case object XDate extends DataType {
@@ -493,6 +824,7 @@ case object XDate extends DataType {
   def label = "日付"
   override def isSqlString = true
   override def getXmlDatatypeName = Some("date")
+  override def getHtmlInputTypeName = Some("date")
 
   override def format(value: Any): String = {
     DateUtils.toIsoDateString(toInstance(value))
@@ -526,16 +858,20 @@ case object XTime extends DataType {
   def label = "時間"
   override def isSqlString = true
   override def getXmlDatatypeName = Some("time")
+  override def getHtmlInputTypeName = Some("time")
 
   override def format(value: Any): String = {
     TimeUtils.toIsoTimeString(toInstance(value))
   }
 }
 
+// Not preserve timezone
 case object XDateTime extends DataType {
   type InstanceType = Timestamp
   def toInstance(x: Any): InstanceType = {
     x match {
+      case v: Int => new Timestamp(v)
+      case v: Long => new Timestamp(v)
       case v: java.util.Date => new Timestamp(v.getTime)
       case v: DateTime => new Timestamp(v.getMillis)
       case v: String => TimestampUtils.parseIso(v)
@@ -561,6 +897,7 @@ case object XDateTime extends DataType {
   def label = "日時"
   override def isSqlString = true
   override def getXmlDatatypeName = Some("dateTime")
+  override def getHtmlInputTypeName = Some("datetime-local")
 
   override def format(value: Any): String = {
     TimestampUtils.toIsoDateTimeString(toInstance(value))
@@ -577,6 +914,60 @@ case object XText extends DataType {
   def label = "テキスト"
 }
 
+case object XNonEmptyText extends DataType {
+  type InstanceType = String
+  def toInstance(x: Any): InstanceType = XText.toInstance(x)
+  def validate(d: Any): ValidationResult = {
+    XString.validate(d) match {
+      case Valid =>
+        val v: String = XText.toInstance(d)
+        if (Strings.notemptyp(v))
+          Valid
+        else
+          ValueDomainFailure(s"Empty Text", v)
+      case m => m
+    }
+  }
+  def label = XString.label
+  override def getXmlDatatypeName = XText.getXmlDatatypeName
+  override def format(value: Any): String = XText.format(value)
+}
+
+case object XNonBlankText extends DataType {
+  type InstanceType = String
+  def toInstance(x: Any): InstanceType = XText.toInstance(x)
+  def validate(d: Any): ValidationResult = {
+    XString.validate(d) match {
+      case Valid =>
+        val v: String = XText.toInstance(d)
+        if (Strings.notblankp(v))
+          Valid
+        else
+          ValueDomainFailure(s"Blank Text", v)
+      case m => m
+    }
+  }
+  def label = XString.label
+  override def getXmlDatatypeName = XText.getXmlDatatypeName
+  override def format(value: Any): String = XText.format(value)
+}
+
+case object XBase64 extends DataType {
+  type InstanceType = String
+  def toInstance(x: Any): InstanceType = x.toString
+
+  def validate(d: Any): ValidationResult = Valid // TODO
+  def label = "BASE64"
+}
+
+case object XBinary extends DataType {
+  type InstanceType = Any
+  def toInstance(x: Any): InstanceType = x
+
+  def validate(d: Any): ValidationResult = Valid // TODO
+  def label = "Binary"
+}
+
 case object XLink extends DataType {
   type InstanceType = URL
   def toInstance(x: Any): InstanceType = {
@@ -589,6 +980,22 @@ case object XLink extends DataType {
   def validate(d: Any): ValidationResult = Valid // TODO
   def label = "リンク"
   override def getXmlDatatypeName = Some("anyURI")
+  override def getHtmlInputTypeName = Some("url")
+}
+
+case object XImageLink extends DataType {
+  type InstanceType = URL
+  def toInstance(x: Any): InstanceType = {
+    x match {
+      case v: URL => v
+      case v: String => UURL.getURLFromFileOrURLName(v)
+    }
+  }
+
+  def validate(d: Any): ValidationResult = Valid // TODO
+  def label = "画像"
+  override def getXmlDatatypeName = Some("anyURI")
+  override def getHtmlInputTypeName = Some("image")
 }
 
 case object XEMail extends DataType {
@@ -615,6 +1022,7 @@ case object XMoney extends DataType {
   def label = "金額"
   override def isSqlString = false
   override def getXmlDatatypeName = Some("decimal")
+  override def getHtmlInputTypeName = Some("number")
 }
 
 case object XPercent extends DataType {
@@ -626,6 +1034,7 @@ case object XPercent extends DataType {
   def label = "パーセント"
   override def isSqlString = false
   override def getXmlDatatypeName = Some("float")
+  override def getHtmlInputTypeName = Some("number")
 }
 
 case object XUnit extends DataType {
@@ -637,6 +1046,225 @@ case object XUnit extends DataType {
   def validate(d: Any): ValidationResult = Valid
   def label = "単位"
   override def getXmlDatatypeName = Some("token")
+  override def getHtmlInputTypeName = Some("text")
+}
+
+// HTML
+case object XColor extends DataType {
+  type InstanceType = String
+  def toInstance(x: Any): InstanceType = {
+    x.toString
+  }
+
+  def validate(d: Any): ValidationResult = Valid
+  def label = "色"
+  override def getXmlDatatypeName = Some("token")
+  override def getHtmlInputTypeName = Some("color")
+}
+
+// HTML
+case object XFile extends DataType {
+  type InstanceType = String
+  def toInstance(x: Any): InstanceType = {
+    x.toString
+  }
+
+  def validate(d: Any): ValidationResult = Valid
+  def label = "ファイル"
+  override def getHtmlInputTypeName = Some("file")
+}
+
+// HTML
+case object XMonth extends DataType {
+  type InstanceType = Int
+  def toInstance(x: Any): InstanceType = XInt.toInstance(x)
+  def validate(d: Any): ValidationResult = {
+    XInt.validate(d) match {
+      case Valid =>
+        val v: Int = XInt.toInstance(d)
+        if (1 <= v && v <= 12)
+          Valid
+        else
+          ValueDomainFailure(s"Invalid month: $v", v.toString)
+      case m => m
+    }
+  }
+  def label = "月"
+  override def getXmlDatatypeName = Some("gMonth")
+  override def getHtmlInputTypeName = Some("month")
+  override def format(value: Any): String = XInt.format(value)
+}
+
+// XML Datatype
+case object XMonthDay extends DataType {
+  type InstanceType = String
+  def toInstance(x: Any): InstanceType = {
+    x.toString
+  }
+
+  def validate(d: Any): ValidationResult = Valid
+  def label = "月日"
+  override def getXmlDatatypeName = Some("gMonthDay")
+  override def getHtmlInputTypeName = Some("text")
+}
+
+// XML Datatype
+case object XYear extends DataType {
+  type InstanceType = Int
+  def toInstance(x: Any): InstanceType = AnyUtils.toInt(x)
+  def validate(d: Any): ValidationResult = Valid
+  def label = "年"
+  override def getXmlDatatypeName = Some("gYear")
+  override def getHtmlInputTypeName = Some("number")
+}
+
+case object XYearEffective extends DataType {
+  type InstanceType = Int
+  def toInstance(x: Any): InstanceType = XInt.toInstance(x)
+  def validate(d: Any): ValidationResult = {
+    XInt.validate(d) match {
+      case Valid =>
+        val v: Int = XInt.toInstance(d)
+        if (1900 <= v && v <= 2100)
+          Valid
+        else
+          ValueDomainFailure(s"Invalid year: $v", v.toString)
+      case m => m
+    }
+  }
+  def label = "年"
+  override def getXmlDatatypeName = Some("gYear")
+  override def getHtmlInputTypeName = Some("number")
+  override def format(value: Any): String = XInt.format(value)
+}
+
+case object XYearPast extends DataType {
+  type InstanceType = Int
+  def toInstance(x: Any): InstanceType = XInt.toInstance(x)
+  def validate(d: Any): ValidationResult = {
+    XInt.validate(d) match {
+      case Valid =>
+        val v: Int = XInt.toInstance(d)
+        RAISE.notImplementedYetDefect
+      case m => m
+    }
+  }
+  def label = "年"
+  override def getXmlDatatypeName = Some("gYear")
+  override def getHtmlInputTypeName = Some("number")
+  override def format(value: Any): String = XInt.format(value)
+}
+
+// XML Datatype
+case object XYearMonth extends DataType {
+  type InstanceType = String
+  def toInstance(x: Any): InstanceType = {
+    x.toString
+  }
+
+  def validate(d: Any): ValidationResult = Valid
+  def label = "年"
+  override def getXmlDatatypeName = Some("gYearMonth")
+  override def getHtmlInputTypeName = Some("text")
+}
+
+// XML Datatype
+case object XDay extends DataType {
+  type InstanceType = Int
+  def toInstance(x: Any): InstanceType = XInt.toInstance(x)
+  def validate(d: Any): ValidationResult = {
+    XInt.validate(d) match {
+      case Valid =>
+        val v: Int = XInt.toInstance(d)
+        if (1 <= v && v <= 31)
+          Valid
+        else
+          ValueDomainFailure(s"Invalid month: $v", v.toString)
+      case m => m
+    }
+  }
+  def label = "日"
+  override def getXmlDatatypeName = Some("gDay")
+  override def getHtmlInputTypeName = Some("number")
+  override def format(value: Any): String = XInt.format(value)
+}
+
+// XML Datatype
+case object XDuration extends DataType {
+  type InstanceType = String
+  def toInstance(x: Any): InstanceType = {
+    x.toString
+  }
+
+  def validate(d: Any): ValidationResult = Valid
+  def label = "年"
+  override def getXmlDatatypeName = Some("duration")
+  override def getHtmlInputTypeName = Some("text")
+}
+
+// HTML
+case object XPassword extends DataType {
+  type InstanceType = String
+  def toInstance(x: Any): InstanceType = {
+    x.toString
+  }
+
+  def validate(d: Any): ValidationResult = Valid
+  def label = "パスワード"
+  override def getXmlDatatypeName = Some("token")
+  override def getHtmlInputTypeName = Some("password")
+}
+
+// HTML
+case class XRange(min: Long, max: Long, step: Long) extends DataType {
+  type InstanceType = String
+  def toInstance(x: Any): InstanceType = {
+    x.toString
+  }
+
+  def validate(d: Any): ValidationResult = Valid
+  def label = "範囲"
+  override def getXmlDatatypeName = Some("token")
+  override def getHtmlInputTypeName = Some("range")
+}
+
+// HTML
+case object XSearch extends DataType {
+  type InstanceType = String
+  def toInstance(x: Any): InstanceType = {
+    x.toString
+  }
+
+  def validate(d: Any): ValidationResult = Valid
+  def label = "色"
+  override def getXmlDatatypeName = Some("token")
+  override def getHtmlInputTypeName = Some("searchbox")
+}
+
+// HTML
+case object XTel extends DataType {
+  type InstanceType = String
+  def toInstance(x: Any): InstanceType = {
+    x.toString
+  }
+
+  def validate(d: Any): ValidationResult = Valid
+  def label = "電話番号"
+  override def getXmlDatatypeName = Some("token")
+  override def getHtmlInputTypeName = Some("tel")
+}
+
+// HTML
+case object XWeek extends DataType {
+  type InstanceType = String
+  def toInstance(x: Any): InstanceType = {
+    x.toString
+  }
+
+  def validate(d: Any): ValidationResult = Valid
+  def label = "週"
+  override def getXmlDatatypeName = Some("token")
+  override def getHtmlInputTypeName = Some("week")
 }
 
 case object XUuid extends DataType {
@@ -650,6 +1278,18 @@ case object XUuid extends DataType {
 
   def validate(d: Any): ValidationResult = Valid
   def label = "UUID"
+  override def getXmlDatatypeName = Some("token")
+  override def getHtmlInputTypeName = Some("text")
+}
+
+case object XEntityId extends DataType { // XEntityReference
+  type InstanceType = String
+  def toInstance(x: Any): InstanceType = {
+    x.toString
+  }
+
+  def validate(d: Any): ValidationResult = Valid
+  def label = "EntityID"
   override def getXmlDatatypeName = Some("token")
 }
 
@@ -704,6 +1344,19 @@ case class XValue(schema: Schema) extends DataType {
 
   def validate(d: Any): ValidationResult = Valid // TODO
   def label = "埋込み値"
+  override def isSqlString = false // typical case
+  override def isValue = true
+  override def isReference = false
+}
+
+case object XRecordInstance extends DataType {
+  type InstanceType = Record
+  def toInstance(x: Any): InstanceType = x match {
+    case m: Record => m
+  }
+
+  def validate(d: Any): ValidationResult = Valid // TODO
+  def label = "レコード値"
   override def isSqlString = false // typical case
   override def isValue = true
   override def isReference = false

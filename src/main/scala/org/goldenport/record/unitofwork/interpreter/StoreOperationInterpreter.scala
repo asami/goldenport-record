@@ -9,7 +9,8 @@ import org.goldenport.record.unitofwork._
 /*
  * @since   Nov. 15, 2015
  *  version Dec.  3, 2015
- * @version Apr. 28, 2016
+ *  version Apr. 28, 2016
+ * @version Mar. 28, 2018
  * @author  ASAMI, Tomoharu
  */
 trait StoreOperationInterpreter[+F[_]] extends NaturalTransformation[StoreOperation, F] {
@@ -26,8 +27,14 @@ trait StoreOperationInterpreter[+F[_]] extends NaturalTransformation[StoreOperat
   def apply[T](op: StoreOperation[T]): F[T] = {
     op match {
       case Get(store, id) => get(store, id)
+      case GetShare(store, id) => getShare(store, id)
+      case GetExclusive(store, id) => getExclusive(store, id)
       case Gets(store, ids) => gets(store, ids)
+      case GetsShare(store, ids) => getsShare(store, ids)
+      case GetsExclusive(store, ids) => getsExclusive(store, ids)
       case Select(store, query) => select(store, query)
+      case SelectShare(store, query) => selectShare(store, query)
+      case SelectExclusive(store, query) => selectExclusive(store, query)
       case Insert(store, rec) => insert(store, rec)
       case Inserts(store, rs) => inserts(store, rs)
       case Update(store, id, rec) => update(store, id, rec)
@@ -39,8 +46,14 @@ trait StoreOperationInterpreter[+F[_]] extends NaturalTransformation[StoreOperat
   }
 
   def get[T](store: Store, id: Store.Id): F[T]
+  def getShare[T](store: Store, id: Store.Id): F[T]
+  def getExclusive[T](store: Store, id: Store.Id): F[T]
   def gets[T](store: Store, ids: Seq[Store.Id]): F[T]
+  def getsShare[T](store: Store, ids: Seq[Store.Id]): F[T]
+  def getsExclusive[T](store: Store, ids: Seq[Store.Id]): F[T]
   def select[T](store: Store, query: Query): F[T]
+  def selectShare[T](store: Store, query: Query): F[T]
+  def selectExclusive[T](store: Store, query: Query): F[T]
   def insert[T](store: Store, rec: Record): F[T]
   def inserts[T](store: Store, rs: RecordSet): F[T]
   def update[T](store: Store, id: Store.Id, rec: Record): F[T]
@@ -60,12 +73,36 @@ class IdStoreOperationInterpreter(
     logic.get(store, id).asInstanceOf[T]
   }
 
+  def getShare[T](store: Store, id: Store.Id): T = {
+    logic.getShare(store, id).asInstanceOf[T]
+  }
+
+  def getExclusive[T](store: Store, id: Store.Id): T = {
+    logic.getExclusive(store, id).asInstanceOf[T]
+  }
+
   def gets[T](store: Store, ids: Seq[Store.Id]): T = {
     logic.gets(store, ids).asInstanceOf[T]
   }
 
+  def getsShare[T](store: Store, ids: Seq[Store.Id]): T = {
+    logic.getsShare(store, ids).asInstanceOf[T]
+  }
+
+  def getsExclusive[T](store: Store, ids: Seq[Store.Id]): T = {
+    logic.getsExclusive(store, ids).asInstanceOf[T]
+  }
+
   def select[T](store: Store, query: Query): T = {
     logic.select(store, query).asInstanceOf[T]
+  }
+
+  def selectShare[T](store: Store, query: Query): T = {
+    logic.selectShare(store, query).asInstanceOf[T]
+  }
+
+  def selectExclusive[T](store: Store, query: Query): T = {
+    logic.selectExclusive(store, query).asInstanceOf[T]
   }
 
   def insert[T](store: Store, rec: Record): T = {
@@ -108,12 +145,36 @@ trait StoreOperationInterpreterBase[F[_]] extends StoreOperationInterpreter[F] {
     typeclass.point(logic.get(store, id).asInstanceOf[T])
   }
 
+  def getShare[T](store: Store, id: Store.Id): F[T] = {
+    typeclass.point(logic.getShare(store, id).asInstanceOf[T])
+  }
+
+  def getExclusive[T](store: Store, id: Store.Id): F[T] = {
+    typeclass.point(logic.getExclusive(store, id).asInstanceOf[T])
+  }
+
   def gets[T](store: Store, ids: Seq[Store.Id]): F[T] = {
     typeclass.point(logic.gets(store, ids).asInstanceOf[T])
   }
 
+  def getsShare[T](store: Store, ids: Seq[Store.Id]): F[T] = {
+    typeclass.point(logic.getsShare(store, ids).asInstanceOf[T])
+  }
+
+  def getsExclusive[T](store: Store, ids: Seq[Store.Id]): F[T] = {
+    typeclass.point(logic.getsExclusive(store, ids).asInstanceOf[T])
+  }
+
   def select[T](store: Store, query: Query): F[T] = {
     typeclass.point(logic.select(store, query).asInstanceOf[T])
+  }
+
+  def selectShare[T](store: Store, query: Query): F[T] = {
+    typeclass.point(logic.selectShare(store, query).asInstanceOf[T])
+  }
+
+  def selectExclusive[T](store: Store, query: Query): F[T] = {
+    typeclass.point(logic.selectExclusive(store, query).asInstanceOf[T])
   }
 
   def insert[T](store: Store, rec: Record): F[T] = {

@@ -7,13 +7,23 @@ import org.goldenport.record.command._
 import org.goldenport.record.util.AnyUtils
 
 /*
+ * Latest naming policy
+ *
+ * get means using Option
+ * effective means handling effective list structure
+ * form means handling empty html form is no parameter
+ * eager means handling eager delimiters separated list
+ * comma means handling comma delimiter separated list
+ *
+ * See RecordAux in lib.
+ * 
  * @since   Sep. 17, 2015
  *  version Oct. 25, 2015
  *  version Nov. 23, 2015
  *  version Dec. 11, 2015
  *  version Feb. 26, 2016
  *  version Apr. 27, 2016
- * @version Oct. 15, 2018
+ * @version Oct. 17, 2016
  * @author  ASAMI, Tomoharu
  */
 trait EagerListPart { self: Record =>

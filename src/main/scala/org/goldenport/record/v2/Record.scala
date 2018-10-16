@@ -1,14 +1,15 @@
 package org.goldenport.record.v2
 
 import java.util.Date
-import java.net.URL
+import java.net.{URL, URI}
 import java.sql.Timestamp
 import scala.util.control.NonFatal
 import scala.math.{BigInt, BigDecimal}
 import org.goldenport.Strings
 import org.goldenport.Strings.notblankp
-import org.goldenport.record.util.{TimestampUtils, DateUtils}
-import org.goldenport.record.util.{AnyUtils}
+import org.goldenport.record.command.NullValue
+import org.goldenport.record.util.AnyUtils
+import org.goldenport.util.{TimestampUtils, DateUtils}
 
 /*
  * derived from org.goldenport.g3.message.
@@ -40,7 +41,17 @@ import org.goldenport.record.util.{AnyUtils}
  *  version Nov. 30, 2015
  *  version Dec. 13, 2015
  *  version Feb. 26, 2016
- * @version Apr. 29, 2016
+ *  version Apr. 29, 2016
+ *  version May. 20, 2016
+ *  version Aug. 26, 2016
+ *  version Sep. 22, 2016
+ *  version Oct. 18, 2016
+ *  version Jan.  7, 2016
+ *  version Sep.  4, 2017
+ *  version Oct. 26, 2017
+ *  version Dec. 27, 2017
+ *  version Jan. 11, 2018
+ * @version Jun.  1, 2018
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -60,6 +71,12 @@ case class RecordSet(records: Seq[Record],
   }
 }
 
+/*
+ * effective: special handling for internal list management
+ * eager: allow comma separated list representation
+ * rigid: inform whether list is empty as Option
+ * form: address an empty html form as no parameter
+ */
 case class Record(
   fields: List[Field], // TODO Seq
   // context
@@ -67,8 +84,15 @@ case class Record(
   timestamp: Long = System.currentTimeMillis,
   inputFiles: Seq[InputFile] = Nil,
   opaque: AnyRef = null,
-  source: Option[Record] = None
-) extends CommandPart with EagerListPart {
+  source: Option[Record] = None,
+  useKeyMatchLeaf: Boolean = false
+) extends CommandPart with EagerListPart with HtmlFormPart with JsonPart {
+  protected def is_match_key(key: Symbol)(f: Field): Boolean =
+    if (useKeyMatchLeaf)
+      f.isMatchKey(key)
+    else
+      f.key == key
+
   override def equals(o: Any): Boolean = {
     o match {
       case rec: Record if length == rec.length =>
@@ -78,7 +102,7 @@ case class Record(
   }
 
   def getField(key: Symbol): Option[Field] = {
-    fields.find(_.isMatchKey(key))
+    fields.find(is_match_key(key))
   }
 
   def getField(key: String): Option[Field] = {
@@ -86,33 +110,15 @@ case class Record(
   }
 
   def get(key: Symbol): Option[List[Any]] = {
-    fields.find(_.isMatchKey(key)).map(_.values)
+    fields.find(is_match_key(key)).map(_.values)
   }
 
-  // TODO unify Field
-  def getOne(key: Symbol): Option[Any] = {
-    get(key) match {
-      case None => None
-      case Some(Nil) => None
-      case Some(x :: _) => Some(x)
-    }
-/*
-    println("getOne = " + get(key))
-    println("getOne 2 = " + get(key).headOption)
-    val a = get(key) match {
-      case Some(x) => {
-        println("getOne 3 = " + x)
-        x.headOption
-      }
-      case None => None
-    }
-    println("getOne r = " + a)
-    a
-*/
-  }
+  def getOne(key: Symbol): Option[Any] =
+    getField(key).flatMap(_.getOne)
 
   def getFormOne(key: Symbol): Option[Any] = {
     getOne(key) filter {
+      case NullValue => false
       case "" => false
       case _ => true
     }
@@ -125,6 +131,7 @@ case class Record(
 
   def getFormString(key: Symbol): Option[String] = {
     getOne(key) flatMap {
+      case NullValue => None
       case "" => None
       case x => Some(AnyUtils.toString(x))
     }
@@ -145,6 +152,7 @@ case class Record(
 
   def getFormBoolean(key: Symbol): Option[Boolean] = {
     getOne(key) flatMap {
+      case NullValue => None
       case "" => None
       case x => getBoolean(key)
     }
@@ -156,6 +164,7 @@ case class Record(
 
   def getFormInt(key: Symbol): Option[Int] = {
     getOne(key) flatMap {
+      case NullValue => None
       case "" => None
       case x => Some(AnyUtils.toInt(x))
     }
@@ -167,6 +176,7 @@ case class Record(
 
   def getFormLong(key: Symbol): Option[Long] = {
     getOne(key) flatMap {
+      case NullValue => None
       case "" => None
       case x => Some(AnyUtils.toLong(x))
     }
@@ -178,6 +188,7 @@ case class Record(
 
   def getFormFloat(key: Symbol): Option[Float] = {
     getOne(key) flatMap {
+      case NullValue => None
       case "" => None
       case x => Some(AnyUtils.toFloat(x))
     }
@@ -189,6 +200,7 @@ case class Record(
 
   def getFormDouble(key: Symbol): Option[Double] = {
     getOne(key) flatMap {
+      case NullValue => None
       case "" => None
       case x => Some(AnyUtils.toDouble(x))
     }
@@ -204,6 +216,7 @@ case class Record(
 
   def getFormTimestamp(key: Symbol): Option[Timestamp] = {
     getOne(key) flatMap {
+      case NullValue => None
       case "" => None
       case x => getTimestamp(key)
     }
@@ -213,6 +226,18 @@ case class Record(
     getOne(key).map {
       case x: Date => x
       case s: String => DateUtils.parse(s)
+    }
+  }
+
+  def getFormDate(key: Symbol): Option[Date] = {
+    getOne(key) flatMap {
+      case NullValue => None
+      case x: Date => Some(x)
+      case s: String =>
+        if (notblankp(s))
+          Some(DateUtils.parse(s))
+        else
+          None
     }
   }
 
@@ -229,6 +254,10 @@ case class Record(
       case v => BigDecimal(v.toString)
     }
   }
+
+  def getUri(key: Symbol): Option[URI] = getOne(key).map(AnyUtils.toUri)
+
+  def getRecord(key: Symbol): Option[Record] = getOne(key).map(AnyUtils.toRecord)
 
   def getList(key: Symbol): List[Any] = {
     get(key) getOrElse Nil
@@ -373,9 +402,13 @@ case class Record(
     getDate(Symbol(key))
   }
 
+  def getFormDate(key: String): Option[Date] = getFormDate(Symbol(key))
+
   def getBigDecimal(key: String): Option[BigDecimal] = {
     getBigDecimal(Symbol(key))
   }
+
+  def getRecord(key: String): Option[Record] = getRecord(Symbol(key))
 
   def getList(key: String): List[Any] = {
     getList(Symbol(key))
@@ -590,7 +623,7 @@ case class Record(
   def isEmpty() = fields.isEmpty
   def nonEmpty() = fields.nonEmpty
 
-  def isDefined(key: Symbol): Boolean = fields.exists(_.isMatchKey(key))
+  def isDefined(key: Symbol): Boolean = fields.exists(is_match_key(key))
   def isDefined(key: String): Boolean = isDefined(Symbol(key))
 
   def isSourceDefined(key: Symbol): Boolean = {
@@ -830,6 +863,13 @@ case class Record(
     }
   }
 
+  def complementsEmpty(p: Seq[(String, Any)]): Record = {
+    val updatekeys = p.map(_._1)
+    val filtered = removeFields(field =>
+      updatekeys.contains(field.key.name) && field.isEmpty)
+    filtered.complements(p)
+  }
+
   def complement(key: String, value: Any): Record =
     complements(Vector(key -> value))
 
@@ -891,12 +931,11 @@ case class Record(
     copy(fields = fields.flatMap(f))
   }
 
-  def replace(f: Field => Option[Field]): Record = {
-    copy(fields = fields.map(x => f(x) match {
-      case Some(s) => s
-      case None => x
-    }))
-  }
+  def replaceRemove(f: Field => Option[Field]): Record =
+    copy(fields = fields.flatMap(f(_).toList))
+
+  def replace(f: Field => Field): Record =
+    copy(fields = fields.map(f))
 
   def replaceKey(from: String, to: String): Record = {
     replaceKey(Symbol(from), Symbol(to))
@@ -945,16 +984,76 @@ case class Record(
     }
   }
 
+  def replaceFields(pf: PartialFunction[Field, Field]): Record = {
+    ???
+  }
+
+  def replaceValues(pf: PartialFunction[Any, Any]): Record = {
+    ???
+  }
+
+  private def _replace_values(rec: Record, pf: PartialFunction[Any, Any]): Record = {
+    val xs = rec.fields.map { f =>
+      f.copy(values = _replace_values(f.values, pf))
+    }
+    rec.copy(fields = xs)
+  }
+
+  private def _replace_values(xs: List[Any], pf: PartialFunction[Any, Any]): List[Any] = {
+    if (xs.isEmpty)
+      xs
+    else if (_is_defined(xs, pf))
+      xs.map(_replace_value(_, pf))
+    else
+      xs
+  }
+
+  private def _is_defined(x: Any, pf: PartialFunction[Any, Any]): Boolean = {
+    x match {
+      case m: Seq[_] => m.exists(_is_defined(_, pf))
+      case _ => pf.isDefinedAt(x)
+    }
+  }
+
+  private def _replace_value(x: Any, pf: PartialFunction[Any, Any]): Any = {
+    x match {
+      case m: Seq[_] => m.map(_replace_value(_, pf))
+      case m if pf.isDefinedAt(m) => pf.apply(m)
+      case _ => x
+    }
+  }
+
+  def transformRecursive(f: Field => List[Field]): Record =
+    copy(
+      fields = for {
+        x <- fields
+        y <- f(x)
+      } yield {
+        val a = y.values.map {
+          case m: Record => m.transformRecursive(f)
+          case m => m
+        }
+        y.copy(values = a)
+      }
+    )
+
+  def replaceValueStringRecursive(key: String, f: String => String): Record =
+    transformRecursive(x =>
+      if (x.key.name == key)
+        x.getString.fold(List(x))(y => List(x.update(f(y))))
+      else List(x)
+    )
+
   def activateFields(keys: Seq[Symbol]) = {
     copy(fields = fields.filter(x => keys.contains(x.key)))
   }
 
-  def removeField(key: String): Record = {
-    removeField(Symbol(key))
+  def removeField(key: String, keys: String*): Record = {
+    removeFields((key +: keys.toVector).map(Symbol(_)))
   }
 
-  def removeField(key: Symbol): Record = {
-    removeFields(Vector(key))
+  def removeField(key: Symbol, keys: Symbol*): Record = {
+    removeFields(key +: keys.toVector)
   }
 
   def removeFields(keys: Seq[Symbol]): Record = {
@@ -962,7 +1061,7 @@ case class Record(
   }
 
   def removeFields(f: Field => Boolean): Record = {
-    copy(fields = fields.filter(f))
+    copy(fields = fields.filterNot(f))
   }
 
   def removeFieldsByName(p: String => Boolean): Record = {
@@ -985,16 +1084,50 @@ case class Record(
     fields.foldLeft(Z())(_ + _).result
   }
 
+  def normalizeLeaf: Record = normalizeLeaf(Map.empty)
+
+  def normalizeLeaf(pf: PartialFunction[Field, Field]): Record = {
+    case class Z(z: Vector[Field] = Vector.empty) {
+      def +(rhs: Field) = {
+        Strings.totokens(rhs.key.name, ".").lastOption.fold(
+          throw new IllegalStateException("No name field")
+        ) { s =>
+          val key = Symbol(s)
+          if (z.exists(x => x.key == key))
+            throw new IllegalStateException(s"Leaf key confilict ${rhs.key}")
+          else
+            Z(z :+ rhs.copy(key = key))
+        }
+      }
+      def result = z.toList
+    }
+    val xs = fields.foldLeft(Z())(_ + _).result
+    copy(fields = xs)
+  }
+
   override def toString(): String = {
     "Record(" + fields + ", " + inputFiles + ")"
   }
 
-  def distillByPrefix(rec: Record, prefix: String): Record = {
+  // def distillByPrefix(rec: Record, prefix: String): Record = {
+  //   val prefixlength = prefix.length
+  //   if (prefixlength == 0)
+  //     rec
+  //   else
+  //     Record(rec.fields.flatMap { x =>
+  //       if (x.key.name.startsWith(prefix))
+  //         Some(x.updateKey(x.key.name.substring(prefixlength)))
+  //       else
+  //         None
+  //     })
+  // }
+
+  def distillByPrefix(prefix: String): Record = {
     val prefixlength = prefix.length
     if (prefixlength == 0)
-      rec
+      this
     else
-      Record(rec.fields.flatMap { x =>
+      Record(fields.flatMap { x =>
         if (x.key.name.startsWith(prefix))
           Some(x.updateKey(x.key.name.substring(prefixlength)))
         else
@@ -1054,6 +1187,8 @@ case class Field(key: Symbol, values: List[Any]) {
   def update(v: Seq[Any]): Field = {
     Field(key, v.toList)
   }
+
+  def update(p: String): Field = copy(values = List(p))
 
   def mapDouble(f: Double => Double): Field = {
     try {
@@ -1129,7 +1264,9 @@ case class Field(key: Symbol, values: List[Any]) {
 
   def getOne: Option[Any] = {
     values match {
+      case null => None
       case Nil => None
+      case null :: _ => None
       case x :: _ => Some(x)
     }
   }
@@ -1167,6 +1304,9 @@ object RecordSet {
   def create(map: Seq[scala.collection.Map[String, Any]]): RecordSet = {
     RecordSet(map.map(Record.create))
   }
+
+  def createDb(map: Seq[scala.collection.Map[String, Any]]): RecordSet =
+    RecordSet(map.map(Record.createDb))
 }
 
 object Record {
@@ -1185,6 +1325,13 @@ object Record {
   def createS(data: Seq[(Symbol, Any)]): Record = {
     Record(data.map(Field.createS).toList)
   }
+
+  def createDb(map: scala.collection.Map[String, Any]): Record =
+    createDb(map.toList)
+
+  // compatibility: use Leaf instead.
+  def createDb(data: Seq[(String, Any)]): Record =
+    Record(data.map(Field.create).toList, useKeyMatchLeaf = true)
 
   /*
    * Uses the method in case of List as single object.
@@ -1439,6 +1586,21 @@ object Record {
     )
   }
 */
+
+  object json {
+    import play.api.libs.json._
+    import play.api.libs.functional.syntax._
+    import org.goldenport.json.JsonUtils.Implicits._
+    import org.goldenport.record.v2.util.RecordUtils
+
+    implicit object RecordFormat extends Format[Record] {
+      def reads(json: JsValue): JsResult[Record] = json match {
+        case m: JsObject => JsSuccess(RecordUtils.js2record(m))
+        case _ => JsError(s"Invalid Record($json)")
+      }
+      def writes(o: Record): JsValue = RecordUtils.record2Json(o)
+    }
+  }
 }
 
 case class MultiplicityChunk(

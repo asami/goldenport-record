@@ -24,8 +24,11 @@ libraryDependencies += "org.goldenport" %% "goldenport-atom" % "2.0.0"
 
 libraryDependencies += "org.smartdox" %% "smartdox" % "2.0.2-SNAPSHOT"
 
-// TODO remove
-libraryDependencies += "org.scalikejdbc" %% "scalikejdbc" % "3.3.1" % "provided"
+libraryDependencies += "com.typesafe.play" %% "play-json" % "2.6.10" % "provided" exclude("org.scala-stm", "scala-stm_2.10.0")
+
+libraryDependencies += "net.sf.opencsv" % "opencsv" % "2.3" % "provided"
+
+libraryDependencies +=  "org.scalaj" %% "scalaj-http" % "2.4.1" % "provided"
 
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.5" % "test"
 

@@ -4,7 +4,12 @@ import java.util.Date
 import java.sql.Timestamp
 import java.net.{URL, URI}
 import java.io.File
+import org.joda.time.LocalTime
+import play.api.libs.json.JsValue
 import com.asamioffice.goldenport.io.UURL
+import org.goldenport.record.v2.Record
+import org.goldenport.record.v2.util.RecordUtils
+import org.goldenport.util.{AnyUtils => LibAnyUtils}
 
 /*
  * See com.everforth.lib.util.AnyUtils
@@ -12,14 +17,22 @@ import com.asamioffice.goldenport.io.UURL
  * @since   Jun. 10, 2014
  *  version Jan. 28, 2015
  *  version Oct. 24, 2015
- * @version Apr. 29, 2016
+ *  version Apr. 29, 2016
+ *  version May. 25, 2017
+ *  version Nov. 13, 2017
+ *  version Jun. 27, 2018
+ * @version Jul. 18, 2018
  * @author  ASAMI, Tomoharu
  */
 object AnyUtils {
   def toString(x: Any): String = {
     x match {
       case v: Timestamp => DateTimeUtils.toIsoDateTimeStringJst(v)
+      case v: Symbol => v.name
       case m: Seq[_] => m.map(toString(_)).mkString(",")
+      case m: Array[_] => m.map(toString(_)).mkString(",")
+      case m: Record => RecordUtils.toJsonString(m)
+      case m: JsValue => m.toString
       case _ => x.toString
     }
   }
@@ -114,6 +127,7 @@ object AnyUtils {
       case s: String => DateUtils.parse(s)
     }
   }
+  def toLocalTime(x: Any): LocalTime = org.goldenport.util.AnyUtils.toLocalTime(x)
   def toUrl(x: Any): URL = {
     x match {
       case m: URL => m
@@ -121,5 +135,12 @@ object AnyUtils {
       case m: File => m.toURI.toURL
       case s: String => UURL.getURLFromFileOrURLName(s)
     }
+  }
+  def toUri(x: Any): URI = LibAnyUtils.toUri(x)
+  // V2
+  def toRecord(x: Any): Record = x match {
+    case m: Record => m
+    case m: String => org.goldenport.record.v2.util.RecordUtils.fromJsonString(m)
+    case m => throw new IllegalArgumentException(s"No record: $x")
   }
 }
