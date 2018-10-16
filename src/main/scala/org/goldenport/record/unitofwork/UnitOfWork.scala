@@ -8,7 +8,8 @@ import org.goldenport.record.v2._
 /*
  * @since   Nov. 15, 2015
  *  version Dec.  4, 2015
- * @version Apr. 27, 2016
+ *  version Apr. 27, 2016
+ * @version Oct. 16, 2018
  * @author  ASAMI, Tomoharu
  */
 sealed trait UnitOfWork[+A] {
@@ -24,13 +25,13 @@ case class InvokeService(request: UnitOfWork.ServiceRequest) extends UnitOfWork[
 case class Raise(e: Throwable) extends UnitOfWork[Throwable]
 
 object UnitOfWork {
-  type UnitOfWorkFM[T] = Free.FreeC[UnitOfWork, T]
+  type UnitOfWorkFM[T] = Free[UnitOfWork, T]
 
-  def lift[T[_] <: UnitOfWork[_], A](x: T[A]) = Free.liftFC(x)
-  def lift[T](x: T): UnitOfWorkFM[T] = Free.liftFC(Value(x))
+  def lift[T[_] <: UnitOfWork[_], A](x: T[A]) = Free.liftF(x)
+  def lift[T](x: T): UnitOfWorkFM[T] = Free.liftF(Value(x))
 
   def raise[T](e: Throwable): UnitOfWorkFM[T] = 
-    Free.liftFC(Raise(e)).asInstanceOf[UnitOfWorkFM[T]]
+    Free.liftF(Raise(e)).asInstanceOf[UnitOfWorkFM[T]]
 
   trait ServiceRequest
   trait ServiceResponse
@@ -55,13 +56,13 @@ object UnitOfWork {
   case class StringResponse(v: String) extends ServiceResponse
 
   def invoke[T <: ServiceResponse](req: ServiceRequest): UnitOfWorkFM[T] =
-    Free.liftFC(InvokeService(req)).asInstanceOf[UnitOfWorkFM[T]]
+    Free.liftF(InvokeService(req)).asInstanceOf[UnitOfWorkFM[T]]
 
   def runFM[F[_], O](
     f: UnitOfWorkFM[O]
   )(interpreter: NaturalTransformation[UnitOfWork, F]
   )(implicit F: Monad[F]): F[O] = {
-    Free.runFC(f)(interpreter)
+    f.foldMap(interpreter)
   }
 
   def runId[O](

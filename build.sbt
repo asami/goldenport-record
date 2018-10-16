@@ -4,9 +4,9 @@ name := "goldenport-record"
 
 version := "2.0.5"
 
-scalaVersion := "2.11.6"
+scalaVersion := "2.12.7"
 
-crossScalaVersions := Seq("2.11.6", "2.10.5")
+// crossScalaVersions := Seq("2.11.6", "2.10.5")
 
 scalacOptions += "-deprecation"
 
@@ -22,13 +22,14 @@ resolvers += "Asami Maven Repository" at "http://www.asamioffice.com/maven"
 
 libraryDependencies += "org.goldenport" %% "goldenport-atom" % "2.0.0"
 
-libraryDependencies += "org.smartdox" %% "smartdox" % "2.0.1"
+libraryDependencies += "org.smartdox" %% "smartdox" % "2.0.2-SNAPSHOT"
 
-libraryDependencies += "org.scalikejdbc" %% "scalikejdbc" % "2.2.6" % "provided"
+// TODO remove
+libraryDependencies += "org.scalikejdbc" %% "scalikejdbc" % "3.3.1" % "provided"
 
-libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.4" % "test"
+libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.5" % "test"
 
-libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.12.3" % "test"
+libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.14.0" % "test"
 
 libraryDependencies += "junit" % "junit" % "4.12" % "test"
 

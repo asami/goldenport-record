@@ -8,7 +8,8 @@ import org.goldenport.record.v2._
 /*
  * @since   Nov. 15, 2015
  *  version Dec.  4, 2015
- * @version Apr. 27, 2016
+ *  version Apr. 27, 2016
+ * @version Oct. 16, 2018
  * @author  ASAMI, Tomoharu
  */
 sealed trait StoreOperation[+A] extends ExtensionUnitOfWork[A] {
@@ -56,47 +57,47 @@ case class CommitFailure(log: String) extends CommitResult {
 }
 
 object StoreOperation {
-  type StoreOperationFM[T] = Free.FreeC[StoreOperation, T]
-  type StoreOperationFMRaw[T] = Free[({type λ[α] = Coyoneda[StoreOperation, α]})#λ, T]
+  type StoreOperationFM[T] = Free[StoreOperation, T]
+//  type StoreOperationFMRaw[T] = Free[({type λ[α] = Coyoneda[StoreOperation, α]})#λ, T]
 
-  def get(store: Store, id: Store.Id) = Free.liftFC(Get(store, id))
+  def get(store: Store, id: Store.Id) = Free.liftF(Get(store, id))
 
-  def gets(store: Store, ids: Seq[Store.Id]) = Free.liftFC(Gets(store, ids))
+  def gets(store: Store, ids: Seq[Store.Id]) = Free.liftF(Gets(store, ids))
 
-  def select(store: Store, query: Query) = Free.liftFC(Select(store, query))
+  def select(store: Store, query: Query) = Free.liftF(Select(store, query))
 
   def insert(
     store: Store,
     rec: Record
-  ): StoreOperationFM[InsertResult] = Free.liftFC(Insert(store, rec))
+  ): StoreOperationFM[InsertResult] = Free.liftF(Insert(store, rec))
 
   def inserts(
     store: Store,
     rs: RecordSet
-  ): StoreOperationFM[IndexedSeq[InsertResult]] = Free.liftFC(Inserts(store, rs))
+  ): StoreOperationFM[IndexedSeq[InsertResult]] = Free.liftF(Inserts(store, rs))
 
-  def update(store: Store, id: Store.Id, rec: Record) = Free.liftFC(Update(store, id, rec))
+  def update(store: Store, id: Store.Id, rec: Record) = Free.liftF(Update(store, id, rec))
 
-  def update(store: Store, id: String, rec: Record) = Free.liftFC(Update(store, Store.StringId(id), rec))
+  def update(store: Store, id: String, rec: Record) = Free.liftF(Update(store, Store.StringId(id), rec))
 
-  def updates(store: Store, rs: Map[Store.Id, Record]) = Free.liftFC(Updates(store, rs))
+  def updates(store: Store, rs: Map[Store.Id, Record]) = Free.liftF(Updates(store, rs))
 
-  def updatesS(store: Store, rs: Map[String, Record]) = Free.liftFC(Updates(store, rs.map(kv => Store.StringId(kv._1) -> kv._2)))
+  def updatesS(store: Store, rs: Map[String, Record]) = Free.liftF(Updates(store, rs.map(kv => Store.StringId(kv._1) -> kv._2)))
 
-  def delete(store: Store, id: String) = Free.liftFC(Delete(store, Store.StringId(id)))
+  def delete(store: Store, id: String) = Free.liftF(Delete(store, Store.StringId(id)))
 
-  def deletes(store: Store, ids: Seq[Store.Id]) = Free.liftFC(Deletes(store, ids))
+  def deletes(store: Store, ids: Seq[Store.Id]) = Free.liftF(Deletes(store, ids))
 
-  def commit() = Free.liftFC(Commit())
+  def commit() = Free.liftF(Commit())
 
   // compiler error
-//  def abort(p: String) = Free.liftFC(CommitFailure(p))
+//  def abort(p: String) = Free.liftF(CommitFailure(p))
 
   def runFM[F[_], O](
     f: StoreOperationFM[O]
   )(interpreter: NaturalTransformation[StoreOperation, F]
   )(implicit F: Monad[F]): F[O] = {
-    Free.runFC(f)(interpreter)
+    f.foldMap(interpreter)
   }
 
   def runId[O](

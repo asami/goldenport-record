@@ -1,6 +1,6 @@
 package org.goldenport.record.v2
 
-import scalaz.NonEmptyList
+import scalaz.{NonEmptyList, IList}
 import java.net.URL
 import org.goldenport.Strings
 import org.goldenport.record.command._
@@ -12,7 +12,8 @@ import org.goldenport.record.util.AnyUtils
  *  version Nov. 23, 2015
  *  version Dec. 11, 2015
  *  version Feb. 26, 2016
- * @version Apr. 27, 2016
+ *  version Apr. 27, 2016
+ * @version Oct. 15, 2018
  * @author  ASAMI, Tomoharu
  */
 trait EagerListPart { self: Record =>
@@ -36,7 +37,7 @@ trait EagerListPart { self: Record =>
     get(key).toList.flatMap(_expands).map(AnyUtils.toString).
       filter(Strings.notblankp) match {
         case Nil => None
-        case x :: xs => Some(NonEmptyList.nel(x, xs))
+        case x :: xs => Some(NonEmptyList.nel(x, IList.fromList(xs)))
       }
   }
 
@@ -51,7 +52,7 @@ trait EagerListPart { self: Record =>
     getEagerLongList(Symbol(key))
 
   def getEagerLongList(key: Symbol): Option[List[Long]] =
-    getEagerFormLongList(key).map(_.list)
+    getEagerFormLongList(key).map(_.list.toList)
 
   def getEagerFormLongList(key: String): Option[NonEmptyList[Long]] =
     getEagerFormLongList(Symbol(key))
@@ -64,7 +65,7 @@ trait EagerListPart { self: Record =>
       }.map(AnyUtils.toLong): List[Long]
     a match {
       case Nil => None
-      case x :: xs => Some(NonEmptyList.nel(x, xs))
+      case x :: xs => Some(NonEmptyList.nel(x, IList.fromList(xs)))
     }
   }
 
@@ -80,7 +81,7 @@ trait EagerListPart { self: Record =>
   private def _to_list[T](p: Option[List[T]]) = p getOrElse Nil
 
   def getEagerUrlList(key: Symbol): Option[List[URL]] =
-    getEagerFormUrlList(key).map(_.list)
+    getEagerFormUrlList(key).map(_.list.toList)
 
   def getEagerFormUrlList(key: Symbol): Option[NonEmptyList[URL]] = {
     val a = get(key).toList.flatMap(_expands).
@@ -90,7 +91,7 @@ trait EagerListPart { self: Record =>
       }.map(AnyUtils.toUrl): List[URL]
     a match {
       case Nil => None
-      case x :: xs => Some(NonEmptyList.nel(x, xs))
+      case x :: xs => Some(NonEmptyList.nel(x, IList.fromList(xs)))
     }
   }
 
