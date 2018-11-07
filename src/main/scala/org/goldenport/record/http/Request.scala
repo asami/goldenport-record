@@ -1,26 +1,31 @@
 package org.goldenport.record.http
 
-import java.net.URL
+import java.net.{URL, URLDecoder}
+import org.goldenport.Strings
 import org.goldenport.value._
 import org.goldenport.values.PathName
-import org.goldenport.record.v3.Record
+import org.goldenport.record.v3.{IRecord, Record}
+import org.goldenport.util.StringUtils
 
 /*
  * unify arcadia
  * 
  * @since   Dec. 19, 2017
  *  version Aug. 19, 2018
- * @version Sep. 17, 2018
+ *  version Sep. 17, 2018
+ * @version Oct. 30, 2018
  * @author  ASAMI, Tomoharu
  */
 case class Request(
   url: URL,
   method: Request.Method,
-  query: Record,
-  form: Record
+  query: IRecord,
+  form: IRecord,
+  header: IRecord
 ) {
   def isGet = method == Request.GET
   def isMutation = !isGet
+  def urlStringWithQuery = Request.buildUrlStringWithQuery(url, query)
   // lazy val pathName = PathName(pathname)
   def show = s"Request(${url})"
 }
@@ -41,5 +46,25 @@ object Request {
     val name = "DELETE"
   }
 
-  def apply(url: URL): Request = Request(url, GET, Record.empty, Record.empty)
+  def apply(url: URL): Request = Request(url, GET, Record.empty, Record.empty,Record.empty)
+
+  def create(baseurl: String, path: String): Request = {
+    val s = StringUtils.concatPath(baseurl, path)
+    apply(new URL(s))
+  }
+
+  def parseQuery(p: String): Record = {
+    val a = if (p.startsWith("?")) p.substring(1) else p
+    val bs = Strings.totokens(a, "&")
+    val xs = bs.map(x => StringUtils.tokeyvalue(x, "=")).map {
+      case (k, v) => k -> URLDecoder.decode(v, "UTF-8")
+    }
+    Record.create(xs)
+  }
+
+  def buildUrlStringWithQuery(url: URL, p: IRecord): String =
+    buildUrlStringWithQuery(url.toExternalForm, p)
+
+  def buildUrlStringWithQuery(s: String, p: IRecord): String =
+    StringUtils.addUrlParams(s, p.nameStrings)
 }

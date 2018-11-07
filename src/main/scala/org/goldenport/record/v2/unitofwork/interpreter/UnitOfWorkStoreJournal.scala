@@ -8,7 +8,8 @@ import org.goldenport.record.unitofwork.UnitOfWork._
 
 /*
  * @since   Apr.  3, 2018
- * @version May. 31, 2018
+ *  version May. 31, 2018
+ * @version Oct. 17, 2018
  * @author  ASAMI, Tomoharu
  */
 class UnitOfWorkStoreJournal(val store: Store) {
@@ -27,6 +28,7 @@ class UnitOfWorkStoreJournal(val store: Store) {
     _history.append(j)
   }
 
+  // TODO to sort through sequence number to handle right-hand-side folding in monad evaluation.
   def update(id: Store.Id, rec: Record): Unit = {
     val j = _objects.get(id) match {
       case Some(s) => s.update(rec)
@@ -66,7 +68,7 @@ object UnitOfWorkStoreJournal {
     )
   }
   case class Update(id: Store.Id, record: Record) extends JournalEntry {
-    def update(rec: Record) = copy(record = record.update(record))
+    def update(rec: Record) = copy(record = record.update(record)) // TODO rec, in port of sequence number sorting.
     def toLogRecord: Record = Record.dataApp(
       "kind" -> "update",
       "id" -> id,

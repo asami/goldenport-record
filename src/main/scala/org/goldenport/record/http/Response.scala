@@ -17,7 +17,8 @@ import org.goldenport.bag.{ChunkBag, BufferFileBag}
  * 
  * @since   Oct.  8, 2017
  *  version Aug. 29, 2018
- * @version Sep. 18, 2018
+ *  version Sep. 18, 2018
+ * @version Oct.  8, 2018
  * @author  ASAMI, Tomoharu
  */
 sealed trait Response {
@@ -31,6 +32,7 @@ sealed trait Response {
   def json: JsValue
   def show: String
   def isSuccess = code == 200
+  def isNotFound = code == 404
 }
 
 object Response {

@@ -1,35 +1,53 @@
 package org.goldenport.record.v3
 
 import java.util.Date
+import java.net.{URL, URI}
 import java.sql.Timestamp
 import play.api.libs.json._
 import org.goldenport.exception.RAISE
+import org.goldenport.record.util.AnyUtils
 
 /*
  * @since   Aug. 23, 2018
- * @version Sep. 20, 2018
+ *  version Sep. 20, 2018
+ * @version Oct. 30, 2018
  * @author  ASAMI, Tomoharu
  */
-trait IRecord extends org.w3c.dom.Element with DomPart {
+trait IRecord extends org.goldenport.record.IRecord
+    with org.w3c.dom.Element with DomPart {
   def toRecord: Record
   def fields: Seq[Field]
   def isEmpty: Boolean
-  def isDefined(key: String): Boolean
   def isDefined(key: Symbol): Boolean
-  def get(key: String): Option[Any]
+  def isDefined(key: String): Boolean
   def get(key: Symbol): Option[Any]
-  def getString(key: String): Option[String]
-  def getString(key: Symbol): Option[String]
-  def takeStringList(key: String): List[String]
-  def takeStringList(key: Symbol): List[String]
-  def getInt(key: String): Option[Int]
-  def getInt(key: Symbol): Option[Int]
-  def getRecord(key: String): Option[Record]
+  def get(key: String): Option[Any]
+  def getList(key: Symbol): Option[List[Any]]
+  def getList(key: String): Option[List[Any]]
+  def takeList(key: Symbol): List[Any] = getList(key) getOrElse Nil
+  def takeList(key: String): List[Any] = getList(key) getOrElse Nil
+  def getString(key: Symbol): Option[String] = get(key).map(AnyUtils.toString)
+  def getString(key: String): Option[String] = get(key).map(AnyUtils.toString)
+  def getStringList(key: Symbol): Option[List[String]] = getList(key).map(_.map(AnyUtils.toString))
+  def getStringList(key: String): Option[List[String]] = getList(key).map(_.map(AnyUtils.toString))
+  def takeStringList(key: Symbol): List[String] = takeList(key).map(AnyUtils.toString)
+  def takeStringList(key: String): List[String] = takeList(key).map(AnyUtils.toString)
+  def getInt(key: Symbol): Option[Int] = get(key).map(AnyUtils.toInt)
+  def getInt(key: String): Option[Int] = get(key).map(AnyUtils.toInt)
+  def getUrl(key: Symbol): Option[URL] = get(key).map(AnyUtils.toUrl)
+  def getUrl(key: String): Option[URL] = get(key).map(AnyUtils.toUrl)
+  def getUri(key: Symbol): Option[URI] = get(key).map(AnyUtils.toUri)
+  def getUri(key: String): Option[URI] = get(key).map(AnyUtils.toUri)
+  def getIRecord(key: Symbol): Option[IRecord] = getRecord(key)
+  def getIRecord(key: String): Option[IRecord] = getRecord(key)
   def getRecord(key: Symbol): Option[Record]
-  def takeRecordList(key: String): List[Record]
+  def getRecord(key: String): Option[Record]
   def takeRecordList(key: Symbol): List[Record]
-  def +(rhs: IRecord): IRecord
+  def takeRecordList(key: String): List[Record]
+  def +(rhs: IRecord): IRecord // XXX semantics
+  def update(rhs: IRecord): IRecord = this.+(rhs) // XXX semantics
 
+  def nameStrings: Seq[(String, String)] = RAISE.notImplementedYetDefect
   def asJson: JsObject = RAISE.notImplementedYetDefect
 
   // compatibility

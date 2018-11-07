@@ -5,8 +5,7 @@ import play.api.libs.json._
 import org.goldenport.Strings
 import org.goldenport.exception.RAISE
 import org.goldenport.json.JsonUtils
-import org.goldenport.record.util.TimestampUtils
-import org.joda.time.DateTime
+import org.goldenport.record.util.AnyUtils
 
 /*
  * derived from org.goldenport.g3.message.
@@ -33,30 +32,34 @@ import org.joda.time.DateTime
  *  version Nov. 29, 2014
  *  version Dec. 31, 2014
  *  version Jan.  2, 2015
- * @version Sep.  4, 2018
+ *  version Sep.  4, 2018
+ * @version Oct. 30, 2018
  * @author  ASAMI, Tomoharu
  */
 sealed abstract class FieldValue {
-  def asString: String
-  def asInt: Int = asString.toInt
-  def asLong: Long = asString.toLong
-  def asTimestamp: Timestamp = RAISE.notImplementedYetDefect
-  def asDateTime: DateTime = RAISE.notImplementedYetDefect
+  def getValue: Option[Any]
+  def getList: Option[List[Any]]
+  def takeList: List[Any]
+  def asString: String = getValue.map(AnyUtils.toString).getOrElse("")
+  def asInt: Int = getValue.map(AnyUtils.toInt).getOrElse(RAISE.invalidArgumentFault("empty"))
+  def asLong: Long = getValue.map(AnyUtils.toInt).getOrElse(RAISE.invalidArgumentFault("empty"))
+  def asTimestamp: Timestamp = getValue.map(AnyUtils.toTimestamp).getOrElse(RAISE.invalidArgumentFault("empty"))
   def asRecord: Record
   def asRecordList: List[Record]
   def asTable: Table
-  def getValue: Option[Any]
   def getJson: Option[JsValue]
   def normalizeHttp: FieldValue
 }
 
 case class SingleValue(value: Any) extends FieldValue {
-  def asString: String = value.toString
-  override def asTimestamp = value match {
-    case x: Timestamp => x
-    case l: Long => new Timestamp(l)
-    case s: String => TimestampUtils.parse(s)
-  }
+  def getValue = Some(value)
+  def getList = Some(List(value))
+  def takeList = List(value)
+  // override def asTimestamp = value match {
+  //   case x: Timestamp => x
+  //   case l: Long => new Timestamp(l)
+  //   case s: String => TimestampUtils.parse(s)
+  // }
   def asRecord = value match {
     case m: IRecord => m.toRecord
     case m => RAISE.noReachDefect
@@ -74,7 +77,6 @@ case class SingleValue(value: Any) extends FieldValue {
     case m: ITable => m.toTable
     case m => RAISE.noReachDefect
   }
-  def getValue = Some(value)
   def getJson: Option[JsValue] = Some(JsonUtils.anyToJsValue(value))
   def normalizeHttp: FieldValue = value match {
     case None => EmptyValue
@@ -92,14 +94,16 @@ case class SingleValue(value: Any) extends FieldValue {
 }
 
 case class MultipleValue(values: Seq[Any]) extends FieldValue {
-  def asString: String = values.mkString(",")
+  def getValue = Some(values)
+  def getList = Some(takeList)
+  def takeList = values.toList
+  override def asString: String = values.map(AnyUtils.toString).mkString(",")
   def asRecord = RAISE.notImplementedYetDefect
   def asRecordList = values.toList.map {
     case m: IRecord => m.toRecord
     case m => RAISE.noReachDefect
   }
   def asTable: Table = RAISE.notImplementedYetDefect
-  def getValue = Some(values)
   def getJson: Option[JsValue] = Some(JsArray(values.map(JsonUtils.anyToJsValue)))
   def normalizeHttp: FieldValue = {
     val xs = values.flatMap {
@@ -119,11 +123,12 @@ case class MultipleValue(values: Seq[Any]) extends FieldValue {
 }
 
 case object EmptyValue extends FieldValue {
-  def asString: String = ""
+  def getValue = None
+  def getList = None
+  def takeList = Nil
   def asRecord: Record = Record.empty
   def asRecordList: List[Record] = Nil
   def asTable: Table = Table.empty
-  def getValue = None
   def getJson: Option[JsValue] = None
   def normalizeHttp: FieldValue = this
 }

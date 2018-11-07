@@ -34,7 +34,8 @@ import org.goldenport.record.util.AnyUtils
  *  version Dec. 31, 2014
  *  version Jan.  2, 2015
  *  version Aug. 31, 2018
- * @version Sep. 17, 2018
+ *  version Sep. 17, 2018
+ * @version Oct. 30, 2018
  * @author  ASAMI, Tomoharu
  */
 case class Field(
@@ -48,7 +49,6 @@ case class Field(
   def asInt: Int = value.asInt
   def asLong: Long = value.asLong
   def asTimestamp: Timestamp = value.asTimestamp
-  def asDateTime: DateTime = value.asDateTime
   def asRecord: Record = value.asRecord
   def asRecordList: List[Record] = value.asRecordList
 

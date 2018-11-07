@@ -34,7 +34,8 @@ import org.goldenport.record.v2.util.RecordUtils
  *  version Dec. 31, 2014
  *  version Jan.  2, 2015
  *  version Aug. 31, 2018
- * @version Sep. 17, 2018
+ *  version Sep. 17, 2018
+ * @version Oct. 30, 2018
  * @author  ASAMI, Tomoharu
  */
 case class Record(
@@ -54,9 +55,15 @@ case class Record(
   def nonDefined(key: Symbol): Boolean = !isDefined(key)
   def nonDefined(key: String): Boolean = !isDefined(key)
 
+  lazy val keyNames: List[String] = fields.map(_.name).toList
+
   def get(key: String): Option[Any] = getField(key).flatMap(_.value.getValue)
 
   def get(key: Symbol): Option[Any] = getField(key).flatMap(_.value.getValue)
+
+  def getList(key: String): Option[List[Any]] = getField(key).flatMap(_.value.getList)
+
+  def getList(key: Symbol): Option[List[Any]] = getField(key).flatMap(_.value.getList)
 
   def getField(key: Symbol): Option[Field] = {
     fields.find(_.key == key)
@@ -71,11 +78,11 @@ case class Record(
     getField(key).map(_.value)
   }
 
-  def getString(key: Symbol): Option[String] = {
+  override def getString(key: Symbol): Option[String] = {
     getField(key).map(_.asString)
   }
 
-  def getString(key: String): Option[String] = {
+  override def getString(key: String): Option[String] = {
     getString(Symbol(key))
   }
 
@@ -85,12 +92,8 @@ case class Record(
     }
   }
 
-  def takeStringList(key: Symbol): List[String] = ???
-
-  def takeStringList(key: String): List[String] = ???
-
-  def getInt(key: Symbol): Option[Int] = getField(key).map(_.asInt)
-  def getInt(key: String): Option[Int] = getField(key).map(_.asInt)
+  override def getInt(key: Symbol): Option[Int] = getField(key).map(_.asInt)
+  override def getInt(key: String): Option[Int] = getField(key).map(_.asInt)
 
   def asInt(key: Symbol): Int = getInt(key) getOrElse {
     throw new IllegalArgumentException(s"Missing int '$key.name'")
@@ -110,15 +113,15 @@ case class Record(
     getField(key).map(_.asTimestamp)
   }
 
-  def getDateTime(key: Symbol): Option[DateTime] = {
-    getField(key).map(_.asDateTime)
-  }
+  // def getDateTime(key: Symbol): Option[DateTime] = {
+  //   getField(key).map(_.asDateTime)
+  // }
 
-  def asDateTime(key: Symbol): DateTime = {
-    getDateTime(key) getOrElse {
-      throw new IllegalArgumentException(s"Missing datetime '$key.name'")
-    }
-  }
+  // def asDateTime(key: Symbol): DateTime = {
+  //   getDateTime(key) getOrElse {
+  //     throw new IllegalArgumentException(s"Missing datetime '$key.name'")
+  //   }
+  // }
 
   def getRecord(key: Symbol): Option[Record] = getField(key).map(_.asRecord)
   def getRecord(key: String): Option[Record] = getField(key).map(_.asRecord)
@@ -128,7 +131,7 @@ case class Record(
 
   def keyValues: Seq[(Symbol, Any)] = fields.flatMap(_.keyValue)
   def nameValues: Seq[(String, Any)] = fields.flatMap(_.nameValue)
-  def nameStrings: Seq[(String, String)] = fields.flatMap(_.nameString)
+  override def nameStrings: Seq[(String, String)] = fields.flatMap(_.nameString)
 
   /*
    * Mutation
