@@ -20,7 +20,8 @@ import com.asamioffice.goldenport.text.UString
  *  version Mar.  1, 2016
  *  version Sep. 22, 2016
  *  version Aug. 30, 2017
- * @version Jul. 18, 2018
+ *  version Jul. 18, 2018
+ * @version Nov.  7, 2018
  * @author  ASAMI, Tomoharu
  */
 object CsvUtils {
@@ -128,7 +129,7 @@ object CsvUtils {
     map: Map[String, String],
     isforcedoublequote: Boolean
   ) {
-    val line = makeLine(map2Values(map, schema), isforcedoublequote)
+    val line = map2Values(map, schema, is, isforcedoublequote).mkString(",")
     writer.write(line)
     writer.write(lineend)
   }
@@ -139,7 +140,7 @@ object CsvUtils {
     rec: Record,
     isforcedoublequote: Boolean
   ) {
-    val line = makeLine(record2Values(rec), isforcedoublequote)
+    val line = record2Values(rec, isforcedoublequote).mkString(",")
     writer.write(line)
     writer.write(lineend)
   }
@@ -151,7 +152,7 @@ object CsvUtils {
     rec: Record,
     isforcedoublequote: Boolean
   ) {
-    val line = makeLine(record2Values(rec, schema), isforcedoublequote)
+    val line = record2Values(rec, schema, isforcedoublequote).mkString(",")
     writer.write(line)
     writer.write(lineend)
   }
