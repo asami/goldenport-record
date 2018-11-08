@@ -35,7 +35,8 @@ import org.goldenport.record.v2.util.RecordUtils
  *  version Jan.  2, 2015
  *  version Aug. 31, 2018
  *  version Sep. 17, 2018
- * @version Oct. 30, 2018
+ *  version Oct. 30, 2018
+ * @version Nov.  7, 2018
  * @author  ASAMI, Tomoharu
  */
 case class Record(
@@ -109,9 +110,9 @@ case class Record(
     }
   }
 
-  def getTimestamp(key: Symbol): Option[Timestamp] = {
-    getField(key).map(_.asTimestamp)
-  }
+  // def getTimestamp(key: Symbol): Option[Timestamp] = {
+  //   getField(key).map(_.asTimestamp)
+  // }
 
   // def getDateTime(key: Symbol): Option[DateTime] = {
   //   getField(key).map(_.asDateTime)
@@ -131,7 +132,7 @@ case class Record(
 
   def keyValues: Seq[(Symbol, Any)] = fields.flatMap(_.keyValue)
   def nameValues: Seq[(String, Any)] = fields.flatMap(_.nameValue)
-  override def nameStrings: Seq[(String, String)] = fields.flatMap(_.nameString)
+  override def asNameStringVector: Vector[(String, String)] = fields.flatMap(_.nameString).toVector
 
   /*
    * Mutation

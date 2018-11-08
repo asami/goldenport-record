@@ -129,7 +129,7 @@ object CsvUtils {
     map: Map[String, String],
     isforcedoublequote: Boolean
   ) {
-    val line = map2Values(map, schema, is, isforcedoublequote).mkString(",")
+    val line = map2Values(map, schema, isforcedoublequote).mkString(",")
     writer.write(line)
     writer.write(lineend)
   }

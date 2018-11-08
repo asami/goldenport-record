@@ -9,6 +9,7 @@ import org.goldenport.Strings
 import org.goldenport.Strings.notblankp
 import org.goldenport.record.command.NullValue
 import org.goldenport.record.util.AnyUtils
+import org.goldenport.record.v3.IRecord
 import org.goldenport.util.{TimestampUtils, DateUtils}
 
 /*
@@ -51,7 +52,8 @@ import org.goldenport.util.{TimestampUtils, DateUtils}
  *  version Oct. 26, 2017
  *  version Dec. 27, 2017
  *  version Jan. 11, 2018
- * @version Jun.  1, 2018
+ *  version Jun.  1, 2018
+ * @version Nov.  7, 2018
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -1162,6 +1164,8 @@ case class Record(
       case xs => xs // includes List[List[_]]. Addressed as List[_].
     }
   }
+
+  lazy val toIRecord = RecordRecord(this)
 }
 
 case class Field(key: Symbol, values: List[Any]) {
@@ -1313,6 +1317,8 @@ object Record {
   val empty = Record(Nil)
   val multiplicityRegex = """__(\d+)_""".r
   val groupRegex = """__G_""".r
+
+  def create(p: IRecord): Record = createS(p.asSymbolAnyVector)
 
   def create(map: scala.collection.Map[String, Any]): Record = {
     create(map.toList)

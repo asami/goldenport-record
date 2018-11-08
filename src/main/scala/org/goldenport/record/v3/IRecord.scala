@@ -10,7 +10,8 @@ import org.goldenport.record.util.AnyUtils
 /*
  * @since   Aug. 23, 2018
  *  version Sep. 20, 2018
- * @version Oct. 30, 2018
+ *  version Oct. 30, 2018
+ * @version Nov.  7, 2018
  * @author  ASAMI, Tomoharu
  */
 trait IRecord extends org.goldenport.record.IRecord
@@ -34,6 +35,10 @@ trait IRecord extends org.goldenport.record.IRecord
   def takeStringList(key: String): List[String] = takeList(key).map(AnyUtils.toString)
   def getInt(key: Symbol): Option[Int] = get(key).map(AnyUtils.toInt)
   def getInt(key: String): Option[Int] = get(key).map(AnyUtils.toInt)
+  def getTimestamp(key: Symbol): Option[Timestamp] = get(key).map(AnyUtils.toTimestamp)
+  def getTimestamp(key: String): Option[Timestamp] = get(key).map(AnyUtils.toTimestamp)
+  def getDate(key: Symbol): Option[Date] = get(key).map(AnyUtils.toDate)
+  def getDate(key: String): Option[Date] = get(key).map(AnyUtils.toDate)
   def getUrl(key: Symbol): Option[URL] = get(key).map(AnyUtils.toUrl)
   def getUrl(key: String): Option[URL] = get(key).map(AnyUtils.toUrl)
   def getUri(key: Symbol): Option[URI] = get(key).map(AnyUtils.toUri)
@@ -47,7 +52,8 @@ trait IRecord extends org.goldenport.record.IRecord
   def +(rhs: IRecord): IRecord // XXX semantics
   def update(rhs: IRecord): IRecord = this.+(rhs) // XXX semantics
 
-  def nameStrings: Seq[(String, String)] = RAISE.notImplementedYetDefect
+  def asNameStringVector: Vector[(String, String)] = RAISE.notImplementedYetDefect
+  def asSymbolAnyVector: Vector[(Symbol, Any)] = RAISE.notImplementedYetDefect
   def asJson: JsObject = RAISE.notImplementedYetDefect
 
   // compatibility

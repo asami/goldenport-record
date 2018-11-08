@@ -13,7 +13,8 @@ import org.goldenport.util.StringUtils
  * @since   Dec. 19, 2017
  *  version Aug. 19, 2018
  *  version Sep. 17, 2018
- * @version Oct. 30, 2018
+ *  version Oct. 30, 2018
+ * @version Nov.  7, 2018
  * @author  ASAMI, Tomoharu
  */
 case class Request(
@@ -66,5 +67,5 @@ object Request {
     buildUrlStringWithQuery(url.toExternalForm, p)
 
   def buildUrlStringWithQuery(s: String, p: IRecord): String =
-    StringUtils.addUrlParams(s, p.nameStrings)
+    StringUtils.addUrlParams(s, p.asNameStringVector)
 }
