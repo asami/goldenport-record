@@ -6,7 +6,8 @@ import org.goldenport.exception.RAISE
 /*
  * @since   Sep. 17, 2018
  *  version Oct. 30, 2018
- * @version Nov.  7, 2018
+ *  version Nov.  7, 2018
+ * @version Dec.  5, 2018
  * @author  ASAMI, Tomoharu
  */
 case class StandardHttpDriver(
@@ -28,10 +29,10 @@ case class StandardHttpDriver(
 
   private def _mutation_request(req: Request) =
     Http(req.urlStringWithQuery).
-      method(req.method.name).
       option(HttpOptions.followRedirects(config.followRedirects)).
       headers(req.header.asNameStringVector).
-      params(req.form.asNameStringVector)
+      postForm(req.form.asNameStringVector).
+      method(req.method.name)
 }
 
 object StandardHttpDriver {
