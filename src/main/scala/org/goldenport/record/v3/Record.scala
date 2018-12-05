@@ -36,7 +36,8 @@ import org.goldenport.record.v2.util.RecordUtils
  *  version Aug. 31, 2018
  *  version Sep. 17, 2018
  *  version Oct. 30, 2018
- * @version Nov.  7, 2018
+ *  version Nov.  7, 2018
+ * @version Dec.  5, 2018
  * @author  ASAMI, Tomoharu
  */
 case class Record(
@@ -159,8 +160,8 @@ case class Record(
   def updateField(key: Symbol, value: FieldValue): Record = {
     val (prefix, suffix) = fields.span(_.key != key) // XXX isMatch?
     val r = suffix match {
-      case Nil => prefix :+ Field.create(key, value)
-      case x :: xs => prefix ++ (Field.create(key, value) :: xs)
+      case Nil => prefix :+ Field(key, value)
+      case x :: xs => prefix ++ (Field(key, value) :: xs)
     }
     copy(fields = r)
   }

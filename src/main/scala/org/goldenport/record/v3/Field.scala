@@ -35,7 +35,8 @@ import org.goldenport.record.util.AnyUtils
  *  version Jan.  2, 2015
  *  version Aug. 31, 2018
  *  version Sep. 17, 2018
- * @version Oct. 30, 2018
+ *  version Oct. 30, 2018
+ * @version Dec.  5, 2018
  * @author  ASAMI, Tomoharu
  */
 case class Field(
@@ -58,15 +59,13 @@ case class Field(
   }
 
   def nameValue: Option[(String, Any)] = {
-    keyValue map {
-      case (k, v) => k.name -> v
-    }
+    val data = value.getValue
+    data.map(x => key.name -> x)
   }
 
   def nameString: Option[(String, String)] = {
-    keyValue map {
-      case (k, v) => k.name -> AnyUtils.toString(v)
-    }
+    val data = value.getValue
+    data.map(x => key.name -> AnyUtils.toString(x))
   }
 
   def getJsonField: Option[(String, JsValue)] = value.getJson.map(x => name -> x)
