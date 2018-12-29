@@ -36,7 +36,7 @@ import org.goldenport.record.util.AnyUtils
  *  version Aug. 31, 2018
  *  version Sep. 17, 2018
  *  version Oct. 30, 2018
- * @version Dec.  5, 2018
+ * @version Dec. 27, 2018
  * @author  ASAMI, Tomoharu
  */
 case class Field(
@@ -52,6 +52,8 @@ case class Field(
   def asTimestamp: Timestamp = value.asTimestamp
   def asRecord: Record = value.asRecord
   def asRecordList: List[Record] = value.asRecordList
+
+  def withKey(name: String): Field = copy(key = Symbol(name))
 
   def keyValue: Option[(Symbol, Any)] = {
     val data = value.getValue
@@ -95,8 +97,13 @@ object Field {
     val empty = MetaData(None)
   }
 
+  def apply(kv: (String, FieldValue)): Field = apply(kv._1, kv._2)
+
+  def apply(key: String, value: FieldValue): Field = Field(Symbol(key), value)
+
   def create(key: Symbol, value: Any): Field = {
     value match {
+      case m: FieldValue => apply(key, m)
       case Some(x) => create(key, x)
       case None => Field(key, EmptyValue)
       case xs: Seq[_] => Field(key, MultipleValue(xs))

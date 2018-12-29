@@ -6,7 +6,8 @@ import org.goldenport.record.v2.Schema
 
 /*
  * @since   Aug. 24, 2018
- * @version Sep.  4, 2018
+ *  version Sep.  4, 2018
+ * @version Dec. 27, 2018
  * @author  ASAMI, Tomoharu
  */
 case class Table(
@@ -14,7 +15,8 @@ case class Table(
   meta: Table.MetaData = Table.MetaData.empty
 ) extends ITable {
   def toTable = this
-  def toRecordList: List[Record] = RAISE.notImplementedYetDefect
+  def toRecordList: List[Record] = records.toList
+  def toRecordVector: Vector[Record] = records
 }
 
 object Table {

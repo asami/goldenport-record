@@ -1,5 +1,6 @@
 package org.goldenport.record.v3
 
+import scalaz._, Scalaz._
 import java.sql.Timestamp
 import play.api.libs.json._
 import org.goldenport.Strings
@@ -33,28 +34,36 @@ import org.goldenport.record.util.AnyUtils
  *  version Dec. 31, 2014
  *  version Jan.  2, 2015
  *  version Sep.  4, 2018
- * @version Oct. 30, 2018
+ *  version Oct. 30, 2018
+ * @version Dec. 28, 2018
  * @author  ASAMI, Tomoharu
  */
 sealed abstract class FieldValue {
   def getValue: Option[Any]
   def getList: Option[List[Any]]
+  def getVector: Option[Vector[Any]]
   def takeList: List[Any]
+  def takeVector: Vector[Any]
   def asString: String = getValue.map(AnyUtils.toString).getOrElse("")
   def asInt: Int = getValue.map(AnyUtils.toInt).getOrElse(RAISE.invalidArgumentFault("empty"))
   def asLong: Long = getValue.map(AnyUtils.toInt).getOrElse(RAISE.invalidArgumentFault("empty"))
   def asTimestamp: Timestamp = getValue.map(AnyUtils.toTimestamp).getOrElse(RAISE.invalidArgumentFault("empty"))
   def asRecord: Record
   def asRecordList: List[Record]
+  def asRecordVector: Vector[Record]
   def asTable: Table
   def getJson: Option[JsValue]
   def normalizeHttp: FieldValue
+  def +(p: FieldValue): FieldValue
+  def toMulti: MultipleValue
 }
 
 case class SingleValue(value: Any) extends FieldValue {
   def getValue = Some(value)
   def getList = Some(List(value))
+  def getVector = Some(Vector(value))
   def takeList = List(value)
+  def takeVector = Vector(value)
   // override def asTimestamp = value match {
   //   case x: Timestamp => x
   //   case l: Long => new Timestamp(l)
@@ -68,6 +77,15 @@ case class SingleValue(value: Any) extends FieldValue {
     case m: IRecord => List(m.toRecord)
     case m: ITable => m.toRecordList
     case m: Seq[_] => m.toList.map {
+      case mm: IRecord => mm.toRecord
+      case mm => RAISE.noReachDefect
+    }
+    case m => RAISE.noReachDefect
+  }
+  def asRecordVector = value match {
+    case m: IRecord => Vector(m.toRecord)
+    case m: ITable => m.toRecordVector
+    case m: Seq[_] => m.toVector.map {
       case mm: IRecord => mm.toRecord
       case mm => RAISE.noReachDefect
     }
@@ -91,15 +109,23 @@ case class SingleValue(value: Any) extends FieldValue {
         }
     case _ => this
   }
+  def +(p: FieldValue): FieldValue = MultipleValue(value +: p.takeVector)
+  def toMulti: MultipleValue = MultipleValue(Vector(value))
 }
 
 case class MultipleValue(values: Seq[Any]) extends FieldValue {
   def getValue = Some(values)
   def getList = Some(takeList)
+  def getVector = Some(takeVector)
   def takeList = values.toList
+  def takeVector = values.toVector
   override def asString: String = values.map(AnyUtils.toString).mkString(",")
   def asRecord = RAISE.notImplementedYetDefect
   def asRecordList = values.toList.map {
+    case m: IRecord => m.toRecord
+    case m => RAISE.noReachDefect
+  }
+  def asRecordVector = values.toVector.map {
     case m: IRecord => m.toRecord
     case m => RAISE.noReachDefect
   }
@@ -120,17 +146,24 @@ case class MultipleValue(values: Seq[Any]) extends FieldValue {
       case xs => MultipleValue(xs)
     }
   }
+  def +(p: FieldValue): FieldValue = MultipleValue(values ++ p.takeVector)
+  def toMulti = this
 }
 
 case object EmptyValue extends FieldValue {
   def getValue = None
   def getList = None
+  def getVector = None
   def takeList = Nil
+  def takeVector = Vector.empty
   def asRecord: Record = Record.empty
   def asRecordList: List[Record] = Nil
+  def asRecordVector: Vector[Record] = Vector.empty
   def asTable: Table = Table.empty
   def getJson: Option[JsValue] = None
   def normalizeHttp: FieldValue = this
+  def +(p: FieldValue): FieldValue = p
+  def toMulti = MultipleValue(Vector.empty)
 }
 
 object FieldValue {
@@ -143,5 +176,10 @@ object FieldValue {
     case s: JsString => SingleValue(s.value)
     case b: JsBoolean => SingleValue(b.value)
     case n: JsNumber => SingleValue(n.value)
+  }
+
+  implicit object FieldValueMonoid extends Monoid[FieldValue] {
+    def zero = EmptyValue
+    def append(lhs: FieldValue, rhs: => FieldValue) = lhs + rhs
   }
 }
