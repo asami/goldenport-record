@@ -2,7 +2,7 @@ organization := "org.goldenport"
 
 name := "goldenport-record"
 
-version := "1.2.27"
+version := "1.2.28"
 
 scalaVersion := "2.10.3"
 // crossScalaVersions := Seq("2.9.2", "2.9.1")
@@ -23,9 +23,9 @@ libraryDependencies += "org.goldenport" %% "goldenport-atom" % "1.0.1"
 
 // libraryDependencies += "org.goldenport" % "goldenport-java-lib" % "0.1.2"
 
-libraryDependencies += "org.goldenport" %% "goldenport-scala-lib" % "1.2.30"
+libraryDependencies += "org.goldenport" %% "goldenport-scala-lib" % "1.2.31"
 
-libraryDependencies += "org.smartdox" %% "smartdox" % "1.2.2"
+// libraryDependencies += "org.smartdox" %% "smartdox" % "1.2.2"
 
 libraryDependencies += "com.typesafe.play" %% "play-json" % "2.2.2" % "provided"
 
