@@ -4,7 +4,7 @@ import scalaz._, Scalaz._
 import Validator._
 import java.util.Locale
 import com.asamioffice.goldenport.text.UString
-import org.smartdox.Description
+import org.goldenport.extension.Description
 import org.goldenport.i18n.I18NString
 import org.goldenport.record.v2.projector.ProjectorContext
 
@@ -29,7 +29,8 @@ import org.goldenport.record.v2.projector.ProjectorContext
  *  version Apr. 10, 2018
  *  version Jul. 28, 2018
  *  version Aug. 24, 2018
- * @version Sep.  4, 2018
+ *  version Sep.  4, 2018
+ * @version Jan.  1, 2019
  * @author  ASAMI, Tomoharu
  */
 case class Column(

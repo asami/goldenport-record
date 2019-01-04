@@ -1,8 +1,10 @@
 package org.goldenport.record.v3
 
+import org.goldenport.RAISE
+
 /*
  * @since   Oct. 15, 2018
- * @version Oct. 30, 2018
+ * @version Jan.  3, 2019
  * @author  ASAMI, Tomoharu
  */
 case class DomRecord() extends IRecord {
@@ -21,4 +23,8 @@ case class DomRecord() extends IRecord {
   def takeRecordList(key: Symbol): List[Record] = ???
   def takeRecordList(key: String): List[Record] = ???
   def toRecord: Record = ???
+}
+
+object DomRecord {
+  def create(p: String): DomRecord = RAISE.notImplementedYetDefect
 }

@@ -5,7 +5,7 @@ import java.util.Locale
 import org.joda.time.DateTime
 import play.api.libs.json._
 import org.goldenport.exception.RAISE
-import org.goldenport.record.v2.Column
+import org.goldenport.record.v2.{Column, Field => Field2}
 import org.goldenport.record.util.AnyUtils
 
 /*
@@ -36,7 +36,7 @@ import org.goldenport.record.util.AnyUtils
  *  version Aug. 31, 2018
  *  version Sep. 17, 2018
  *  version Oct. 30, 2018
- * @version Dec. 27, 2018
+ * @version Dec. 29, 2018
  * @author  ASAMI, Tomoharu
  */
 case class Field(
@@ -70,7 +70,23 @@ case class Field(
     data.map(x => key.name -> AnyUtils.toString(x))
   }
 
+  def symbolAny: Option[(Symbol, Any)] = value.getValue.map(x => key -> x)
+
   def getJsonField: Option[(String, JsValue)] = value.getJson.map(x => name -> x)
+
+  def toField2: Field2 = value match {
+    case EmptyValue => Field2(key, Nil)
+    case SingleValue(v) => Field2(key, List(_to_field2_value(v)))
+    case MultipleValue(vs) => Field2(key, List(List(vs.map(_to_field2_value))))
+  }
+
+  private def _to_field2_value(p: Any): Any = p match {
+    case m: Record => m.toRecord2
+    case ms: Seq[_] => ms.map(_to_field2_value)
+    case ms: Array[_] => ms.map(_to_field2_value)
+    case ms: Some[_] => ms.map(_to_field2_value)
+    case m => m
+  }
 
   def toLtsv: String = {
     val v = asString // TODO normalize (replace with space)

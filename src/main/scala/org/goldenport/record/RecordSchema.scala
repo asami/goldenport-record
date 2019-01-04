@@ -6,7 +6,7 @@ import scala.collection.mutable.ArrayBuffer
 import java.io.InputStream
 import java.sql.ResultSet
 import org.goldenport.record.sql.SqlDatatype
-import org.smartdox._
+import org.goldenport.extension.{IDocument, Description}
 
 /**
  * derived from org.goldenport.g3.message.
@@ -19,7 +19,8 @@ import org.smartdox._
  *  version Mar.  3, 2013
  *  version Jan. 20, 2014
  *  version Feb.  6, 2014
- * @version May. 24, 2017
+ *  version May. 24, 2017
+ * @version Jan.  1, 2019
  * @author  ASAMI, Tomoharu
  */
 object Schema {
@@ -118,9 +119,9 @@ object Field {
             constraints: List[Constraint] = Nil,
             facets: List[XFacet] = Nil,
             properties: List[Property] = Nil,
-            title: Dox = EmptyDox,
-            summary: Dox = EmptyDox,
-            content: Dox = EmptyDox) = {
+            title: IDocument = IDocument.empty,
+            summary: IDocument = IDocument.empty,
+            content: IDocument = IDocument.empty) = {
     new RecordField(name, datatype, multiplicity, constraints, facets, properties,
         Some(Description(Some(name), title, summary, content)))
   }
@@ -232,7 +233,7 @@ class RecordField(
   val constraints: List[Constraint] = Nil,
   val facets: List[XFacet] = Nil,
   val properties: List[Property] = Nil,
-  val description: Option[Description] = None
+  val description: Option[IDocument] = None
 ) {
   def isId = constraints.contains(CId)
   def isAuto = constraints.exists(_.isAuto)

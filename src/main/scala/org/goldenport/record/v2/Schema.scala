@@ -2,8 +2,8 @@ package org.goldenport.record.v2
 
 import java.sql.Timestamp
 import scalaz._, Scalaz._
-import org.smartdox.Description
 import org.goldenport.Strings
+import org.goldenport.extension.{IDocument, Description}
 import com.asamioffice.goldenport.text.UString
 import org.goldenport.exception.RAISE
 import org.goldenport.i18n.I18NString
@@ -43,7 +43,8 @@ import org.goldenport.record.v2.util.RecordUtils
  *  version May. 16, 2018
  *  version Jul. 28, 2018
  *  version Aug. 29, 2018
- * @version Sep.  5, 2018
+ *  version Sep.  5, 2018
+ * @version Jan.  1, 2019
  * @author  ASAMI, Tomoharu
  */
 case class Schema(
@@ -62,7 +63,7 @@ case class Schema(
 //  isCsvTitle: Option[Boolean] = None,
 //  comment: String = "",
 //  history: String = ""
-  desc: Description = Description() // TODO .empty
+  desc: Description = Description.empty
 ) {
   import scalaz.syntax.foldable._
   implicit object ValidationResultMonoid extends Monoid[ValidationResult] {

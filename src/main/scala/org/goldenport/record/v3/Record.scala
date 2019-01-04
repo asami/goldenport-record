@@ -6,7 +6,7 @@ import org.joda.time.DateTime
 import play.api.libs.json._
 import org.goldenport.RAISE
 import org.goldenport.record.util.StringUtils
-import org.goldenport.record.v2.{Record => Record2, Schema}
+import org.goldenport.record.v2.{Record => Record2, Field => Field2, Schema}
 import org.goldenport.record.v2.util.RecordUtils
 import org.goldenport.collection.{NonEmptyVector, VectorMap}
 import org.goldenport.values.PathName
@@ -40,7 +40,8 @@ import org.goldenport.values.PathName
  *  version Sep. 17, 2018
  *  version Oct. 30, 2018
  *  version Nov.  7, 2018
- * @version Dec. 29, 2018
+ *  version Dec. 29, 2018
+ * @version Jan.  3, 2019
  * @author  ASAMI, Tomoharu
  */
 case class Record(
@@ -51,9 +52,7 @@ case class Record(
     with HttpPart with SqlPart
     with CompatibilityPart {
   def toRecord = this
-  def toRecord2: Record2 = {
-    Record2.createApp(nameValues)
-  }
+  def toRecord2: Record2 = Record2(fields.map(_.toField2).toList)
 
   def isEmpty: Boolean = fields.isEmpty
   def isDefined(key: Symbol): Boolean = fields.exists(_.key == key)
@@ -139,6 +138,7 @@ case class Record(
   def keyValues: Seq[(Symbol, Any)] = fields.flatMap(_.keyValue)
   def nameValues: Seq[(String, Any)] = fields.flatMap(_.nameValue)
   override def asNameStringVector: Vector[(String, String)] = fields.flatMap(_.nameString).toVector
+  override def asSymbolAnyVector: Vector[(Symbol, Any)] = fields.flatMap(_.symbolAny).toVector
 
   /*
    * Mutation
@@ -204,9 +204,27 @@ object Record {
 
   def create(data: Seq[(String, Any)]): Record = createDataSeq(data)
 
-  def create(p: IRecord): Record = createSymbolAnySeq(p.asSymbolAnyVector)
+  def create(p: IRecord): Record = p.toRecord
 
-  def create(p: Record2): Record = createDataSeq(p.toVector)
+  def create(p: Record2): Record = {
+    def tovalue(a: Any) = a match {
+      case m: Record2 => create(m)
+      case m => m
+    }
+    def tofield(f: Field2) = {
+      val v = f.values match {
+        case Nil => EmptyValue
+        case x :: Nil => x match {
+          case ms: Seq[_] => MultipleValue(ms.map(tovalue))
+          case ms: Array[_] => MultipleValue(ms.map(tovalue))
+          case m => SingleValue(tovalue(m))
+        }
+        case xs => MultipleValue(xs.map(tovalue))
+      }
+      Field(f.key, v)
+    }
+    Record(p.fields.map(tofield))
+  }
 
   def createDataSeq(data: Seq[(String, Any)]): Record =
     Record(data.map(Field.createData))
@@ -229,6 +247,8 @@ object Record {
   }
 
   def fromJson(p: String): Record = create(Json.parse(p))
+
+  def fromXml(p: String): Record = RAISE.notImplementedYetDefect
 
   def create(p: JsValue): Record = p match {
     case null => Record.empty

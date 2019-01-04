@@ -53,7 +53,8 @@ import org.goldenport.util.{TimestampUtils, DateUtils}
  *  version Dec. 27, 2017
  *  version Jan. 11, 2018
  *  version Jun.  1, 2018
- * @version Nov.  7, 2018
+ *  version Nov.  7, 2018
+ * @version Dec. 29, 2018
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -1318,7 +1319,7 @@ object Record {
   val multiplicityRegex = """__(\d+)_""".r
   val groupRegex = """__G_""".r
 
-  def create(p: IRecord): Record = createS(p.asSymbolAnyVector)
+  def create(p: IRecord): Record = p.toRecord.toRecord2
 
   def create(map: scala.collection.Map[String, Any]): Record = {
     create(map.toList)
