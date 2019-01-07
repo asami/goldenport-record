@@ -35,16 +35,19 @@ import org.goldenport.record.util.AnyUtils
  *  version Jan.  2, 2015
  *  version Sep.  4, 2018
  *  version Oct. 30, 2018
- * @version Dec. 28, 2018
+ *  version Dec. 28, 2018
+ * @version Jan.  6, 2019
  * @author  ASAMI, Tomoharu
  */
 sealed abstract class FieldValue {
+  protected lazy val as_string = getValue.map(AnyUtils.toString).getOrElse("")
+
   def getValue: Option[Any]
   def getList: Option[List[Any]]
   def getVector: Option[Vector[Any]]
   def takeList: List[Any]
   def takeVector: Vector[Any]
-  def asString: String = getValue.map(AnyUtils.toString).getOrElse("")
+  def asString: String = as_string
   def asInt: Int = getValue.map(AnyUtils.toInt).getOrElse(RAISE.invalidArgumentFault("empty"))
   def asLong: Long = getValue.map(AnyUtils.toInt).getOrElse(RAISE.invalidArgumentFault("empty"))
   def asTimestamp: Timestamp = getValue.map(AnyUtils.toTimestamp).getOrElse(RAISE.invalidArgumentFault("empty"))
@@ -114,12 +117,14 @@ case class SingleValue(value: Any) extends FieldValue {
 }
 
 case class MultipleValue(values: Seq[Any]) extends FieldValue {
+  protected lazy val as_string_sequence = values.map(AnyUtils.toString).mkString(",")
+
   def getValue = Some(values)
   def getList = Some(takeList)
   def getVector = Some(takeVector)
   def takeList = values.toList
   def takeVector = values.toVector
-  override def asString: String = values.map(AnyUtils.toString).mkString(",")
+  override def asString: String = as_string_sequence
   def asRecord = RAISE.notImplementedYetDefect
   def asRecordList = values.toList.map {
     case m: IRecord => m.toRecord

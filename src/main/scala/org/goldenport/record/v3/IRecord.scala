@@ -11,7 +11,8 @@ import org.goldenport.record.util.AnyUtils
  * @since   Aug. 23, 2018
  *  version Sep. 20, 2018
  *  version Oct. 30, 2018
- * @version Nov.  7, 2018
+ *  version Nov.  7, 2018
+ * @version Jan.  6, 2019
  * @author  ASAMI, Tomoharu
  */
 trait IRecord extends org.goldenport.record.IRecord

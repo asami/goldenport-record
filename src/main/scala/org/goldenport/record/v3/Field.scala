@@ -36,7 +36,8 @@ import org.goldenport.record.util.AnyUtils
  *  version Aug. 31, 2018
  *  version Sep. 17, 2018
  *  version Oct. 30, 2018
- * @version Dec. 29, 2018
+ *  version Dec. 29, 2018
+ * @version Jan.  7, 2019
  * @author  ASAMI, Tomoharu
  */
 case class Field(
@@ -74,10 +75,16 @@ case class Field(
 
   def getJsonField: Option[(String, JsValue)] = value.getJson.map(x => name -> x)
 
+  def isAttribute = value match {
+    case EmptyValue => true
+    case _: SingleValue => true
+    case _: MultipleValue => false
+  }
+
   def toField2: Field2 = value match {
     case EmptyValue => Field2(key, Nil)
     case SingleValue(v) => Field2(key, List(_to_field2_value(v)))
-    case MultipleValue(vs) => Field2(key, List(List(vs.map(_to_field2_value))))
+    case MultipleValue(vs) => Field2(key, List(vs.map(_to_field2_value)))
   }
 
   private def _to_field2_value(p: Any): Any = p match {
