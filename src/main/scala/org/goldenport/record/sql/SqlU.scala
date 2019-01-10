@@ -1,16 +1,96 @@
 package org.goldenport.record.sql
 
-import org.goldenport.record._
-import org.goldenport.util._
+import java.util.{Date, TimeZone}
+import java.sql.Timestamp
+import java.text.SimpleDateFormat
+import org.joda.time._
+import org.goldenport.record.v2._
+import org.goldenport.record.util._
 
-/**
+/*
  * @since   Aug. 17, 2010
  *  version Jun. 26, 2011
  *  version Feb. 16, 2012
- * @version Feb. 17, 2013
+ *  version Feb. 17, 2013
+ * @version Jan.  9, 2019
  * @author  ASAMI, Tomoharu
  */
 object SqlU {
+  private def gmt = TimeUtils.gmt
+
+  def literal(c: Column, p: Any): String = literal(c.datatype, p)
+
+  def literal(dt: DataType, p: Any): String = {
+    val a = dt match {
+      case XDateTime => sql_long2datetime(XDateTime.toInstance(p))
+      case XDate => sql_long2date(XDate.toInstance(p))
+      case _ => p.toString
+    }
+    if (dt.isSqlString)
+      s"'$a'"
+    else
+      a
+  }
+
+  def literal(p: Any): String = p match {
+    case m: Boolean => m.toString
+    case m: Char => s"'$m'"
+    case m: Byte => m.toString
+    case m: Short => m.toString
+    case m: Int => m.toString
+    case m: Long => m.toString
+    case m: Float => m.toString
+    case m: Double => m.toString
+    case m: BigInt => m.toString
+    case m: BigDecimal => m.toString
+    case m: Timestamp => stringLiteral(m.toString) // GMT
+    case m: Date => stringLiteral(DateUtils.toIsoDateString(m)) // ISO Date/GMT
+    case m: DateTime => stringLiteral(m.toString)
+    case m: LocalDate => stringLiteral(m.toString)
+    case m: LocalDateTime => ???
+    case m => stringLiteral(m)
+  }
+
+  protected def sql_long2datetime(ts: Timestamp): String = {
+    sql_long2datetime(ts.getTime)
+  }
+
+  // See com.everforth.everforth.util.DateTimeUtils
+  protected def sql_long2datetime(t: Long): String = {
+    val format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
+    format.setTimeZone(gmt)
+    val d = new java.sql.Date(t)
+    stringLiteral(format.format(d))
+  }
+
+  protected def sql_long2date(d: Date): String = {
+    sql_long2date(d.getTime)
+  }
+
+  // See com.everforth.everforth.util.DateTimeUtils
+  // Change from JST to GMT
+  protected def sql_long2date(t: Long): String = {
+    val format = new SimpleDateFormat("yyyy-MM-dd")
+    format.setTimeZone(gmt)
+    val d = new java.sql.Date(t)
+    val r = stringLiteral(format.format(d))
+//    println("DateTimeUtils#sql_string2date long %s = %s".format(t, r))
+    r
+  }
+
+  def stringLiteral(d: Any): String = "'" + sqlEscape(d.toString) + "'"
+
+  def sqlEscape(s: String): String = {
+    if (s.indexOf("'") == -1) s.replace("\\", "\\\\")
+    else s.replace("'", "''").replace("\\", "\\\\")
+  }
+
+  /*
+   * Legacy
+   */
+  import org.goldenport.record._
+  import org.goldenport.util._
+
   def symbol2name(symbol: Symbol): String = symbol.name
 
   def value2literal(value: Any): String = value match {
