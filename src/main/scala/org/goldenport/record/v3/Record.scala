@@ -41,18 +41,21 @@ import org.goldenport.values.PathName
  *  version Oct. 30, 2018
  *  version Nov.  7, 2018
  *  version Dec. 29, 2018
- * @version Jan.  3, 2019
+ * @version Jan. 11, 2019
  * @author  ASAMI, Tomoharu
  */
 case class Record(
   fields: Seq[Field],
-  meta: Record.MetaData = Record.MetaData.empty
+  meta: Record.MetaData = Record.MetaData.empty,
+  extra: Record.Extra = Record.Extra.empty
 ) extends IRecord
     with XmlPart with JsonPart with CsvPart with LtsvPart
     with HttpPart with SqlPart
     with CompatibilityPart {
   def toRecord = this
-  def toRecord2: Record2 = Record2(fields.map(_.toField2).toList)
+  def toRecord2: Record2 = extra.v2.
+    map(_.copy(fields.map(_.toField2).toList)).
+    getOrElse(Record2(fields.map(_.toField2).toList))
 
   def isEmpty: Boolean = fields.isEmpty
   def isDefined(key: Symbol): Boolean = fields.exists(_.key == key)
@@ -184,6 +187,15 @@ object Record {
     val empty = MetaData(None)
   }
 
+  case class Extra(
+    v2: Option[Record2] // use in conversion
+  )
+  object Extra {
+    val empty = Extra(None)
+
+    def apply(p: Record2): Extra = Extra(Some(p))
+  }
+
   implicit object RecordMonoid extends Monoid[Record] {
     def zero = Record.empty
     def append(lhs: Record, rhs: => Record) = lhs + rhs
@@ -223,7 +235,7 @@ object Record {
       }
       Field(f.key, v)
     }
-    Record(p.fields.map(tofield))
+    Record(p.fields.map(tofield), extra = Extra(p))
   }
 
   def createDataSeq(data: Seq[(String, Any)]): Record =
