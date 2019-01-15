@@ -41,7 +41,7 @@ import org.goldenport.values.PathName
  *  version Oct. 30, 2018
  *  version Nov.  7, 2018
  *  version Dec. 29, 2018
- * @version Jan. 11, 2019
+ * @version Jan. 15, 2019
  * @author  ASAMI, Tomoharu
  */
 case class Record(
@@ -149,6 +149,8 @@ case class Record(
   def +(rhs: Record): Record = update(rhs)
   def +(rhs: IRecord): IRecord = update(rhs.toRecord)
 
+  def withExtra(p: Record.Extra): Record = copy(extra = p)
+
   def update(rec: Record): Record =
     rec.fields.foldLeft(this)((z, x) => z.updateField(x.key, x.value))
 
@@ -189,7 +191,9 @@ object Record {
 
   case class Extra(
     v2: Option[Record2] // use in conversion
-  )
+  ) {
+    def isV2: Boolean = v2.isDefined
+  }
   object Extra {
     val empty = Extra(None)
 
@@ -308,7 +312,14 @@ object Record {
    * 
    */
   def build(p: Record): Either[NonEmptyVector[Record], Record] =
-    build(p.fields)
+    build(p.fields) match {
+      case Right(r) => Right(r.withExtra(p.extra))
+      case Left(l) =>
+        if (p.extra.isV2)
+          RAISE.invalidArgumentFault("Prohibit file (e.g. image_file) in multiple parameters")
+        else
+          Left(l)
+    }
 
   sealed trait Slot {
   }
