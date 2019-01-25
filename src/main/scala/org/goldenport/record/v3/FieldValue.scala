@@ -7,6 +7,7 @@ import org.goldenport.Strings
 import org.goldenport.exception.RAISE
 import org.goldenport.json.JsonUtils
 import org.goldenport.record.util.AnyUtils
+import org.goldenport.record.v2.{Record => Record2, RecordRecord}
 
 /*
  * derived from org.goldenport.g3.message.
@@ -36,7 +37,7 @@ import org.goldenport.record.util.AnyUtils
  *  version Sep.  4, 2018
  *  version Oct. 30, 2018
  *  version Dec. 28, 2018
- * @version Jan.  6, 2019
+ * @version Jan. 21, 2019
  * @author  ASAMI, Tomoharu
  */
 sealed abstract class FieldValue {
@@ -81,8 +82,10 @@ case class SingleValue(value: Any) extends FieldValue {
     case m: ITable => m.toRecordList
     case m: Seq[_] => m.toList.map {
       case mm: IRecord => mm.toRecord
+      case mm: Record2 => RecordRecord.toRecord3(mm)
       case mm => RAISE.noReachDefect
     }
+    case m: Record2 => List(RecordRecord.toRecord3(m))
     case m => RAISE.noReachDefect
   }
   def asRecordVector = value match {
@@ -90,8 +93,10 @@ case class SingleValue(value: Any) extends FieldValue {
     case m: ITable => m.toRecordVector
     case m: Seq[_] => m.toVector.map {
       case mm: IRecord => mm.toRecord
+      case mm: Record2 => RecordRecord.toRecord3(mm)
       case mm => RAISE.noReachDefect
     }
+    case m: Record2 => Vector(RecordRecord.toRecord3(m))
     case m => RAISE.noReachDefect
   }
   def asTable = value match {
@@ -128,10 +133,12 @@ case class MultipleValue(values: Seq[Any]) extends FieldValue {
   def asRecord = RAISE.notImplementedYetDefect
   def asRecordList = values.toList.map {
     case m: IRecord => m.toRecord
+    case m: Record2 => RecordRecord.toRecord3(m)
     case m => RAISE.noReachDefect
   }
   def asRecordVector = values.toVector.map {
     case m: IRecord => m.toRecord
+    case m: Record2 => RecordRecord.toRecord3(m)
     case m => RAISE.noReachDefect
   }
   def asTable: Table = RAISE.notImplementedYetDefect

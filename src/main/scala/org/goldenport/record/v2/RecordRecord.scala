@@ -6,7 +6,8 @@ import org.goldenport.record.v3.{FieldValue, EmptyValue, SingleValue, MultipleVa
 
 /*
  * @since   Nov.  7, 2018
- * @version Dec. 11, 2018
+ *  version Dec. 11, 2018
+ * @version Jan. 21, 2019
  * @author  ASAMI, Tomoharu
  */
 case class RecordRecord(record: Record) extends IRecord {
@@ -42,9 +43,14 @@ object RecordRecord {
   def toFieldValue(ps: List[Any]): FieldValue = ps match {
     case Nil => EmptyValue
     case x :: Nil => x match {
-      case m: List[_] => MultipleValue(m)
-      case _=> SingleValue(x)
+      case m: List[_] => MultipleValue(m.map(_v2_to_v3))
+      case _=> SingleValue(_v2_to_v3(x))
     }
-    case xs => MultipleValue(xs)
+    case xs => MultipleValue(xs.map(_v2_to_v3))
+  }
+
+  private def _v2_to_v3(p: Any): Any = p match {
+    case m: Record => toRecord3(m)
+    case m => m
   }
 }
