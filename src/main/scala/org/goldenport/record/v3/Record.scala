@@ -41,7 +41,7 @@ import org.goldenport.values.PathName
  *  version Oct. 30, 2018
  *  version Nov.  7, 2018
  *  version Dec. 29, 2018
- * @version Jan. 15, 2019
+ * @version Jan. 29, 2019
  * @author  ASAMI, Tomoharu
  */
 case class Record(
@@ -193,6 +193,7 @@ object Record {
     v2: Option[Record2] // use in conversion
   ) {
     def isV2: Boolean = v2.isDefined
+    def isV2InputFile: Boolean = v2.map(_.inputFiles.nonEmpty).getOrElse(false)
   }
   object Extra {
     val empty = Extra(None)
@@ -315,7 +316,7 @@ object Record {
     build(p.fields) match {
       case Right(r) => Right(r.withExtra(p.extra))
       case Left(l) =>
-        if (p.extra.isV2)
+        if (p.extra.isV2InputFile)
           RAISE.invalidArgumentFault("Prohibit file (e.g. image_file) in multiple parameters")
         else
           Left(l)
