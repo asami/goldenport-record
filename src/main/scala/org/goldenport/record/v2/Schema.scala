@@ -44,7 +44,8 @@ import org.goldenport.record.v2.util.RecordUtils
  *  version Jul. 28, 2018
  *  version Aug. 29, 2018
  *  version Sep.  5, 2018
- * @version Jan.  1, 2019
+ *  version Jan.  1, 2019
+ * @version Feb. 12, 2019
  * @author  ASAMI, Tomoharu
  */
 case class Schema(
@@ -64,7 +65,7 @@ case class Schema(
 //  comment: String = "",
 //  history: String = ""
   desc: Description = Description.empty
-) {
+) extends org.goldenport.table.ISchema {
   import scalaz.syntax.foldable._
   implicit object ValidationResultMonoid extends Monoid[ValidationResult] {
     def append(f1: ValidationResult, f2: => ValidationResult) = f1 + f2
@@ -75,6 +76,8 @@ case class Schema(
     s"""Schema(${columns.map(_.showlong).mkString(";")})"""
   else
     s"""Schema(${columns.map(_.show).mkString(";")})"""
+
+  final def keys: List[String] = columns.map(_.name).toList
 
   final def getColumn(key: String) = {
     columns.find(_.name == key)

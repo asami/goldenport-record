@@ -54,7 +54,8 @@ import org.goldenport.util.{TimestampUtils, DateUtils}
  *  version Jan. 11, 2018
  *  version Jun.  1, 2018
  *  version Nov.  7, 2018
- * @version Dec. 29, 2018
+ *  version Dec. 29, 2018
+ * @version Feb. 10, 2019
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -1149,6 +1150,12 @@ case class Record(
   def toVector: Vector[(String, Any)] = {
     Vector.empty ++ normalizedFields.map { x =>
       x.key.name -> to_natural_value(x.values)
+    }
+  }
+
+  def toDoubleVector: Vector[(String, Double)] = {
+    Vector.empty ++ normalizedFields.map { x =>
+      x.key.name -> AnyUtils.toDouble(x.values)
     }
   }
 

@@ -9,10 +9,13 @@ import java.io.{Writer, InputStream}
 import java.sql.ResultSet
 import java.nio.charset.Charset
 import au.com.bytecode.opencsv.CSVWriter
+import com.asamioffice.goldenport.io.UURL
+import org.goldenport.RAISE
 import org.goldenport.Strings
 import org.goldenport.record.v2._
-import com.asamioffice.goldenport.io.UURL
-import org.goldenport.Platform.codec.WINDOWS31J
+import org.goldenport.matrix._
+import org.goldenport.table.ITable
+import org.goldenport.Platform.codec.{UTF8, WINDOWS31J}
 import org.goldenport.csv.CsvLineMaker
 import org.goldenport.bag._
 import org.goldenport.record.v2.util.CsvUtils
@@ -33,7 +36,8 @@ import RecordBag._
  *  version Aug. 30, 2017
  *  version Sep.  2, 2017
  *  version Jan. 23, 2018
- * @version Jul. 18, 2018
+ *  version Jul. 18, 2018
+ * @version Feb. 12, 2019
  * @author  ASAMI, Tomoharu
  */
 class CsvBag(
@@ -41,12 +45,18 @@ class CsvBag(
 //  val codec: Codec = WINDOWS31J,
 //  val schema: Option[Schema] = None,
 //  val headerPolicy: RecordBag.HeaderPolicy = RecordBag.noHeader,
-  val strategy: RecordBag.Strategy = RecordBag.Strategy.plainAuto,
-  override val name: String = "data",
-  val lineEnd: String = "\r\n",
-  val isForceDoubleQuote: Boolean = false
+  // val recordStrategy: RecordBag.Strategy = RecordBag.Strategy.plainAuto,
+  // override val name: String = "data",
+  // val lineEnd: String = "\r\n",
+  // val isForceDoubleQuote: Boolean = false
+  val csvStrategy: CsvBag.Strategy = CsvBag.Strategy.legacy
 ) extends RecordBag {
   import CsvBag._
+
+  override def name = csvStrategy.name
+  def strategy = csvStrategy.recordBagStrategy
+  def lineEnd = csvStrategy.lineEnd
+  def isForceDoubleQuote = csvStrategy.isForceDoubleQuote
 
   def chunkBag = bag
   override def filenameSuffix = Some("csv")
@@ -82,7 +92,7 @@ class CsvBag(
 
   // Override resource, need not dispose in this point.
   def changeName(n: String): CsvBag = {
-    val a = new CsvBag(bag, strategy, n, lineEnd)
+    val a = new CsvBag(bag, csvStrategy.withName(n))
     a._count = _count
     a._is_empty = _is_empty
     a
@@ -90,7 +100,7 @@ class CsvBag(
 
   def withSchema(s: Schema) = {
 //    new CsvBag(bag, codec, Some(s), headerPolicy, lineEnd).asInstanceOf[this.type]
-    ???
+    RAISE.notImplementedYetDefect
   }
 
   protected def add_count(c: Int) {
@@ -108,6 +118,15 @@ class CsvBag(
 
   def isEmpty = bag.isEmpty
   def nonEmpty = bag.nonEmpty
+
+  override def toMatrixDouble: IMatrix[Double] = {
+    val a = vectorsR.map(_.map(_.toDouble)).runLog.run
+    VectorRowColumnMatrix(a.toVector)
+  }
+
+  override def dataVectorsR: Process[Task, Vector[Any]] = super.dataVectorsR // TODO performance
+
+  override def toTable: ITable = to_vector_table
 
   def openWriter(): Writer = {
     val writer = bag.openWriter(codec)
@@ -368,9 +387,79 @@ class CsvBag(
 }
 
 object CsvBag {
-  import RecordBag._
+  import RecordBag.Strategy
 
   val empty = new CsvBag(EmptyBag)
+
+  case class Strategy(
+    recordBagStrategy: RecordBag.Strategy,
+    name: String,
+    lineEnd: String,
+    isForceDoubleQuote: Boolean
+  ) {
+    def codec = recordBagStrategy.codec
+    def headerPolicy = recordBagStrategy.headerPolicy
+    def schema = recordBagStrategy.schema
+    def eliminateEmptyColumn = recordBagStrategy.eliminateEmptyColumn
+
+    def withName(p: String) = copy(name = p)
+    def withIsForceDoubleQuote(p: Boolean) = copy(isForceDoubleQuote = p)
+
+    def update(
+      bag: Option[RecordBag.Strategy],
+      name: Option[String],
+      lineEnd: Option[String],
+      isForceDoubleQuote: Option[Boolean]
+    ): Strategy = Strategy(
+      bag getOrElse this.recordBagStrategy,
+      name getOrElse this.name,
+      lineEnd getOrElse this.lineEnd,
+      isForceDoubleQuote getOrElse this.isForceDoubleQuote
+    )
+  }
+  object Strategy {
+    val default = Strategy(
+      RecordBag.Strategy.plainAuto,
+      "data",
+      "\n",
+      false
+    )
+    val legacy = Strategy(
+      RecordBag.Strategy.plainAuto,
+      "data",
+      "\r\n", // legacy
+      false
+    )
+    val matrixAuto = Strategy(
+      RecordBag.Strategy.matrixAuto,
+      "data",
+      "\n",
+      false
+    )
+
+    def legacy(
+      p: RecordBag.Strategy
+    ): Strategy = legacy.copy(p)
+
+    def legacy(
+      p: RecordBag.Strategy,
+      name: String
+    ): Strategy = legacy.copy(p, name = name)
+
+    def legacy(
+      p: RecordBag.Strategy,
+      name: Option[String],
+      isForceDoubleQuote: Boolean
+    ): Strategy = name.cata(
+      x => legacy.copy(p, name = x, isForceDoubleQuote = isForceDoubleQuote),
+      legacy.copy(p, isForceDoubleQuote = isForceDoubleQuote)
+    )
+  }
+
+  def create(
+    bag: ChunkBag,
+    strategy: Strategy
+  ): CsvBag = new CsvBag(bag, strategy)
 
   def create(
     bag: Option[ChunkBag],
@@ -381,19 +470,17 @@ object CsvBag {
     isforcedoublequote: Option[Boolean]
   ): CsvBag = {
     val b = bag getOrElse new BufferFileBag()
-    val c = codec getOrElse Strategy.UTF8
+    val c = codec getOrElse RecordBag.Strategy.UTF8
     val h = withComplementPhysicalHeader(withHeader | false)
     val a = schema match {
       case Some(s) => SpecificSchema(s)
       case None => AutoSchema
     }
     val eliminate = false
-    val strategy = Strategy(c, h, a, eliminate)
+    val rstrategy = RecordBag.Strategy(c, h, a, eliminate)
     val dqp = isforcedoublequote getOrElse false
-    name.cata(
-      new CsvBag(b, strategy, _, isForceDoubleQuote = dqp),
-      new CsvBag(b, strategy, isForceDoubleQuote = dqp)
-    )
+    val strategy = Strategy.legacy(rstrategy, name, dqp)
+    new CsvBag(b, strategy)
   }
 
   // def create(
@@ -433,24 +520,24 @@ object CsvBag {
       case None => AutoSchema
     }
     val eliminate = false
-    val strategy = Strategy(codec, header, a, eliminate)
+    val strategy = RecordBag.Strategy(codec, header, a, eliminate)
     create(bag, strategy)
   }
 
-  def create(bag: ChunkBag, strategy: Strategy): CsvBag = {
-    new CsvBag(bag, strategy)
+  def create(bag: ChunkBag, strategy: RecordBag.Strategy): CsvBag = {
+    new CsvBag(bag, Strategy.legacy(strategy))
   }
 
-  def create(bag: ChunkBag, strategy: Strategy, name: String): CsvBag = {
-    new CsvBag(bag, strategy, name)
+  def create(bag: ChunkBag, strategy: RecordBag.Strategy, name: String): CsvBag = {
+    new CsvBag(bag, Strategy.legacy(strategy, name))
   }
 
   def createNoHeader(bag: ChunkBag, schema: Schema): CsvBag = {
-    create(bag, Strategy.UTF8, Some(schema), noHeader)
+    create(bag, RecordBag.Strategy.UTF8, Some(schema), noHeader)
   }
 
   def create(schema: Schema): CsvBag = {
-    create(Strategy.UTF8, schema) // Use UTF-8 instead of WINDOWS31J as default
+    create(RecordBag.Strategy.UTF8, schema) // Use UTF-8 instead of WINDOWS31J as default
   }
 
   // def create(schema: Schema, header: HeaderPolicy): CsvBag = {
@@ -478,12 +565,12 @@ object CsvBag {
 
   def createForDownload(schema: Schema): CsvBag = {
     val codec = WINDOWS31J
-    create(BufferFileBag.create(codec), Strategy.WINDOWS31J, Some(schema), complementPhysicalHeader)
+    create(BufferFileBag.create(codec), RecordBag.Strategy.WINDOWS31J, Some(schema), complementPhysicalHeader)
   }
 
   def createForDownload(schema: Schema, name: String): CsvBag = {
     val codec = WINDOWS31J
-    create(Some(BufferFileBag.create(codec)), Some(Strategy.WINDOWS31J), Some(schema), Some(true), Some(name), None)
+    create(Some(BufferFileBag.create(codec)), Some(RecordBag.Strategy.WINDOWS31J), Some(schema), Some(true), Some(name), None)
   }
 
   def createForDownload(
@@ -496,16 +583,37 @@ object CsvBag {
     create(Some(BufferFileBag.create(codec)), Some(codec), Some(schema), Some(true), Some(name), Some(isforcedoublequote))
   }
 
+  // legacy
   def createForDownload(schema: Schema, header: HeaderPolicy): CsvBag = {
     val codec = WINDOWS31J
     val b = BufferFileBag.create(codec)
-    val c = Strategy.WINDOWS31J
+    val c = RecordBag.Strategy.WINDOWS31J
     val a = SpecificSchema(schema)
     val eliminate = false
-    val strategy = Strategy(c, header, a, false)
+    val strategy = RecordBag.Strategy(c, header, a, false)
     create(b, strategy)
   }
 
+  def load(
+    uri: java.net.URI,
+    strategy: Strategy = Strategy.default
+  ): CsvBag = loadUri(uri.toString, strategy)
+
+  def loadUri(
+    uri: String,
+    strategy: Strategy = Strategy.default
+  ): CsvBag = {
+    val url = UURL.getURLFromFileOrURLName(uri)
+    val bag = BufferFileBag.create(strategy.codec)
+    for {
+      in <- resource.managed(url.openStream())
+    } {
+      bag.write(in)
+    }
+    create(bag, strategy)
+  }
+
+  // legacy because of WINDOWS31J
   def fromUri(
     uri: String,
     schema: Option[Schema] = None,
