@@ -2,7 +2,8 @@ package org.goldenport.record.v2
 
 /*
  * @since   Sep. 25, 2015
- * @version Sep. 25, 2015
+ *  version Sep. 25, 2015
+ * @version Mar.  8, 2019
  * @author  ASAMI, Tomoharu
  */
 case class NumberPowertype(value: Int) extends Powertype {
@@ -18,6 +19,6 @@ object NumberPowertype extends PowertypeClass {
     NumberPowertype(2)
   )
 
-  override def get(v: Int) = super.get(v) orElse Some(NumberPowertype(v))
+  override def get(v: Int) = Some(new NumberPowertype(v)) // elements.lift(v) orElse Some(NumberPowertype(v))
   override def get(v: String) = get(v.toInt)
 }

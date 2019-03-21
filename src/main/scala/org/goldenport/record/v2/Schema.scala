@@ -44,7 +44,7 @@ import org.goldenport.record.v2.util.RecordUtils
  *  version Jul. 28, 2018
  *  version Aug. 29, 2018
  *  version Sep.  5, 2018
- * @version Oct. 16, 2018
+ * @version Oct. 24, 2018
  * @author  ASAMI, Tomoharu
  */
 case class Schema(
@@ -487,6 +487,10 @@ object Schema {
 
     def marshall(schema: Schema): String = Json.toJson(schema).toString
     def unmarshall(p: String): Schema = Json.parse(p).as[Schema]
+    def unmarshall(p: JsLookupResult): Schema = p match {
+      case JsDefined(js) => unmarshall(js)
+      case _: JsUndefined => throw new IllegalArgumentException(p.toString)
+    }
     def unmarshall(p: JsValue): Schema = SchemaFormat.reads(p) match {
       case JsSuccess(s, _) => s
       case m: JsError => throw new IllegalArgumentException(m.toString)

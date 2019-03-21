@@ -30,7 +30,7 @@ import org.goldenport.record.v2.bag.{RecordBag, CsvBag}
  *  version Oct. 22, 2017
  *  version Nov. 13, 2017
  *  version Jan. 21, 2018
- * @version Oct. 16, 2018
+ * @version Oct. 24, 2018
  * @author  ASAMI, Tomoharu
  */
 object RecordUtils {
@@ -242,6 +242,11 @@ object RecordUtils {
     }
   }
 
+  def js2record(p: JsLookupResult): Record = p match {
+    case JsDefined(js) => js2record(js)
+    case m: JsUndefined => throw new IllegalArgumentException(s"Undefined: $m")
+  }
+
   def js2record(j: JsValue): Record = j match {
     case null => Record.empty
     case JsNull => Record.empty
@@ -324,7 +329,7 @@ object RecordUtils {
     case m: Short => JsNumber(BigDecimal(m))
     case m: Int => JsNumber(BigDecimal(m))
     case m: Long => JsNumber(BigDecimal(m))
-    case m: Float => JsNumber(BigDecimal(m))
+    case m: Float => JsNumber(BigDecimal(m.toDouble))
     case m: Double => JsNumber(BigDecimal(m))
     case m: Array[_] => JsArray(m.map(_value_to_json))
     case m: Seq[_] => JsArray(m.map(_value_to_json))

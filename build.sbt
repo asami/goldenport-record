@@ -2,7 +2,7 @@ organization := "org.goldenport"
 
 name := "goldenport-record"
 
-version := "2.0.5"
+version := "2.1.0"
 
 scalaVersion := "2.12.7"
 
@@ -20,9 +20,9 @@ resolvers += "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases"
 
 resolvers += "Asami Maven Repository" at "http://www.asamioffice.com/maven"
 
-libraryDependencies += "org.goldenport" %% "goldenport-atom" % "2.0.0"
+libraryDependencies += "org.goldenport" %% "goldenport-atom" % "2.1.0"
 
-libraryDependencies += "org.smartdox" %% "smartdox" % "2.0.2-SNAPSHOT"
+libraryDependencies += "org.smartdox" %% "smartdox" % "2.1.0"
 
 libraryDependencies += "com.typesafe.play" %% "play-json" % "2.6.10" % "provided" exclude("org.scala-stm", "scala-stm_2.10.0")
 

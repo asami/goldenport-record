@@ -344,7 +344,22 @@ object Record {
     def append(lhs: Record, rhs: => Record) = lhs + rhs
   }
 
-  def data(data: (String, Any)*): Record = createDataSeq(data)
+  def apply(p: (Symbol, Any), ps: (Symbol, Any)*): Record =
+    apply(p +: ps)
+
+  def applyOption(p: (Symbol, Option[Any]), ps: (Symbol, Any)*): Record = {
+    val xs = p +: ps
+    val a = xs flatMap {
+      case (k, Some(v)) => Some(k -> v)
+      case (k, None) => None
+    }
+    apply(a)
+  }
+
+  def apply(ps: Seq[(Symbol, Any)]): Record =
+    Record(ps.map(Field.create).toVector)
+
+  def data(p: (String, Any), ps: (String, Any)*): Record = createDataSeq(p +: ps)
 
   def dataOption(data: (String, Option[Any])*): Record = {
     val xs = data.collect {
@@ -356,18 +371,6 @@ object Record {
   def create(map: scala.collection.Map[String, Any]): Record = create(map.toVector)
 
   def create(data: Seq[(String, Any)]): Record = createDataSeq(data)
-
-  def data(xs: (Symbol, Any)*): Record = {
-    Record(xs.map(Field.create).toVector)
-  }
-
-  def dataOption(xs: (Symbol, Option[Any])*): Record = {
-    val a = xs flatMap {
-      case (k, Some(v)) => Some(k -> v)
-      case (k, None) => None
-    }
-    data(a: _*)
-  }
 
   // def fromDataSeq(data: Seq[(String, Any)]): Record = {
   //   Record(data.map(Field.fromData).toVector)
