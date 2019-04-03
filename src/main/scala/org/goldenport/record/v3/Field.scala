@@ -37,7 +37,8 @@ import org.goldenport.record.util.AnyUtils
  *  version Sep. 17, 2018
  *  version Oct. 30, 2018
  *  version Dec. 29, 2018
- * @version Jan.  7, 2019
+ *  version Jan.  7, 2019
+ * @version Mar. 23, 2019
  * @author  ASAMI, Tomoharu
  */
 case class Field(
@@ -123,6 +124,8 @@ object Field {
   def apply(kv: (String, FieldValue)): Field = apply(kv._1, kv._2)
 
   def apply(key: String, value: FieldValue): Field = Field(Symbol(key), value)
+
+  def create(key: String, value: Any): Field = create(Symbol(key), value)
 
   def create(key: Symbol, value: Any): Field = {
     value match {

@@ -5,6 +5,7 @@ import java.sql.Timestamp
 import org.joda.time.DateTime
 import play.api.libs.json._
 import org.goldenport.RAISE
+import org.goldenport.util.VectorUtils
 import org.goldenport.record.util.StringUtils
 import org.goldenport.record.v2.{Record => Record2, Field => Field2, Schema}
 import org.goldenport.record.v2.util.RecordUtils
@@ -41,7 +42,9 @@ import org.goldenport.values.PathName
  *  version Oct. 30, 2018
  *  version Nov.  7, 2018
  *  version Dec. 29, 2018
- * @version Jan. 29, 2019
+ *  version Jan. 29, 2019
+ *  version Feb. 28, 2019
+ * @version Mar.  6, 2019
  * @author  ASAMI, Tomoharu
  */
 case class Record(
@@ -74,14 +77,14 @@ case class Record(
 
   def getList(key: Symbol): Option[List[Any]] = getField(key).flatMap(_.value.getList)
 
-  def getField(key: Symbol): Option[Field] = {
-    fields.find(_.key == key)
-  }
+  // def getField(key: Symbol): Option[Field] = {
+  //   fields.find(_.key == key)
+  // }
 
-  def getField(key: String): Option[Field] = {
-    val s = Symbol(key)
-    fields.find(_.key == s)
-  }
+  // def getField(key: String): Option[Field] = {
+  //   val s = Symbol(key)
+  //   fields.find(_.key == s)
+  // }
 
   def getValue(key: Symbol): Option[FieldValue] = {
     getField(key).map(_.value)
@@ -169,7 +172,7 @@ case class Record(
 
   def updateField(key: Symbol, value: FieldValue): Record = {
     val (prefix, suffix) = fields.span(_.key != key) // XXX isMatch?
-    val r = suffix match {
+    val r = suffix.toList match {
       case Nil => prefix :+ Field(key, value)
       case x :: xs => prefix ++ (Field(key, value) :: xs)
     }
@@ -219,7 +222,13 @@ object Record {
 
   def create(map: scala.collection.Map[String, Any]): Record = create(map.toVector)
 
+  def createOption(map: scala.collection.Map[String, Option[Any]]): Record = 
+    createOption(map.toVector)
+
   def create(data: Seq[(String, Any)]): Record = createDataSeq(data)
+
+  def createOption(data: Seq[(String, Option[Any])]): Record = 
+    create(VectorUtils.buildTupleVector(data))
 
   def create(p: IRecord): Record = p.toRecord
 

@@ -12,7 +12,8 @@ import org.goldenport.record.util.AnyUtils
  *  version Sep. 20, 2018
  *  version Oct. 30, 2018
  *  version Nov.  7, 2018
- * @version Jan.  6, 2019
+ *  version Jan.  6, 2019
+ * @version Feb. 28, 2019
  * @author  ASAMI, Tomoharu
  */
 trait IRecord extends org.goldenport.record.IRecord
@@ -24,6 +25,8 @@ trait IRecord extends org.goldenport.record.IRecord
   def isDefined(key: String): Boolean
   def get(key: Symbol): Option[Any]
   def get(key: String): Option[Any]
+  def getField(key: Symbol): Option[Field] = fields.find(_.key == key)
+  def getField(key: String): Option[Field] = fields.find(_.name == key)
   def getList(key: Symbol): Option[List[Any]]
   def getList(key: String): Option[List[Any]]
   def takeList(key: Symbol): List[Any] = getList(key) getOrElse Nil

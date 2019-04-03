@@ -1,20 +1,30 @@
 package org.goldenport.record.v3
 
+import scala.collection.JavaConverters._
+import com.typesafe.config._
 import org.goldenport.RAISE
-import org.goldenport.util.HoconUtils.RichConfig
+import org.goldenport.hocon.RichConfig
 
 /*
  * @since   Oct. 21, 2018
- * @version Oct. 30, 2018
+ * @version Mar. 24, 2019
  * @author  ASAMI, Tomoharu
  */
 case class HoconRecord(hocon: RichConfig) extends IRecord {
-  def toRecord: Record = RAISE.notImplementedYetDefect
-  def keyNames: List[String] = RAISE.notImplementedYetDefect
-  def fields: Seq[Field] = RAISE.notImplementedYetDefect
-  def isEmpty: Boolean = RAISE.notImplementedYetDefect
+  lazy val toRecord: Record = Record(fields)
+  lazy val keyNames: List[String] = fields.map(_.name).toList
+  lazy val fields: Seq[Field] = hocon.config.entrySet.asScala.toVector.map { x =>
+    val key = x.getKey
+    val value = x.getValue match {
+      case m: ConfigList => RAISE.notImplementedYetDefect
+      case m: ConfigObject => RAISE.notImplementedYetDefect
+      case m: ConfigValue => SingleValue(m.unwrapped)
+    }
+    Field(key, value)
+  }
+  def isEmpty: Boolean = fields.isEmpty
   def isDefined(key: String): Boolean = hocon.isDefined(key)
-  def isDefined(key: Symbol): Boolean = RAISE.notImplementedYetDefect
+  def isDefined(key: Symbol): Boolean = isDefined(key.name)
   def get(key: String): Option[Any] = hocon.getStringOption(key)
   def get(key: Symbol): Option[Any] = get(key.name)
   def getList(key: String): Option[List[Any]] = RAISE.notImplementedYetDefect
