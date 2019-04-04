@@ -2,7 +2,7 @@ organization := "org.goldenport"
 
 name := "goldenport-record"
 
-version := "1.2.35"
+version := "1.2.36"
 
 scalaVersion := "2.10.3"
 // crossScalaVersions := Seq("2.9.2", "2.9.1")
@@ -23,15 +23,17 @@ libraryDependencies += "org.goldenport" %% "goldenport-atom" % "1.0.1"
 
 // libraryDependencies += "org.goldenport" % "goldenport-java-lib" % "0.1.2"
 
-libraryDependencies += "org.goldenport" %% "goldenport-scala-lib" % "1.2.33"
+libraryDependencies += "org.goldenport" %% "goldenport-scala-lib" % "1.2.34"
 
 // libraryDependencies += "org.smartdox" %% "smartdox" % "1.2.2"
 
-libraryDependencies += "com.typesafe.play" %% "play-json" % "2.2.2" % "provided"
+libraryDependencies += "com.typesafe.play" %% "play-json" % "2.2.2" % "compile"
 
-libraryDependencies += "net.sf.opencsv" % "opencsv" % "2.3" % "provided"
+libraryDependencies += "net.sf.opencsv" % "opencsv" % "2.3" % "compile"
 
-libraryDependencies +=  "org.scalaj" %% "scalaj-http" % "2.4.1" % "provided"
+libraryDependencies += "org.scalaj" %% "scalaj-http" % "2.4.1" % "compile"
+
+libraryDependencies += "com.zaxxer" % "HikariCP-java7" % "2.4.13" % "compile"
 
 libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.6" % "test"
 
