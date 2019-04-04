@@ -29,7 +29,8 @@ import org.goldenport.record.v2.bag.{RecordBag, CsvBag}
  *  version Sep. 15, 2017
  *  version Oct. 22, 2017
  *  version Nov. 13, 2017
- * @version Jan. 21, 2018
+ *  version Jan. 21, 2018
+ * @version Apr.  3, 2019
  * @author  ASAMI, Tomoharu
  */
 object RecordUtils {
@@ -273,7 +274,7 @@ object RecordUtils {
       case JsNull => None
       case u: JsUndefined => None
       case o: JsObject => js2record(o)
-      case a: JsArray => array2seq(a)
+      case a: JsArray => List(array2seq(a))
       case s: JsString => s.value
       case b: JsBoolean => b.value
       case n: JsNumber => n.value
