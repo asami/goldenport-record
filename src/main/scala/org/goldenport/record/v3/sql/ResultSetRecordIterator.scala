@@ -6,13 +6,14 @@ import org.goldenport.record.v3.Record
 
 /*
  * @since   Mar. 23, 2019
- * @version Mar. 23, 2019
+ *  version Mar. 23, 2019
+ * @version Apr.  5, 2019
  * @author  ASAMI, Tomoharu
  */
 class ResultSetRecordIterator(
   schema: Schema,
   resultset: ResultSet
-) extends Iterator[Record] {
+) extends RecordIterator {
   def close() {
     resultset.close()
   }

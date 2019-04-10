@@ -5,11 +5,13 @@ package org.goldenport.record.sql
  * 
  * @since   Apr. 12, 2010
  *  version Jun. 26, 2011
- * @version Feb. 14, 2012
+ *  version Feb. 14, 2012
+ * @version Apr.  7, 2019
  * @author  ASAMI, Tomoharu
  */
 abstract class SqlDatatype() {
   def fullName: String
+  def isStringLiteral: Boolean = true
 }
 
 abstract class SqlConstraint() {
@@ -26,6 +28,7 @@ object Array extends Array {
 
 class BIGINT extends SqlDatatype {
   def fullName = "BIGINT"
+  override def isStringLiteral: Boolean = false
 }
 
 object BIGINT extends BIGINT {
@@ -42,6 +45,7 @@ object BINARY extends BINARY {
 
 class BIT extends SqlDatatype {
   def fullName = "BIT"
+  override def isStringLiteral: Boolean = false
 }
 
 object BIT extends BIT {
@@ -58,6 +62,7 @@ object BLOB extends BLOB {
 
 class BOOLEAN extends SqlDatatype {
   def fullName = "BOOLEAN"
+  override def isStringLiteral: Boolean = false
 }
 
 object BOOLEAN extends BOOLEAN {
@@ -114,6 +119,7 @@ object DISTINCT extends DISTINCT {
 
 class DOUBLE extends SqlDatatype {
   def fullName = "DOUBLE"
+  override def isStringLiteral: Boolean = false
 }
 
 object DOUBLE extends DOUBLE {
@@ -122,14 +128,25 @@ object DOUBLE extends DOUBLE {
 
 class FLOAT extends SqlDatatype {
   def fullName = "FLOAT"
+  override def isStringLiteral: Boolean = false
 }
 
 object FLOAT extends FLOAT {
   def apply() = new FLOAT
 }
 
+class INT extends SqlDatatype {
+  def fullName = "INT"
+  override def isStringLiteral: Boolean = false
+}
+
+object INT extends INT {
+  def apply() = new INT
+}
+
 class INTEGER extends SqlDatatype {
   def fullName = "INTEGER"
+  override def isStringLiteral: Boolean = false
 }
 
 object INTEGER extends INTEGER {
@@ -194,6 +211,7 @@ object NULL extends NULL {
 
 class NUMERIC extends SqlDatatype {
   def fullName = "NUMERIC"
+  override def isStringLiteral: Boolean = false
 }
 
 object NUMERIC extends NUMERIC {
@@ -218,6 +236,7 @@ object OTHER extends OTHER {
 
 class REAL extends SqlDatatype {
   def fullName = "REAL"
+  override def isStringLiteral: Boolean = false
 }
 
 object REAL extends REAL {
@@ -242,6 +261,7 @@ object ROWID extends ROWID {
 
 class SMALLINT extends SqlDatatype {
   def fullName = "SMALLINT"
+  override def isStringLiteral: Boolean = false
 }
 
 object SMALLINT extends SMALLINT {
@@ -282,6 +302,7 @@ object TIMESTAMP extends TIMESTAMP {
 
 class TINYINT extends SqlDatatype {
   def fullName = "TINYINT"
+  override def isStringLiteral: Boolean = false
 }
 
 object TINYINT extends TINYINT {

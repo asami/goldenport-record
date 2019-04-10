@@ -4,11 +4,14 @@ import org.goldenport.RAISE
 
 /*
  * @since   Oct. 15, 2018
- * @version Jan.  3, 2019
+ *  version Jan.  3, 2019
+ * @version Apr.  8, 2019
  * @author  ASAMI, Tomoharu
  */
 case class DomRecord() extends IRecord {
   def keyNames: List[String] = ???
+  def print: String = RAISE.notImplementedYetDefect
+  def show: String = RAISE.notImplementedYetDefect
   def +(rhs: IRecord): IRecord = ???
   def fields: Seq[Field] = ???
   def get(key: Symbol): Option[Any] = ???

@@ -7,7 +7,8 @@ import org.goldenport.record.v3.{FieldValue, EmptyValue, SingleValue, MultipleVa
 /*
  * @since   Nov.  7, 2018
  *  version Dec. 11, 2018
- * @version Jan. 21, 2019
+ *  version Jan. 21, 2019
+ * @version Apr.  8, 2019
  * @author  ASAMI, Tomoharu
  */
 case class RecordRecord(record: Record) extends IRecord {
@@ -15,6 +16,8 @@ case class RecordRecord(record: Record) extends IRecord {
 
   def toRecord: Record3 = toRecord3(record)
   def keyNames: List[String] = RAISE.notImplementedYetDefect
+  def print: String = RAISE.notImplementedYetDefect
+  def show: String = RAISE.notImplementedYetDefect
   def fields: Seq[Field3] = record.fields.map(toField3)
   def isEmpty: Boolean = record.isEmpty
   def isDefined(key: String): Boolean = record.isDefined(key)

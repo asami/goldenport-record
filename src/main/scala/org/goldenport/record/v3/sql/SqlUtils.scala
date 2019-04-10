@@ -8,7 +8,8 @@ import org.goldenport.record.v3.{Record, Field}
 
 /*
  * @since   Mar. 23, 2019
- * @version Mar. 23, 2019
+ *  version Mar. 23, 2019
+ * @version Apr.  6, 2019
  * @author  ASAMI, Tomoharu
  */
 object SqlUtils {
@@ -88,4 +89,15 @@ object SqlUtils {
 
   def fold[T](conn: java.sql.Connection, sql: String)(f: Iterator[Record] => T): T =
     f(iterator(conn, sql))
+  // def selectSql() = {
+  // }
+
+  // def insertSql() = {
+  // }
+
+  // def updateSql() = {
+  // }
+
+  // def deleteSql() = {
+  // }
 }

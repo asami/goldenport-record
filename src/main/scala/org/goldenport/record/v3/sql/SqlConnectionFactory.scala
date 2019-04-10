@@ -9,7 +9,8 @@ import SqlContext._
 
 /*
  * @since   Mar. 23, 2019
- * @version Mar. 30, 2019
+ *  version Mar. 30, 2019
+ * @version Apr.  6, 2019
  * @author  ASAMI, Tomoharu
  */
 trait SqlConnectionFactory {
@@ -30,7 +31,7 @@ trait SqlConnectionFactory {
       }
     ).map(_.map(x => x.key -> x).toMap).getOrElse(Map.empty)
 
-  private var _addional_database_configs: Map[Symbol, SqlContext.DatabaseConfig] = Map.empty
+  private var _additional_database_configs: Map[Symbol, SqlContext.DatabaseConfig] = Map.empty
 
   def addProperties(p: IRecord) = synchronized {
     // println(s"SqlConnectionFactory#addProperties $p")
@@ -65,7 +66,7 @@ trait SqlConnectionFactory {
         }
       }
     }
-    _addional_database_configs = _addional_database_configs ++ p.fields./:(Z())(_+_).r
+    _additional_database_configs = _additional_database_configs ++ p.fields./:(Z())(_+_).r
     this
   }
 
@@ -75,8 +76,14 @@ trait SqlConnectionFactory {
     open_Connection(_config(db))
 
   private def _config(key: Symbol): DatabaseConfig = {
-    // println(s"_config: ${_addional_database_configs}")
-    _addional_database_configs.get(key) orElse _initial_database_configs.get(key) getOrElse RAISE.noSuchElementFault(s"Database not found: ${key.name}")
+    // println(s"_config: ${_additional_database_configs}")
+    _additional_database_configs.get(key) orElse _initial_database_configs.get(key) getOrElse RAISE.noSuchElementFault(s"Database not found: ${key.name}")
+  }
+
+  def databaseNames: List[Symbol] = {
+    val a = _additional_database_configs.map(_._2.key)
+    val b = _initial_database_configs.map(_._2.key)
+    (a ++ b).toList
   }
 
   protected def open_Connection(slot: DatabaseConfig): java.sql.Connection

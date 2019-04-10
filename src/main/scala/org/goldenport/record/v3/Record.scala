@@ -44,7 +44,8 @@ import org.goldenport.values.PathName
  *  version Dec. 29, 2018
  *  version Jan. 29, 2019
  *  version Feb. 28, 2019
- * @version Mar.  6, 2019
+ *  version Mar.  6, 2019
+ * @version Apr.  8, 2019
  * @author  ASAMI, Tomoharu
  */
 case class Record(
@@ -68,6 +69,10 @@ case class Record(
   def nonDefined(key: String): Boolean = !isDefined(key)
 
   lazy val keyNames: List[String] = fields.map(_.name).toList
+
+  lazy val print: String = toLtsv.replace("\t", "  ")
+
+  def show: String = print
 
   def get(key: String): Option[Any] = getField(key).flatMap(_.value.getValue)
 
@@ -178,6 +183,8 @@ case class Record(
     }
     copy(fields = r)
   }
+
+  def removeField(key: String): Record = copy(fields = fields.filterNot(_.key.name == key))
 }
 
 object Record {

@@ -2,11 +2,11 @@ package org.goldenport.record.v3.sql
 
 import org.goldenport.RAISE
 import org.goldenport.hocon.RichConfig
-import org.goldenport.record.v3.{IRecord, Record}
+import org.goldenport.record.v3.{IRecord, Record, RecordSequence}
 
 /*
  * @since   Mar. 23, 2019
- * @version Mar. 24, 2019
+ * @version Apr.  8, 2019
  * @author  ASAMI, Tomoharu
  */
 class SqlContext(config: RichConfig) {
@@ -25,24 +25,45 @@ class SqlContext(config: RichConfig) {
     this
   }
 
+  def takeDatabaseNames: List[Symbol] = _factories.toList.flatMap(_.databaseNames)
+
   def query(sql: String): IndexedSeq[Record] = query(KEY_DEFAULT, sql)
 
   def query(database: Symbol, sql: String): IndexedSeq[Record] =
-    queryIterator(database, sql).toVector
+    querySequence(database, sql).vector
 
-  def queryIterator(sql: String): Iterator[Record] = queryIterator(KEY_DEFAULT, sql)
+  def queryIterator(sql: String): RecordIterator = queryIterator(KEY_DEFAULT, sql)
 
-  def queryIterator(database: Symbol, sql: String): Iterator[Record] = {
+  def queryIterator(database: Symbol, sql: String): RecordIterator = {
     val conn = takeConnection(database)
     val stmt = conn.createStatement()
     val rs = stmt.executeQuery(sql)
     ResultSetRecordIterator.create(rs)
   }
 
-  def queryFold[T](sql: String)(f: Iterator[Record] => T): T = queryFold(KEY_DEFAULT, sql)(f)
+  def querySequence(sql: String): RecordSequence = RecordSequence.createClose(queryIterator(sql))
 
-  def queryFold[T](database: Symbol, sql: String)(f: Iterator[Record] => T): T =
+  def querySequence(database: Symbol, sql: String): RecordSequence =
+    RecordSequence.createClose(queryIterator(database, sql))
+
+  def queryFold[T](sql: String)(f: RecordIterator => T): T = queryFold(KEY_DEFAULT, sql)(f)
+
+  def queryFold[T](database: Symbol, sql: String)(f: RecordIterator => T): T =
     f(queryIterator(database, sql))
+
+  def queryHeadOption(database: Symbol, sql: String): Option[Record] = {
+    var iter: RecordIterator = null
+    try {
+      iter = queryIterator(database, sql)
+      if (iter.hasNext)
+        Some(iter.next)
+      else
+        None
+    } finally {
+      if (iter != null)
+        iter.close()
+    }
+  }
 
   def mutate(sql: String): Int = mutate(KEY_DEFAULT, sql)
 
@@ -52,9 +73,17 @@ class SqlContext(config: RichConfig) {
     stmt.executeUpdate(sql)
   }
 
+  def execute(database: Symbol, sql: String): Unit = {
+    val conn = takeConnection(database)
+    val stmt = conn.createStatement()
+    stmt.execute(sql)
+  }
+
+  def isExists(db: Symbol): Boolean = _get_factory(db).isDefined
+
   def takeConnection(): java.sql.Connection = takeConnection(KEY_DEFAULT)
 
-  def takeConnection(key: Symbol): java.sql.Connection =
+  def takeConnection(key: Symbol): java.sql.Connection = // concurrency
     _get_connection(key).map(_.connection) getOrElse {
       val a = _factory(key).openConnection(key)
       synchronized {
@@ -86,6 +115,8 @@ class SqlContext(config: RichConfig) {
 
 object SqlContext {
   val KEY_DEFAULT = 'default
+
+  val empty = new SqlContext(RichConfig.empty)
 
   case class DatabaseConfig(
     key: Symbol,
