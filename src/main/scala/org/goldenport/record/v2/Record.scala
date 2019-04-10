@@ -55,7 +55,8 @@ import org.goldenport.util.{TimestampUtils, DateUtils}
  *  version Jun.  1, 2018
  *  version Nov.  7, 2018
  *  version Dec. 29, 2018
- * @version Feb. 10, 2019
+ *  version Feb. 10, 2019
+ * @version Apr. 10, 2019
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -885,8 +886,8 @@ case class Record(
     fields.find(_.key == a) match {
       case Some(f) => {
         val b = fields.filter(_.key != a)
-        val c = for (x <- f.values) yield {
-          InputFile.createByUrlStringAutoName(fieldname, x.toString)
+        val c = for (x <- f.effectiveConcreteStringList) yield {
+          InputFile.createByUrlStringAutoName(fieldname, x)
         }
         this.copy(b, inputFiles = c)
       }
@@ -1296,6 +1297,13 @@ case class Field(key: Symbol, values: List[Any]) {
 
   def getConcreteStringList: List[String] = {
     values flatMap {
+      case s: String if Strings.blankp(s) => None
+      case x => Some(AnyUtils.toString(x))
+    }
+  }
+
+  def effectiveConcreteStringList: List[String] = {
+    effectiveList flatMap {
       case s: String if Strings.blankp(s) => None
       case x => Some(AnyUtils.toString(x))
     }
