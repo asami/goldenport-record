@@ -56,7 +56,7 @@ import org.goldenport.util.{TimestampUtils, DateUtils}
  *  version Nov.  7, 2018
  *  version Dec. 29, 2018
  *  version Feb. 10, 2019
- * @version Apr. 10, 2019
+ * @version Apr. 11, 2019
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -264,7 +264,9 @@ case class Record(
 
   def getRecord(key: Symbol): Option[Record] = getOne(key).map(AnyUtils.toRecord)
 
-  def getList(key: Symbol): List[Any] = {
+  def getList(key: Symbol): List[Any] = effectiveList(key)
+
+  def getListLegacy(key: Symbol): List[Any] = {
     get(key) getOrElse Nil
   }
 
