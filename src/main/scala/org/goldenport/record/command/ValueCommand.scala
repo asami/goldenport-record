@@ -7,7 +7,7 @@ import org.goldenport.record.util.AnyUtils
 
 /*
  * @since   Sep.  8, 2016
- * @version Sep.  8, 2016
+ * @version Feb. 24, 2019
  * @author  ASAMI, Tomoharu
  */
 sealed trait ValueCommand {
@@ -17,6 +17,9 @@ case object NotExist extends ValueCommand {
 }
 case object NullValue extends ValueCommand {
   override def getSqlLiteralForSet = Some("NULL")
+}
+case class StringValue(s: String) extends ValueCommand {
+  override def getSqlLiteralForSet = Some(s""""${s}"""")
 }
 trait ExtensionValueCommand extends ValueCommand
 
@@ -35,6 +38,7 @@ object ValueCommand {
       case -\/(l) => l match {
         case NotExist => None
         case NullValue => Some(nullf)
+        case m: StringValue => None
         case m: ExtensionValueCommand => None
       }
       case \/-(r) => Some(f(r))

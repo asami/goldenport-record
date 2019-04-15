@@ -6,7 +6,7 @@ import org.joda.time.DateTime
 import org.goldenport.record.v2.{ValidationResult, Valid, Warning, Invalid}
 import play.api.libs.json._
 import org.goldenport.exception.RAISE
-import org.goldenport.record.v2.Column
+import org.goldenport.record.v2.{Column, Field => Field2}
 import org.goldenport.record.util.AnyUtils
 
 /*
@@ -37,37 +37,41 @@ import org.goldenport.record.util.AnyUtils
  *  version Jun. 21, 2015
  *  version Jul. 14, 2015
  *  version Aug. 31, 2018
- * @version Sep. 17, 2018
+ *  version Sep. 17, 2018
+ *  version Oct. 30, 2018
+ *  version Dec. 29, 2018
+ *  version Jan.  7, 2019
+ * @version Mar. 23, 2019
  * @author  ASAMI, Tomoharu
  */
 case class Field(
   key: Symbol,
   value: FieldValue,
-  meta: Field.MetaData = Field.MetaData.empty,
-  validation: ValidationResult = Valid
+  meta: Field.MetaData = Field.MetaData.empty // ,
+//  validation: ValidationResult = Valid
 ) {
-  def isValid: Boolean = validation == Valid
-  def isValidOrWarning: Boolean = validation match {
-    case Valid => true
-    case _: Warning => true
-    case _ => false
-  }
-  def isInvalid: Boolean = validation.isInstanceOf[Invalid]
+  // def isValid: Boolean = validation == Valid
+  // def isValidOrWarning: Boolean = validation match {
+  //   case Valid => true
+  //   case _: Warning => true
+  //   case _ => false
+  // }
+  // def isInvalid: Boolean = validation.isInstanceOf[Invalid]
   def name: String = key.name
   def asString: String = value.asString
   def asStringList: List[String] = RAISE.unsupportedOperationFault
   def asInt: Int = value.asInt
   def asLong: Long = value.asLong
   def asTimestamp: Timestamp = value.asTimestamp
-  def asDateTime: DateTime = value.asDateTime
   def asRecord: Record = value.asRecord
   def asRecordList: List[Record] = value.asRecordList
 
-  def string: String = value.string
-  def int: Int = value.int
-  def long: Long = value.long
-  def timestamp: Timestamp = value.timestamp
-  def datetime: DateTime = value.datetime
+  // def string: String = value.string
+  // def int: Int = value.int
+  // def long: Long = value.long
+  // def timestamp: Timestamp = value.timestamp
+  // def datetime: DateTime = value.datetime
+  // def withKey(name: String): Field = copy(key = Symbol(name))
 
   def keyValue: Option[(Symbol, Any)] = {
     val data = value.getValue
@@ -75,18 +79,38 @@ case class Field(
   }
 
   def nameValue: Option[(String, Any)] = {
-    keyValue map {
-      case (k, v) => k.name -> v
-    }
+    val data = value.getValue
+    data.map(x => key.name -> x)
   }
 
   def nameString: Option[(String, String)] = {
-    keyValue map {
-      case (k, v) => k.name -> AnyUtils.toString(v)
-    }
+    val data = value.getValue
+    data.map(x => key.name -> AnyUtils.toString(x))
   }
 
+  def symbolAny: Option[(Symbol, Any)] = value.getValue.map(x => key -> x)
+
   def getJsonField: Option[(String, JsValue)] = value.getJson.map(x => name -> x)
+
+  def isAttribute = value match {
+    case EmptyValue => true
+    case _: SingleValue => true
+    case _: MultipleValue => false
+  }
+
+  def toField2: Field2 = value match {
+    case EmptyValue => Field2(key, Nil)
+    case SingleValue(v) => Field2(key, List(_to_field2_value(v)))
+    case MultipleValue(vs) => Field2(key, List(vs.map(_to_field2_value)))
+  }
+
+  private def _to_field2_value(p: Any): Any = p match {
+    case m: Record => m.toRecord2
+    case ms: Seq[_] => ms.map(_to_field2_value)
+    case ms: Array[_] => ms.map(_to_field2_value)
+    case ms: Some[_] => ms.map(_to_field2_value)
+    case m => m
+  }
 
   def toLtsv: String = {
     val v = asString // TODO normalize (replace with space)
@@ -113,8 +137,15 @@ object Field {
     val empty = MetaData(None)
   }
 
+  def apply(kv: (String, FieldValue)): Field = apply(kv._1, kv._2)
+
+  def apply(key: String, value: FieldValue): Field = Field(Symbol(key), value)
+
+  def create(key: String, value: Any): Field = create(Symbol(key), value)
+
   def create(key: Symbol, value: Any): Field = {
     value match {
+      case m: FieldValue => apply(key, m)
       case Some(x) => create(key, x)
       case None => Field(key, EmptyValue)
       case xs: Seq[_] => Field(key, MultipleValue(xs))

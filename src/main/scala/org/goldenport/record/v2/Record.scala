@@ -9,6 +9,7 @@ import org.goldenport.Strings
 import org.goldenport.Strings.notblankp
 import org.goldenport.record.command.NullValue
 import org.goldenport.record.util.AnyUtils
+import org.goldenport.record.v3.IRecord
 import org.goldenport.util.{TimestampUtils, DateUtils}
 
 /*
@@ -51,7 +52,11 @@ import org.goldenport.util.{TimestampUtils, DateUtils}
  *  version Oct. 26, 2017
  *  version Dec. 27, 2017
  *  version Jan. 11, 2018
- * @version Jun.  1, 2018
+ *  version Jun.  1, 2018
+ *  version Nov.  7, 2018
+ *  version Dec. 29, 2018
+ *  version Feb. 10, 2019
+ * @version Apr. 11, 2019
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -259,7 +264,9 @@ case class Record(
 
   def getRecord(key: Symbol): Option[Record] = getOne(key).map(AnyUtils.toRecord)
 
-  def getList(key: Symbol): List[Any] = {
+  def getList(key: Symbol): List[Any] = effectiveList(key)
+
+  def getListLegacy(key: Symbol): List[Any] = {
     get(key) getOrElse Nil
   }
 
@@ -881,8 +888,8 @@ case class Record(
     fields.find(_.key == a) match {
       case Some(f) => {
         val b = fields.filter(_.key != a)
-        val c = for (x <- f.values) yield {
-          InputFile.createByUrlStringAutoName(fieldname, x.toString)
+        val c = for (x <- f.effectiveConcreteStringList) yield {
+          InputFile.createByUrlStringAutoName(fieldname, x)
         }
         this.copy(b, inputFiles = c)
       }
@@ -1149,6 +1156,12 @@ case class Record(
     }
   }
 
+  def toDoubleVector: Vector[(String, Double)] = {
+    Vector.empty ++ normalizedFields.map { x =>
+      x.key.name -> AnyUtils.toDouble(x.values)
+    }
+  }
+
   def toStringVector: Vector[(String, String)] = {
     Vector.empty ++ normalizedFields.map { x =>
       x.key.name -> AnyUtils.toString(x.values)
@@ -1162,6 +1175,8 @@ case class Record(
       case xs => xs // includes List[List[_]]. Addressed as List[_].
     }
   }
+
+  lazy val toIRecord = RecordRecord(this)
 }
 
 case class Field(key: Symbol, values: List[Any]) {
@@ -1289,6 +1304,13 @@ case class Field(key: Symbol, values: List[Any]) {
     }
   }
 
+  def effectiveConcreteStringList: List[String] = {
+    effectiveList flatMap {
+      case s: String if Strings.blankp(s) => None
+      case x => Some(AnyUtils.toString(x))
+    }
+  }
+
   def updateKey(key: String): Field = {
     updateKey(Symbol(key))
   }
@@ -1313,6 +1335,8 @@ object Record {
   val empty = Record(Nil)
   val multiplicityRegex = """__(\d+)_""".r
   val groupRegex = """__G_""".r
+
+  def create(p: IRecord): Record = p.toRecord.toRecord2
 
   def create(map: scala.collection.Map[String, Any]): Record = {
     create(map.toList)

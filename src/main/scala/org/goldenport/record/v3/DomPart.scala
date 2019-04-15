@@ -1,68 +1,101 @@
 package org.goldenport.record.v3
 
+import org.goldenport.RAISE
+import org.w3c.dom._
+
 /*
  * @since   Aug. 23, 2018
- * @version Sep. 20, 2018
+ *  version Sep. 20, 2018
+ * @version Jan.  6, 2019
  * @author  ASAMI, Tomoharu
  */
-trait DomPart { self: IRecord =>
-  def getAttribute(x$1: String): String = ???
-  def getAttributeNS(x$1: String,x$2: String): String = ???
-  def getAttributeNode(x$1: String): org.w3c.dom.Attr = ???
-  def getAttributeNodeNS(x$1: String,x$2: String): org.w3c.dom.Attr = ???
-  def getElementsByTagName(x$1: String): org.w3c.dom.NodeList = ???
-  def getElementsByTagNameNS(x$1: String,x$2: String): org.w3c.dom.NodeList = ???
-  def getSchemaTypeInfo(): org.w3c.dom.TypeInfo = ???
-  def getTagName(): String = ???
-  def hasAttribute(x$1: String): Boolean = ???
-  def hasAttributeNS(x$1: String,x$2: String): Boolean = ???
-  def removeAttribute(x$1: String): Unit = ???
-  def removeAttributeNS(x$1: String,x$2: String): Unit = ???
-  def removeAttributeNode(x$1: org.w3c.dom.Attr): org.w3c.dom.Attr = ???
-  def setAttribute(x$1: String,x$2: String): Unit = ???
-  def setAttributeNS(x$1: String,x$2: String,x$3: String): Unit = ???
-  def setAttributeNode(x$1: org.w3c.dom.Attr): org.w3c.dom.Attr = ???
-  def setAttributeNodeNS(x$1: org.w3c.dom.Attr): org.w3c.dom.Attr = ???
-  def setIdAttribute(x$1: String,x$2: Boolean): Unit = ???
-  def setIdAttributeNS(x$1: String,x$2: String,x$3: Boolean): Unit = ???
-  def setIdAttributeNode(x$1: org.w3c.dom.Attr,x$2: Boolean): Unit = ???
+trait DomPart extends DomNodeImpl with ElementNodeImpl { self: IRecord =>
+  lazy val domNodes = fields.toVector.map { x =>
+    if (x.isAttribute)
+      AttributeNode(x, this)
+    else
+      ElementNode(x, this)
+  }
+
+  lazy val domElements: Vector[ElementNode] = domNodes collect {
+    case m: ElementNode => m
+  }
+
+  lazy val domAttributes: Vector[AttributeNode] = domNodes collect {
+    case m: AttributeNode => m
+  }
+
+  lazy val domValues: Vector[ValueNode] = domNodes collect {
+    case m: ValueNode => m
+  }
+
+  /*
+   * Accessor
+   */
+  // def getAttribute(p: String): String = ???
+  // def getAttributeNS(p: String, q: String): String = RAISE.notImplementedYetDefect(s"${p}")
+  // def getAttributeNode(p: String): Attr = RAISE.notImplementedYetDefect(s"${p}")
+  // def getAttributeNodeNS(p: String, q: String): Attr = RAISE.notImplementedYetDefect(s"${p}")
+  // def getElementsByTagName(p: String): NodeList = RAISE.notImplementedYetDefect(s"${p}")
+  // def getElementsByTagNameNS(p: String, q: String): NodeList = RAISE.notImplementedYetDefect(s"${p}")
+  // def getSchemaTypeInfo(): TypeInfo = RAISE.notImplementedYetDefect
+  def getTagName(): String = RAISE.notImplementedYetDefect(this, "getTagName")
+  // def hasAttribute(p: String): Boolean = RAISE.notImplementedYetDefect(s"${p}")
+  // def hasAttributeNS(p: String, q: String): Boolean = RAISE.notImplementedYetDefect(s"${p}")
+  // def getAttributes(): NamedNodeMap = RAISE.notImplementedYetDefect(this, "getAttributes")
+  // def getBaseURI(): String = RAISE.notImplementedYetDefect
+  // def getChildNodes(): NodeList = RAISE.notImplementedYetDefect(this, "getChildNodes")
+  // def getFeature(p: String, q: String): Object = RAISE.notImplementedYetDefect(s"${p}")
+
+  // def getFirstChild(): Node = domElements.headOption.getOrElse(null)
+
+  // def getLastChild(): Node = RAISE.notImplementedYetDefect(this, "getLastChild")
+  // def getLocalName(): String = RAISE.notImplementedYetDefect(this, "getLocalName")
+  // def getNamespaceURI(): String = RAISE.notImplementedYetDefect(this, "getNamespaceURI")
+  // def getNextSibling(): Node = RAISE.notImplementedYetDefect(this, "getNextSibling")
+  // def getNodeName(): String = RAISE.notImplementedYetDefect(this, "getNodeName")
+  // def getNodeType(): Short = Node.ELEMENT_NODE // Node.DOCUMENT_FRAGMENT_NODE
+  // def getNodeValue(): String = RAISE.notImplementedYetDefect(this, "getNodeValue")
+  // def getOwnerDocument(): Document = RAISE.notImplementedYetDefect(this, "getOwnerDocument")
+  // def getParentNode(): Node = RAISE.notImplementedYetDefect(this, "getParentNode")
+  // def getPrefix(): String = RAISE.notImplementedYetDefect(this, "getPrefix")
+  // def getPreviousSibling(): Node = RAISE.notImplementedYetDefect(this, "getPreviousSibling")
+  // def getTextContent(): String = RAISE.notImplementedYetDefect(this, "getTextContent")
+  // def getUserData(p: String): Object = RAISE.notImplementedYetDefect(s"${p}")
+  // def hasAttributes(): Boolean = RAISE.notImplementedYetDefect
+  // def hasChildNodes(): Boolean = RAISE.notImplementedYetDefect
+  // def insertBefore(p: Node, q: Node): Node = RAISE.notImplementedYetDefect(s"${p}")
+  // def isDefaultNamespace(p: String): Boolean = RAISE.notImplementedYetDefect(s"${p}")
+  // def isEqualNode(p: Node): Boolean = RAISE.notImplementedYetDefect(s"${p}")
+  // def isSameNode(p: Node): Boolean = RAISE.notImplementedYetDefect(s"${p}")
+  // def isSupported(p: String, q: String): Boolean = RAISE.notImplementedYetDefect(s"${p}")
+  // def lookupNamespaceURI(p: String): String = RAISE.notImplementedYetDefect(s"${p}")
+  // def lookupPrefix(p: String): String = RAISE.notImplementedYetDefect(s"${p}")
+  // def normalize(): Unit = RAISE.notImplementedYetDefect
+  // def cloneNode(p: Boolean): Node = RAISE.notImplementedYetDefect(s"${p}")
+  // def compareDocumentPosition(p: Node): Short = RAISE.notImplementedYetDefect(s"${p}")
+
+  /*
+   * Mutator
+   */
+  // def removeAttribute(p: String): Unit = RAISE.notImplementedYetDefect(s"${p}")
+  // def removeAttributeNS(p: String, q: String): Unit = RAISE.notImplementedYetDefect(s"${p}")
+  // def removeAttributeNode(p: Attr): Attr = RAISE.notImplementedYetDefect(s"${p}")
+  // def setAttribute(p: String, q: String): Unit = RAISE.notImplementedYetDefect(s"${p}")
+  // def setAttributeNS(p: String, q: String, r: String): Unit = RAISE.notImplementedYetDefect(s"${p}")
+  // def setAttributeNode(p: Attr): Attr = RAISE.notImplementedYetDefect(s"${p}")
+  // def setAttributeNodeNS(p: Attr): Attr = RAISE.notImplementedYetDefect(s"${p}")
+  // def setIdAttribute(p: String, q: Boolean): Unit = RAISE.notImplementedYetDefect(s"${p}")
+  // def setIdAttributeNS(p: String, q: String, r: Boolean): Unit = RAISE.notImplementedYetDefect(s"${p}")
+  // def setIdAttributeNode(p: Attr, q: Boolean): Unit = RAISE.notImplementedYetDefect(s"${p}")
   
-  // Members declared in org.w3c.dom.Node
-  def appendChild(x$1: org.w3c.dom.Node): org.w3c.dom.Node = ???
-  def cloneNode(x$1: Boolean): org.w3c.dom.Node = ???
-  def compareDocumentPosition(x$1: org.w3c.dom.Node): Short = ???
-  def getAttributes(): org.w3c.dom.NamedNodeMap = ???
-  def getBaseURI(): String = ???
-  def getChildNodes(): org.w3c.dom.NodeList = ???
-  def getFeature(x$1: String,x$2: String): Object = ???
-  def getFirstChild(): org.w3c.dom.Node = ???
-  def getLastChild(): org.w3c.dom.Node = ???
-  def getLocalName(): String = ???
-  def getNamespaceURI(): String = ???
-  def getNextSibling(): org.w3c.dom.Node = ???
-  def getNodeName(): String = ???
-  def getNodeType(): Short = ???
-  def getNodeValue(): String = ???
-  def getOwnerDocument(): org.w3c.dom.Document = ???
-  def getParentNode(): org.w3c.dom.Node = ???
-  def getPrefix(): String = ???
-  def getPreviousSibling(): org.w3c.dom.Node = ???
-  def getTextContent(): String = ???
-  def getUserData(x$1: String): Object = ???
-  def hasAttributes(): Boolean = ???
-  def hasChildNodes(): Boolean = ???
-  def insertBefore(x$1: org.w3c.dom.Node,x$2: org.w3c.dom.Node): org.w3c.dom.Node = ???
-  def isDefaultNamespace(x$1: String): Boolean = ???
-  def isEqualNode(x$1: org.w3c.dom.Node): Boolean = ???
-  def isSameNode(x$1: org.w3c.dom.Node): Boolean = ???
-  def isSupported(x$1: String,x$2: String): Boolean = ???
-  def lookupNamespaceURI(x$1: String): String = ???
-  def lookupPrefix(x$1: String): String = ???
-  def normalize(): Unit = ???
-  def removeChild(x$1: org.w3c.dom.Node): org.w3c.dom.Node = ???
-  def replaceChild(x$1: org.w3c.dom.Node,x$2: org.w3c.dom.Node): org.w3c.dom.Node = ???
-  def setNodeValue(x$1: String): Unit = ???
-  def setPrefix(x$1: String): Unit = ???
-  def setTextContent(x$1: String): Unit = ???
-  def setUserData(x$1: String,x$2: Any,x$3: org.w3c.dom.UserDataHandler): Object = ???
+  // Members declared in Node
+  // def appendChild(p: Node): Node = RAISE.notImplementedYetDefect(s"${p}")
+
+  // def removeChild(p: Node): Node = RAISE.notImplementedYetDefect(s"${p}")
+  // def replaceChild(p: Node, q: Node): Node = RAISE.notImplementedYetDefect(s"${p}")
+  // def setNodeValue(p: String): Unit = RAISE.notImplementedYetDefect(s"${p}")
+  // def setPrefix(p: String): Unit = RAISE.notImplementedYetDefect(s"${p}")
+  // def setTextContent(p: String): Unit = RAISE.notImplementedYetDefect(s"${p}")
+  // def setUserData(p: String, q: Any, r: UserDataHandler): Object = RAISE.notImplementedYetDefect(s"${p}")
 }

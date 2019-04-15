@@ -13,6 +13,8 @@ import Validator._
 import org.goldenport.Strings
 import org.goldenport.exception.RAISE
 import org.goldenport.i18n.I18NString
+import org.goldenport.values.DateTimePeriod
+import org.goldenport.record.query._
 import org.goldenport.record.util.{
   DateUtils, TimeUtils, TimestampUtils, DateTimeUtils, AnyUtils}
 
@@ -33,7 +35,8 @@ import org.goldenport.record.util.{
  *  version Sep. 21, 2017
  *  version Oct. 22, 2017
  *  version Nov. 13, 2017
- * @version Jan. 21, 2018
+ *  version Jan. 21, 2018
+ * @version Jan. 10, 2019
  * @author  ASAMI, Tomoharu
  */
 sealed trait DataType {
@@ -76,6 +79,97 @@ sealed trait DataType {
     else
       DataTypeFailure.create(this, v)
   }
+
+  def toQueryExpression(ctx: QueryExpression.Context, p: Any): QueryExpression = p match {
+    case m: String => string_to_query_exrepssion(ctx, m)
+    case m => EqualQuery(m)
+  }
+
+  protected def can_period: Boolean = this match {
+    case XBoolean => true
+    case XByte => true
+    case XShort => true
+    case XInt => true
+    case XLong => true
+    case XFloat => true
+    case XDouble => true
+    case XInteger => true
+    case XDecimal => true
+    case XDateTime => true
+    case XDate => true
+    case XTime => true
+    case _ => false
+  }
+
+  protected def string_to_query_exrepssion(
+    ctx: QueryExpression.Context,
+    p: String
+  ): QueryExpression =
+    if (can_period && p.contains("~"))
+      period_to_query_expression(ctx, p)
+    else
+      EqualQuery(p)
+
+  protected def period_to_query_expression(
+    ctx: QueryExpression.Context,
+    p: String
+  ): QueryExpression =
+    DataType.periodRegex.findFirstMatchIn(p).
+      map { x =>
+        val s = _option_any(x.group(1))
+        val si = _inclusive(x.group(2))
+        val e = _option_any(x.group(3))
+        val ei = _inclusive(x.group(4))
+        try {
+          period_To_Query_Expression(s.map(toInstance), si, e.map(toInstance), ei)
+        } catch {
+          case NonFatal(e) => EqualQuery(p)
+        }
+      }.getOrElse(EqualQuery(p))
+
+  protected def period_To_Query_Expression(
+    s: Option[InstanceType],
+    si: Boolean,
+    e: Option[InstanceType],
+    ei: Boolean
+  ): QueryExpression = (s, e) match {
+    case (Some(l), Some(r)) => _both_side(l, si, r, ei)
+    case (Some(l), None) => _left_side(l, si)
+    case (None, Some(r)) => _right_side(r, ei)
+    case (None, None) => NoneQuery
+  }
+
+  private def _both_side(
+    s: InstanceType,
+    si: Boolean,
+    e: InstanceType,
+    ei: Boolean
+  ) = (si, ei) match {
+    case (true, true) => RangeInclusiveQuery(s, e)
+    case (true, false) => RangeInclusiveExclusiveQuery(s, e)
+    case (false, true) => RangeExclusiveInclusiveQuery(s, e)
+    case (false, false) => RangeExclusiveQuery(s, e) 
+  }
+
+  private def _left_side(s: InstanceType, si: Boolean) =
+    if (true)
+      GreaterEqualQuery(s)
+    else
+      GreaterQuery(s)
+
+  private def _right_side(s: InstanceType, si: Boolean) =
+    if (true)
+      LesserEqualQuery(s)
+    else
+      LesserQuery(s)
+
+  private def _option_any(p: String): Option[String] =
+    if (Strings.blankp(p))
+      None
+    else
+      Some(p)
+
+  private def _inclusive(p: String): Boolean = p != "!"
 }
 
 object DataType {
@@ -133,6 +227,8 @@ object DataType {
     XRecordInstance
     // XEntityReference, XValue, XEverforthObjectReference, XPowertype, XPowertypeReference, XStateMachine, XStateMachineReference, XExternalDataType
   )
+
+  val periodRegex = """([^~]+)([!]?)~([^!]+)([!]?)""".r
 
   def get(p: String): Option[DataType] = _datatypes.find(_.name == p) orElse {
     val pf: PartialFunction[String, DataType] = {
@@ -901,6 +997,11 @@ case object XDateTime extends DataType {
 
   override def format(value: Any): String = {
     TimestampUtils.toIsoDateTimeString(toInstance(value))
+  }
+
+  override protected def period_to_query_expression(ctx: QueryExpression.Context, p: String): QueryExpression = {
+    val builder = DateTimePeriod.Builder(ctx.datetime, ctx.timezone)
+    DateTimePeriodQuery(builder.fromExpression(p))
   }
 }
 

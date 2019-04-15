@@ -2,7 +2,7 @@ organization := "org.goldenport"
 
 name := "goldenport-record"
 
-version := "2.1.0"
+version := "2.1.1-SNAPSHOT"
 
 scalaVersion := "2.12.7"
 
@@ -26,9 +26,13 @@ libraryDependencies += "org.smartdox" %% "smartdox" % "2.1.0"
 
 libraryDependencies += "com.typesafe.play" %% "play-json" % "2.6.10" % "provided" exclude("org.scala-stm", "scala-stm_2.10.0")
 
-libraryDependencies += "net.sf.opencsv" % "opencsv" % "2.3" % "provided"
+libraryDependencies += "org.goldenport" %% "goldenport-scala-lib" % "2.1.1-SNAPSHOT"
 
-libraryDependencies +=  "org.scalaj" %% "scalaj-http" % "2.4.1" % "provided"
+libraryDependencies += "net.sf.opencsv" % "opencsv" % "2.3" % "compile"
+
+libraryDependencies += "org.scalaj" %% "scalaj-http" % "2.4.1" % "compile"
+
+libraryDependencies += "com.zaxxer" % "HikariCP-java7" % "2.4.13" % "compile"
 
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.5" % "test"
 

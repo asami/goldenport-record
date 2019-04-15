@@ -1,14 +1,19 @@
 package org.goldenport.record.v2
 
+import org.goldenport.record.sql.SqlDatatype
+
 /*
  * @since   Dec.  8, 2012
- * @version Mar.  4, 2013
+ *  version Mar.  4, 2013
+ * @version Apr.  7, 2019
  * @author  ASAMI, Tomoharu
  */
 case class SqlColumn(
   name: String = null,
+  datatype: Option[SqlDatatype] = None,
   isId: Boolean = false,
   isAutoId: Boolean = false,
+  isUnique: Boolean = false,
   isReadOnly: Boolean = false,
   isAutoCreate: Boolean = false,
   isAutoUpdate: Boolean = false,
