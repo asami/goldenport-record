@@ -1,16 +1,19 @@
 package org.goldenport.record.v2
 
-import java.sql.Timestamp
 import scalaz._, Scalaz._
+import java.util.Locale
+import java.sql.Timestamp
 import org.goldenport.Strings
 import org.goldenport.extension.{IDocument, Description}
 import com.asamioffice.goldenport.text.UString
 import org.goldenport.exception.RAISE
 import org.goldenport.i18n.I18NString
+import org.goldenport.collection.NonEmptyVector
 import org.goldenport.util.AnyUtils
 import org.goldenport.record.command.ValueCommand
 import org.goldenport.record.v2.projector.{Projector, ProjectorContext}
 import org.goldenport.record.v2.util.RecordUtils
+import org.goldenport.record.v3.IRecord
 
 /*
  * Add
@@ -45,7 +48,9 @@ import org.goldenport.record.v2.util.RecordUtils
  *  version Aug. 29, 2018
  *  version Sep.  5, 2018
  *  version Jan.  1, 2019
- * @version Feb. 12, 2019
+ *  version Feb. 12, 2019
+ *  version Apr. 29, 2019
+ * @version May.  1, 2019
  * @author  ASAMI, Tomoharu
  */
 case class Schema(
@@ -243,18 +248,20 @@ case class Schema(
     rs.records.map(validate).toVector.suml
   }
 
-  def validate0(r: Record): ValidationResult = {
-    import scalaz.syntax.foldable._
-    val a = _validate_redumental_fields(r)
-    if (a.isInstanceOf[Invalid]) throw sys.error("Schema#validate = " + a)
-    val b = _validate_missing_fields(r)
-    if (b.isInstanceOf[Invalid]) throw sys.error("Schema#validate = " + b)
-    val c = _validate_datatype(r)
-    if (c.isInstanceOf[Invalid]) throw sys.error("Schema#validate = " + c)
-    val d = _validate_validators(r)     
-    if (d.isInstanceOf[Invalid]) throw sys.error("Schema#validate = " + d)
-    List(a, b, c, d).toVector.suml
-  }
+  // def validate0(r: Record): ValidationResult = {
+  //   import scalaz.syntax.foldable._
+  //   val a = _validate_redumental_fields(r)
+  //   if (a.isInstanceOf[Invalid]) throw sys.error("Schema#validate = " + a)
+  //   val b = _validate_missing_fields(r)
+  //   if (b.isInstanceOf[Invalid]) throw sys.error("Schema#validate = " + b)
+  //   val c = _validate_datatype(r)
+  //   if (c.isInstanceOf[Invalid]) throw sys.error("Schema#validate = " + c)
+  //   val d = _validate_validators(r)
+  //   if (d.isInstanceOf[Invalid]) throw sys.error("Schema#validate = " + d)
+  //   List(a, b, c, d).toVector.suml
+  // }
+
+  def validate(p: IRecord): ValidationResult = validate(p.toRecord.toRecord2)
 
   def validate(r: Record): ValidationResult = {
     List(_validate_redumental_fields(r),
@@ -303,24 +310,29 @@ case class Schema(
 
   private def _validate_datatype(r: Record): ValidationResult = {
     r.fields.flatMap(
-      f => getColumn(f.key).map(c => _validate_datatype_column(c, f))
+      f => getColumn(f.key).map(c => _validate_datatype_column(c, r, f))
     ).toVector.suml
   }
 
-  private def _validate_datatype_column(c: Column, f: Field): ValidationResult = {
+  private def _validate_datatype_column(c: Column, rec: Record, f: Field): ValidationResult = {
     val a: Seq[ValidationResult] = f.values.map(
       _ match {
         case m: ValueCommand => Valid
-        case xs: Seq[_] => xs.map(x => c.datatype.validate(x).enkey(f.key.name)).toVector.suml
-        case x => c.datatype.validate(x).enkey(f.key.name)
+        case xs: Seq[_] => xs.map(x => _validate_datatype_column_value(c, rec, x)).toVector.suml
+        case x => _validate_datatype_column_value(c, rec, x)
       }
     )
     a.toVector.suml
   }
 
-  private def _validate_validators(r: Record): ValidationResult = {
-    Valid // TODO
+  private def _validate_datatype_column_value(c: Column, rec: Record, p: Any): ValidationResult = {
+    val a = c.datatype.validate(p).enkey(c.name)
+    val b = c.constraints.flatMap(_.validate(c.datatype, AnyUtils.toString(p), rec))
+    (a +: b).suml
   }
+
+  private def _validate_validators(r: Record): ValidationResult =
+    validators.toVector.map(_.validate(r)).suml
 
   /*
    * SQL
@@ -424,6 +436,8 @@ object Schema {
     import play.api.libs.functional.syntax._
     import Column.Form
     import org.goldenport.json.JsonUtils.Implicits._
+    import org.goldenport.record.v2.Constraint.json.Implicits._
+    import org.goldenport.record.v2.Validator.json.Implicits._
 
     implicit val DataTypeFormat = new Format[DataType] {
       def reads(json: JsValue): JsResult[DataType] =
@@ -451,26 +465,32 @@ object Schema {
         val multiplicity = (json \ "multiplicity").asOpt[Multiplicity] getOrElse MOne
         val label = (json \ "label").asOpt[String]
         val i18nLabel = (json \ "i18nLabel").asOpt[I18NString]
+        val constraints = (json \ "constrains").as[List[Constraint]]
         val form = (json \ "form").asOpt[Form] getOrElse Form.empty
         JsSuccess(
           Column(name, datatype, multiplicity,
             label = label, i18nLabel = i18nLabel,
+            constraints = constraints,
             form = form
           )
         )
       }
-      def writes(o: Column): JsValue = JsObject(
-        List(
-          "name" -> JsString(o.name),
-          "datatype" -> JsString(o.datatype.name),
-          "multiplicity" -> JsString(o.multiplicity.mark)
-        ) ++ List(
-          o.label.map(x => "label" -> JsString(x)),
-          o.i18nLabel.map(x => "i18nLabel" -> Json.toJson(x)),
-          if (o.form.isEmpty) None else Some("form" -> Json.toJson(o.form)),
-          o.importer.map(x => "importer" -> x.toJson)
-        ).flatten
-      )
+      def writes(o: Column): JsValue = {
+        val constraints: Option[JsValue] = if (o.constraints.isEmpty) None else Some(Json.toJson(o.constraints))
+        JsObject(
+          List(
+            "name" -> JsString(o.name),
+            "datatype" -> JsString(o.datatype.name),
+            "multiplicity" -> JsString(o.multiplicity.mark)
+          ) ++ List(
+            // constraints,
+            o.label.map(x => "label" -> JsString(x)),
+            o.i18nLabel.map(x => "i18nLabel" -> Json.toJson(x)),
+            if (o.form.isEmpty) None else Some("form" -> Json.toJson(o.form)),
+            o.importer.map(x => "importer" -> x.toJson)
+          ).flatten
+        )
+      }
     }
 
     implicit val SchemaFormat = new Format[Schema] {
@@ -479,7 +499,11 @@ object Schema {
           case JsArray(xs) => xs.map(_.as[Column])
           case m => RAISE.noReachDefect // JsError(s"Unknown element in columns: $m")
         }
-        JsSuccess(Schema(columns))
+        val validators = (json \ "validators") match {
+          case JsArray(xs) => xs.map(_.as[Validator])
+          case m => RAISE.noReachDefect // JsError(s"Unknown element in columns: $m")
+        }
+        JsSuccess(Schema(columns, validators = validators))
       }
       def writes(o: Schema): JsValue = JsObject(List(
         "columns" -> JsArray(o.columns.map(Json.toJson(_)))
@@ -581,14 +605,16 @@ object Multiplicity {
     case _ => true
   }
 
-  def to(s: String): Multiplicity =
-    s match {
-      case MOne.`mark` => MOne
-      case MZeroOne.`mark` => MZeroOne
-      case MOneMore.`mark` => MOneMore
-      case MZeroMore.`mark` => MZeroMore
-      case _ => RAISE.notImplementedYetDefect
-    }
+  def get(s: String): Option[Multiplicity] = Option(s) collect {
+    case MOne.`mark` => MOne
+    case MZeroOne.`mark` => MZeroOne
+    case MOneMore.`mark` => MOneMore
+    case MZeroMore.`mark` => MZeroMore
+  }
+
+  def to(s: String): Multiplicity = get(s).getOrElse(
+    RAISE.syntaxErrorFault(s"Invalid multiplicity: $s")
+  )
 }
 
 case object MOne extends Multiplicity {
@@ -757,6 +783,7 @@ sealed trait ValidationResult {
   def enkey(key: String): ValidationResult = this
   def enlabel(label: String): ValidationResult = this
   def i18nMessage: I18NString
+  def message(locale: Locale): String = i18nMessage(locale)
 }
 
 case object Valid extends ValidationResult {
@@ -843,6 +870,12 @@ object VDescription {
 
   def apply(name: Option[String], issue: I18NString, value: Seq[Any]): VDescription =
     VDescription(name, issue, if (value.isEmpty) None else Some(value))
+
+  def message(issue: String, value: String): VDescription =
+    VDescription(None, I18NString(issue), Some(Vector(value)))
+
+  def message(issue: I18NString, value: String): VDescription =
+    VDescription(None, issue, Some(Vector(value)))
 }
 
 trait Warning extends ValidationResult {
@@ -859,14 +892,15 @@ trait Warning extends ValidationResult {
   override def enkey(key: String): Warning = this
   override def enlabel(key: String): Warning = this
 
-  def asWarnings: Vector[Warning] = Vector(this)
+  def asWarnings: NonEmptyVector[Warning] = NonEmptyVector(this)
   def descriptions: Vector[VDescription]
   def messages: Vector[String] = descriptions.map(_.message)
   def i18nMessages: Vector[I18NString] = descriptions.map(_.i18nMessage)
   def i18nMessage: I18NString = I18NString.concat(i18nMessages)
+  def displayWarnings: NonEmptyVector[Warning] = NonEmptyVector(this)
 }
 
-case class CompoundWarning(warnings: Vector[Warning]) extends Warning {
+case class CompoundWarning(warnings: NonEmptyVector[Warning]) extends Warning {
   override def enkey(key: String) = {
     this.copy(warnings.map(_.enkey(key)))
   }
@@ -874,7 +908,9 @@ case class CompoundWarning(warnings: Vector[Warning]) extends Warning {
     this.copy(warnings.map(_.enlabel(label)))
   }
   override def asWarnings = warnings
-  def descriptions = warnings.flatMap(_.descriptions)
+  def descriptions = warnings.vector.flatMap(_.descriptions)
+
+  override def displayWarnings: NonEmptyVector[Warning] = warnings
 }
 
 case class ValueDomainWarning(
@@ -919,7 +955,7 @@ trait Invalid extends ValidationResult {
     a match {
       case Valid => this
       case w: Warning => CompoundFailure(
-        Vector(this),
+        NonEmptyVector(this),
         (getWarning.map(_ + w) | w).some)
       case i: Invalid => CompoundFailure(this +: i.asFailures)
     }
@@ -927,15 +963,17 @@ trait Invalid extends ValidationResult {
   override def enkey(key: String): Invalid = this
   override def enlabel(key: String): Invalid = this
 
-  def asFailures: Vector[Invalid] = Vector(this)
+  def asFailures: NonEmptyVector[Invalid] = NonEmptyVector(this)
   def descriptions: Vector[VDescription]
   def getWarning(): Option[Warning] = None
   def messages: Vector[String] = descriptions.map(_.message)
   def i18nMessages: Vector[I18NString] = descriptions.map(_.i18nMessage)
   def i18nMessage: I18NString = I18NString.concat(i18nMessages)
+  def displayWarnings: Option[NonEmptyVector[Warning]] = None
+  def displayErrors: NonEmptyVector[Invalid] = NonEmptyVector(this)
 }
 
-case class CompoundFailure(failures: Vector[Invalid], warning: Option[Warning] = None) extends Invalid {
+case class CompoundFailure(failures: NonEmptyVector[Invalid], warning: Option[Warning] = None) extends Invalid {
   override def enkey(key: String) = {
     this.copy(failures.map(_.enkey(key)))
   }
@@ -943,8 +981,11 @@ case class CompoundFailure(failures: Vector[Invalid], warning: Option[Warning] =
     this.copy(failures.map(_.enlabel(label)))
   }
   override def asFailures = failures
-  def descriptions = failures.flatMap(_.descriptions)
+  def descriptions = failures.vector.flatMap(_.descriptions)
   override def getWarning() = warning
+  override def displayWarnings: Option[NonEmptyVector[Warning]] =
+    warning.map(_.displayWarnings)
+  override def displayErrors: NonEmptyVector[Invalid] = failures
 }
 
 case class IllegalFieldFailure(key: String,
@@ -1050,15 +1091,23 @@ object DataTypeFailure {
 }
 
 case class ValueDomainFailure(
-  message: String,
+  descriptions: Vector[VDescription],
   value: String,
-  key: Option[String] = None, label: Option[String] = None
+  key: Option[String] = None,
+  label: Option[String] = None
 ) extends Invalid {
   override def enkey(key: String) = this.copy(key = key.some)
   override def enlabel(label: String) = this.copy(label = label.some)
-  def descriptions = {
-    Vector(VDescription(label orElse key, message.format(value)))
-  }
+  // def descriptions = {
+  //   Vector(VDescription(label orElse key, message.format(value)))
+  // }
+}
+object ValueDomainFailure {
+  def apply(message: String, value: String): ValueDomainFailure = 
+    ValueDomainFailure(Vector(VDescription.message(message, value)), value)
+
+  def apply(message: I18NString, value: String): ValueDomainFailure = 
+    ValueDomainFailure(Vector(VDescription.message(message, value)), value)
 }
 
 case class MissingFieldFailure(
@@ -1068,137 +1117,6 @@ case class MissingFieldFailure(
   message: Option[String] = None) extends Invalid {
   def descriptions = Vector(VDescription(label | key, message | "フィールドがありません。", value))
 }
-
-trait Validator {
-  def validateField(field: Field): ValidationResult
-  def validateRecord(record: Record): ValidationResult
-  def validateRecords(records: Seq[Record]): Seq[Record]
-}
-
-trait Validations {
-//  implicit def ValidationResultZero: Zero[ValidationResult] = zero(Valid)
-//  implicit def ValidationResultSemigroup: Semigroup[ValidationResult] = semigroup((a, b) => a + b)
-  implicit object ValidationResultMonoid extends Monoid[ValidationResult] {
-    def append(f1: ValidationResult, f2: => ValidationResult) = f1 + f2
-    def zero: ValidationResult = Valid
-  }
-}
-
-case object Validator extends Validations {
-}
-
-trait FieldValidator extends Validator {
-  def validateRecord(record: Record): ValidationResult = Valid
-  def validateRecords(records: Seq[Record]): Seq[Record] = records
-}
-
-trait RecordValidator extends Validator {
-  def validateField(field: Field): ValidationResult = Valid
-  def validateRecords(records: Seq[Record]): Seq[Record] = records
-}
-
-trait RecordsValidator extends Validator {
-  def validateField(field: Field): ValidationResult = Valid
-  def validateRecord(record: Record): ValidationResult = Valid
-}
-
-class FieldsMatchValidator(keys: Seq[String],
-                           predicate: Seq[Any] => Boolean,
-                           failure: Boolean = true,
-                           message: Option[String] = None) extends FieldValidator {
-  def validateField(field: Field) = {
-    val k = field.key
-    val v = field.values
-    if (keys.contains(k)) {
-      if (predicate(v)) Valid
-      else {
-        if (failure) IllegalFieldFailure(k.name, v, none, message)
-        else IllegalFieldWarning(k.name, v, none, message)
-      }
-    } else Valid
-  }
-}
-
-case object FieldMatchValidator {
-  def apply(key: String, value: String) = {
-    new FieldsMatchValidator(List(key), (x: Seq[Any]) => {
-      x match {
-        case Nil => false
-        case x :: Nil if x == value => true
-        case _ => false
-      }
-    })
-  }
-
-  def apply(key: String, values: Seq[String]) = {
-    new FieldsMatchValidator(List(key), (x: Seq[Any]) => {
-      x match {
-        case Nil => false
-        case x :: Nil if values.contains(x) => true
-        case _ => false
-      }
-    })
-  }
-}
-
-case object FieldContainsValidator {
-  def apply(key: String, values: Seq[String], failure: Boolean = true) = {
-    new FieldsMatchValidator(List(key), (x: Seq[Any]) => {
-      values.contains(x.contains _)
-//      x.flatMap(a => values.find(a.contains)) ? false | true
-    }, failure, (values.mkString("(", ",", ")") + "を含んでいます。").some)
-  }
-}  
-
-/*
-case class DuplicateIdValidator(key: String, label: String = "") extends RecordsValidator {
-  val effectivelabel = if (label != "") label else key
-
-  def validateRecords(records: Seq[Record]): Seq[Record] = {
-    val (_, dups) = records.filter(!_.isReferenceData).foldRight((Set[String](), List[String]())) {
-      (x, a) => val (keys, dups) = a
-        x.getOne(key) match {
-          case Some(v) => {
-            if (keys.contains(v)) (keys, v :: dups)
-            else (keys + v, dups)
-          }
-          case None => a
-        }
-    }
-    for (a <- records) yield {
-      a.getOne(key) match {
-        case Some(v) if dups.contains(v) && !a.isReferenceData => a.enwarning(
-          DuplicateWarning("%sが重複しています。".format(effectivelabel), v))
-        case _ => a
-      }
-    }
-  }
-}
-
-case class DuplicateCompositeIdValidator(ids: Seq[String], labels: Seq[String] = Nil) extends RecordsValidator {
-  val effectivelabels = ids.zipAll(labels, "", "").foldRight(nil[String])((x, a) => {
-    (if (x._2 != "") x._2 else x._1) :: a
-  })
-
-  def validateRecords(records: Seq[Record]): Seq[Record] = {
-    val (_, dups) = records.filter(!_.isReferenceData).foldRight((Set[Seq[Option[String]]](), Seq[Seq[Option[String]]]())) {
-      (x, a) => {
-        val (keys, dups) = a
-        val vs = ids.map(x.getOne)
-        if (keys.contains(vs)) (keys, vs +: dups)
-        else (keys + vs, dups)
-      }
-    }
-    for (b <- records) yield {
-      val vs = ids.map(b.get)
-      if (dups.contains(vs) && !b.isReferenceData) {
-        b.enwarning(
-          DuplicateWarning("%sの組が重複しています。".format(effectivelabels.mkString("(", ",", ")")), vs.toString))
-      } else b
-    }
-  }
-}
-*/
 
 /*
  * Context

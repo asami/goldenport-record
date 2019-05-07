@@ -5,14 +5,13 @@ import org.goldenport.RAISE
 /*
  * @since   Oct. 15, 2018
  *  version Jan.  3, 2019
- * @version Apr.  8, 2019
+ * @version Apr. 20, 2019
  * @author  ASAMI, Tomoharu
  */
 case class DomRecord() extends IRecord {
   def keyNames: List[String] = ???
   def print: String = RAISE.notImplementedYetDefect
   def show: String = RAISE.notImplementedYetDefect
-  def +(rhs: IRecord): IRecord = ???
   def fields: Seq[Field] = ???
   def get(key: Symbol): Option[Any] = ???
   def get(key: String): Option[Any] = ???
@@ -26,6 +25,8 @@ case class DomRecord() extends IRecord {
   def takeRecordList(key: Symbol): List[Record] = ???
   def takeRecordList(key: String): List[Record] = ???
   def toRecord: Record = ???
+  def update(rhs: IRecord): IRecord = RAISE.notImplementedYetDefect
+  def complement(rhs: IRecord): IRecord = RAISE.notImplementedYetDefect
 }
 
 object DomRecord {

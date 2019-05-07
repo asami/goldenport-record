@@ -8,7 +8,7 @@ import org.goldenport.record.v3.sql.{SqlContext, SqlBuilder}
 
 /*
  * @since   Apr.  5, 2019
- * @version Apr.  8, 2019
+ * @version Apr. 16, 2019
  * @author  ASAMI, Tomoharu
  */
 class SqlStore(
@@ -48,8 +48,8 @@ class SqlStore(
     takeCollection(collection).delete(id)
 
   def create(collection: Symbol, schema: Schema): Unit = {
-    if (getCollection(collection).isDefined)
-      RAISE.illegalStateFault(s"Table '${collection.name}' already exits.")
+    // if (getCollection(collection).isDefined)
+    //   RAISE.illegalStateFault(s"Table '${collection.name}' already exits.")
     val builder = SqlBuilder.create(collection.name, schema)
     val sql = builder.createTable()
     sqlContext.execute(name, sql)

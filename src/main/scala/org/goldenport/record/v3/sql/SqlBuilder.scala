@@ -7,7 +7,7 @@ import org.goldenport.record.v3._
 
 /*
  * @since   Apr.  6, 2019
- * @version Apr.  7, 2019
+ * @version Apr. 16, 2019
  * @author  ASAMI, Tomoharu
  */
 class SqlBuilder( // MySQL
@@ -24,7 +24,7 @@ class SqlBuilder( // MySQL
 
   def createSchema(): String = schema.map { s =>
     val columns = s.columns.filterNot(_.isDerived).map(_column)
-    val constraints = s.columns.filterNot(_.isDerived).map(_constraint)
+    val constraints = s.columns.filterNot(_.isDerived).flatMap(_constraint)
     (columns ++ constraints).mkString("(", ", ", ")")
   }.getOrElse(RAISE.illegalStateFault("No schema"))
 

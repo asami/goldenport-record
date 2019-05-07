@@ -18,7 +18,8 @@ import org.goldenport.bag.{ChunkBag, BufferFileBag}
  * @since   Oct.  8, 2017
  *  version Aug. 29, 2018
  *  version Sep. 18, 2018
- * @version Oct.  8, 2018
+ *  version Oct.  8, 2018
+ * @version Apr. 21, 2019
  * @author  ASAMI, Tomoharu
  */
 sealed trait Response {
@@ -27,6 +28,7 @@ sealed trait Response {
   def mime: MimeType = contentType.mime
   def charset: Option[Charset] = contentType.charset
   def getString: Option[String]
+  def getBinary: Option[ChunkBag]
   def getRecord: Option[Record]
   def getRecords: Option[List[Record]]
   def json: JsValue
@@ -38,12 +40,50 @@ sealed trait Response {
 object Response {
   def parser(code: Int, header: Map[String, IndexedSeq[String]], in: InputStream): Response = {
     val contenttype = header.get("Content-Type").flatMap(_.headOption.map(ContentType.parse)).getOrElse(ContentType.octetstream)
-    def text = IoUtils.toText(in, contenttype.charset)
+    def text = {
+      contenttype.charset.
+        map(IoUtils.toText(in, _)).
+        getOrElse(
+          if (contenttype.mime.isHtml)
+            parseHtml(contenttype, in)
+          else if (contenttype.mime.isXml)
+            parseXml(contenttype, in)
+          else
+            IoUtils.toText(in)
+        )
+    }
     def binary = BufferFileBag.fromInputStream(in)
     if (contenttype.mime.isText)
       StringResponse(code, contenttype, text)
     else
       BinaryResponse(code, contenttype, binary)
+  }
+
+  private val _regex_xml = """(?i)[<][?]xml[ ][^?]+(encoding[ ]*[=][ ]*["]([^"]+)["])""".r
+  private val _regex_html4 = """(?i)<meta[^>]+content[ ]*=[ ]*["]([^"]+)["]""".r
+  private val _regex_html5 = """(?i)<meta[^>]+charset[ ]*=[ ]*["]([^"]+)["]""".r
+
+  def parseHtml(contenttype: ContentType, in: InputStream) = {
+    val bag = BufferFileBag.fromInputStream(in)
+    val firstpage = bag.toTextFirstPage
+    val charset = _regex_html4.findFirstMatchIn(firstpage).
+      flatMap(x =>
+        ContentType.parse(x.group(1)).charset.map(_.name())
+      ).orElse(
+        _regex_html5.findFirstMatchIn(firstpage).
+          map(_.group(1))
+      ).orElse(
+        _regex_xml.findFirstMatchIn(firstpage).
+          map(_.group(2))
+      )
+    charset.map(bag.toText(_)).getOrElse(bag.toText)
+  }
+
+  def parseXml(contenttype: ContentType, in: InputStream) = {
+    val bag = BufferFileBag.fromInputStream(in)
+    val firstpage = bag.toTextFirstPage
+    val charset = _regex_xml.findFirstMatchIn(firstpage).map(_.group(2))
+    charset.map(bag.toText(_)).getOrElse(bag.toText)
   }
 
   def html(p: String): StringResponse = StringResponse(
@@ -59,6 +99,7 @@ case class StringResponse(
   content: String
 ) extends Response {
   def getString = Some(content)
+  def getBinary = None
   def getRecord = RAISE.unsupportedOperationFault
   def getRecords = RAISE.unsupportedOperationFault
   def json = RAISE.unsupportedOperationFault
@@ -71,6 +112,7 @@ case class BinaryResponse(
   content: ChunkBag
 ) extends Response {
   def getString = None
+  def getBinary = Some(content)
   def getRecord = None
   def getRecords = None
   def json = RAISE.unsupportedOperationFault

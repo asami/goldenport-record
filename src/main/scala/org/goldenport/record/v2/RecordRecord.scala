@@ -8,7 +8,7 @@ import org.goldenport.record.v3.{FieldValue, EmptyValue, SingleValue, MultipleVa
  * @since   Nov.  7, 2018
  *  version Dec. 11, 2018
  *  version Jan. 21, 2019
- * @version Apr.  8, 2019
+ * @version Apr. 20, 2019
  * @author  ASAMI, Tomoharu
  */
 case class RecordRecord(record: Record) extends IRecord {
@@ -37,7 +37,8 @@ case class RecordRecord(record: Record) extends IRecord {
   def getRecord(key: Symbol): Option[Record3] = record.getRecord(key).map(toRecord3)
   def takeRecordList(key: String): List[Record3] = record.getRecordList(key).map(toRecord3)
   def takeRecordList(key: Symbol): List[Record3] = record.getRecordList(key).map(toRecord3)
-  def +(rhs: IRecord): IRecord = toRecord + rhs
+  def update(rhs: IRecord): IRecord = toRecord update rhs
+  def complement(rhs: IRecord): IRecord = toRecord complement rhs
 }
 
 object RecordRecord {

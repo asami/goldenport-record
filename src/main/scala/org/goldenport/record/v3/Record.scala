@@ -45,7 +45,7 @@ import org.goldenport.values.PathName
  *  version Jan. 29, 2019
  *  version Feb. 28, 2019
  *  version Mar.  6, 2019
- * @version Apr.  8, 2019
+ * @version Apr. 29, 2019
  * @author  ASAMI, Tomoharu
  */
 case class Record(
@@ -60,6 +60,8 @@ case class Record(
   def toRecord2: Record2 = extra.v2.
     map(_.copy(fields.map(_.toField2).toList)).
     getOrElse(Record2(fields.map(_.toField2).toList))
+
+  override def toMap = toRecord2.toMap // XXX
 
   def isEmpty: Boolean = fields.isEmpty
   def isDefined(key: Symbol): Boolean = fields.exists(_.key == key)
@@ -155,9 +157,10 @@ case class Record(
    * Mutation
    */
   def +(rhs: Record): Record = update(rhs)
-  def +(rhs: IRecord): IRecord = update(rhs.toRecord)
 
   def withExtra(p: Record.Extra): Record = copy(extra = p)
+
+  def update(rec: IRecord): IRecord = update(rec.toRecord)
 
   def update(rec: Record): Record =
     rec.fields.foldLeft(this)((z, x) => z.updateField(x.key, x.value))
@@ -185,6 +188,8 @@ case class Record(
   }
 
   def removeField(key: String): Record = copy(fields = fields.filterNot(_.key.name == key))
+
+  def complement(p: IRecord): IRecord = ???
 }
 
 object Record {
