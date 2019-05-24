@@ -8,7 +8,7 @@ import org.goldenport.hocon.RichConfig
 /*
  * @since   Oct. 21, 2018
  *  version Mar. 24, 2019
- * @version Apr.  8, 2019
+ * @version Apr. 20, 2019
  * @author  ASAMI, Tomoharu
  */
 case class HoconRecord(hocon: RichConfig) extends IRecord {
@@ -36,5 +36,6 @@ case class HoconRecord(hocon: RichConfig) extends IRecord {
   def getRecord(key: Symbol): Option[Record] = RAISE.notImplementedYetDefect
   def takeRecordList(key: String): List[Record] = RAISE.notImplementedYetDefect
   def takeRecordList(key: Symbol): List[Record] = RAISE.notImplementedYetDefect
-  def +(rhs: IRecord): IRecord = RAISE.notImplementedYetDefect
+  def update(rhs: IRecord): IRecord = CompositeRecord(rhs, this)
+  def complement(rhs: IRecord): IRecord = CompositeRecord(this, rhs)
 }

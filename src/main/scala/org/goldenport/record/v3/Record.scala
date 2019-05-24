@@ -49,25 +49,13 @@ import org.goldenport.values.PathName
  *  version Aug. 10, 2015
  *  version Aug. 31, 2018
  *  version Sep. 17, 2018
- <<<<<<< HEAD
-  * @version Apr. 15, 2019
-  * @author  ASAMI, Tomoharu
-  *
- case class Record(
-   fields: IndexedSeq[Field],
-   meta: Record.MetaData = Record.MetaData.empty,  XXX (composite record?)
-   timestamp: Long = System.currentTimeMillis,  XXX (composite record?)
-   validation: ValidationResult = Valid,  XXX (composite record?)
-   source: IndexedSeq[Record] = IndexedSeq.empty,  XXX (composite record?)
-   exception: Option[Throwable] = None  XXX (composite record?)
- =======
  *  version Oct. 30, 2018
  *  version Nov.  7, 2018
  *  version Dec. 29, 2018
  *  version Jan. 29, 2019
  *  version Feb. 28, 2019
  *  version Mar.  6, 2019
- * @version Apr. 16, 2019
+ * @version Apr. 29, 2019
  * @author  ASAMI, Tomoharu
  */
 case class Record(
@@ -83,17 +71,9 @@ case class Record(
     map(_.copy(fields.map(_.toField2).toList)).
     getOrElse(Record2(fields.map(_.toField2).toList))
 
-  override def equals(o: Any): Boolean = {
-    o match {
-      case rec: Record if length == rec.length =>
-        fields.forall(x => rec.getField(x.key) == Some(x))
-      case _ => false
-    }
-  }
+  override def toMap = toRecord2.toMap // XXX
 
-  def length(): Int = fields.length
-  def isEmpty() = fields.isEmpty
-  def nonEmpty() = fields.nonEmpty
+  def isEmpty: Boolean = fields.isEmpty
   def isDefined(key: Symbol): Boolean = fields.exists(_.key == key)
   def isDefined(key: String): Boolean = isDefined(Symbol(key))
 
@@ -224,9 +204,10 @@ case class Record(
    * Mutation
    */
   def +(rhs: Record): Record = update(rhs)
-  def +(rhs: IRecord): IRecord = update(rhs.toRecord)
 
   def withExtra(p: Record.Extra): Record = copy(extra = p)
+
+  def update(rec: IRecord): IRecord = update(rec.toRecord)
 
   def update(rec: Record): Record =
     rec.fields.foldLeft(this)((z, x) => z.updateField(x.key, x.value))
@@ -350,6 +331,8 @@ case class Record(
   }
 
   def removeField(key: String): Record = copy(fields = fields.filterNot(_.key.name == key))
+
+  def complement(p: IRecord): IRecord = ???
 }
 
 object Record {

@@ -13,12 +13,14 @@ import org.goldenport.record.util.AnyUtils
  *  version Oct. 30, 2018
  *  version Nov.  7, 2018
  *  version Jan.  6, 2019
- * @version Feb. 28, 2019
+ *  version Feb. 28, 2019
+ * @version Apr. 29, 2019
  * @author  ASAMI, Tomoharu
  */
 trait IRecord extends org.goldenport.record.IRecord
     with org.w3c.dom.Element with DomPart {
   def toRecord: Record
+  def toMap: Map[String, Any] = toRecord.toMap // XXX
   def fields: Seq[Field]
   def isEmpty: Boolean
   def isDefined(key: Symbol): Boolean
@@ -53,8 +55,9 @@ trait IRecord extends org.goldenport.record.IRecord
   def getRecord(key: String): Option[Record]
   def takeRecordList(key: Symbol): List[Record]
   def takeRecordList(key: String): List[Record]
-  def +(rhs: IRecord): IRecord // XXX semantics
-  def update(rhs: IRecord): IRecord = this.+(rhs) // XXX semantics
+  def +(rhs: IRecord): IRecord = update(rhs)
+  def update(p: IRecord): IRecord
+  def complement(p: IRecord): IRecord
 
   def asNameStringVector: Vector[(String, String)] = RAISE.notImplementedYetDefect
   def asSymbolAnyVector: Vector[(Symbol, Any)] = RAISE.notImplementedYetDefect
@@ -90,5 +93,9 @@ object IRecord {
       case _ => JsError(s"Invalid Record($json)")
     }
     def writes(o: IRecord): JsValue = o.asJson
+  }
+
+  def +(lhs: IRecord, rhs: IRecord): IRecord = {
+    ???
   }
 }

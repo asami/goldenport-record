@@ -7,6 +7,8 @@ import Validator._
 import scalaz.Validation.FlatMap._
 import scala.util.control.NonFatal
 import scala.util.matching.Regex
+import play.api.libs.json._
+import org.goldenport.RAISE
 
 /*
  * @since   Nov. 23, 2012
@@ -17,12 +19,14 @@ import scala.util.matching.Regex
  *  version Jan.  5, 2015
  *  version Feb. 26, 2016
  *  version Jan. 21, 2017
- * @version May. 24, 2017
+ *  version May. 24, 2017
+ * @version Apr. 28, 2019
  * @author  ASAMI, Tomoharu
  */
 trait Constraint {
   def label: String = getClass.getSimpleName
   def validate(datatype: DataType, value: String, record: Record): Option[ValidationResult]
+  def toJson: JsObject = RAISE.notImplementedYetDefect
 
   protected final def validate_double(v: Option[_], msg: String): Validation[ValidationResult, Double] = {
     v match {
@@ -171,12 +175,54 @@ object Constraint {
       case Failure(f) => f
     }
   }
+
+  object json {
+    import play.api.libs.functional.syntax._
+    import org.goldenport.json.JsonUtils.Implicits._
+
+    val constraints: Vector[ConstraintClass] = Vector(
+      CDataTypeConstraint,
+      CWRange,
+      CPositiveZero,
+      CWNotZero,
+      CW0to100,
+      CWAbs100,
+      CSum,
+      CSubtraction,
+      CSubtractions,
+      CPercent,
+      CEnumeration,
+      CMaxLength,
+      CMinLength,
+      CDigitsLength,
+      CMaxInteger,
+      CMinInteger,
+      CMaxDecimal,
+      CMinDecimal,
+      CRegex,
+      CMaxItems,
+      CMinItems,
+      CUniqueItems
+    )
+
+    object Implicits {
+      implicit val ConstraintFormat = new Format[Constraint] {
+        def reads(json: JsValue): JsResult[Constraint] =
+          constraints.toStream.flatMap(_.fromJsonOption(json)).headOption.
+            map(x => JsSuccess(x)).
+            getOrElse(JsError(s"No constraint: $json"))
+        def writes(o: Constraint): JsValue = o.toJson
+      }
+    }
+  }
 }
 
-case class DataTypeConstraint(datatype: DataType) extends Constraint {
+case class CDataTypeConstraint(datatype: DataType) extends Constraint {
   def validate(dt: DataType, value: String, record: Record): Option[ValidationResult] = {
     datatype.validate(value).some
   }
+}
+object CDataTypeConstraint extends ConstraintClass {
 }
 
 case class CWRange(minimum: Double, maximum: Double) extends Constraint {
@@ -188,8 +234,10 @@ case class CWRange(minimum: Double, maximum: Double) extends Constraint {
     ).toOption
   }
 }
+object CWRange extends ConstraintClass {
+}
 
-case object CPositiveZero extends Constraint {
+case object CPositiveZero extends Constraint with ConstraintClass {
   override def label = "0以上"
   def validate(datatype: DataType, value: String, record: Record): Option[ValidationResult] = {
     datatype.toDouble(value).map(x => 
@@ -199,7 +247,7 @@ case object CPositiveZero extends Constraint {
   }
 }
 
-case object CWNotZero extends Constraint {
+case object CWNotZero extends Constraint with ConstraintClass {
   override def label = "0以外"
   def validate(datatype: DataType, value: String, record: Record): Option[ValidationResult] = {
     datatype.toDouble(value).map(x =>
@@ -212,12 +260,14 @@ case object CWNotZero extends Constraint {
 /**
  * Wraning constraint for range 0 to 100
  */
-object CW0to100 extends CWRange(0, 100)
+object CW0to100 extends CWRange(0, 100) with ConstraintClass {
+}
 
 /**
  * Warning constraint for range -100 to 100
  */
-object CWAbs100 extends CWRange(-100, 100)
+object CWAbs100 extends CWRange(-100, 100) with ConstraintClass {
+}
 
 /**
  * Costraint for Sum
@@ -232,6 +282,8 @@ case class CSum(xs: String*) extends Constraint {
     }
     a.toOption
   }
+}
+object CSum extends ConstraintClass {
 }
 
 /**
@@ -249,6 +301,8 @@ case class CSubtraction(lhs: String, rhs: String*) extends Constraint {
     a.toOption
   }
 }
+object CSubtraction extends ConstraintClass {
+}
 
 case class CSubtractions(lhs: List[String], rhs: List[String]) extends Constraint {
   def validate(datatype: DataType, value: String, record: Record): Option[ValidationResult] = {
@@ -261,6 +315,8 @@ case class CSubtractions(lhs: List[String], rhs: List[String]) extends Constrain
     }
     a.toOption
   }
+}
+object CSubtractions extends ConstraintClass {
 }
 
 /**
@@ -278,6 +334,8 @@ case class CPercent(amount: String, total: String) extends Constraint {
     r.toOption
   }
 }
+object CPercent extends ConstraintClass {
+}
 
 case class CEnumeration(values: Seq[String]) extends Constraint {
   override def label = values.mkString("|")
@@ -287,58 +345,82 @@ case class CEnumeration(values: Seq[String]) extends Constraint {
     }
   }
 }
+object CEnumeration extends ConstraintClass {
+}
 
 case class CMaxLength(length: Int) extends Constraint {
   def validate(datatype: DataType, value: String, record: Record): Option[ValidationResult] =
     constraint_length(length, value)
+}
+object CMaxLength extends ConstraintClass {
 }
 
 case class CMinLength(length: Int) extends Constraint {
   def validate(datatype: DataType, value: String, record: Record): Option[ValidationResult] =
     constraint_minimum_length(length, value)
 }
+object CMinLength extends ConstraintClass {
+}
 
 case class CDigitsLength(length: Int) extends Constraint {
   def validate(datatype: DataType, value: String, record: Record): Option[ValidationResult] =
     constraint_length(length, value) |+| constraint_digits(value)
+}
+object CDigitsLength extends ConstraintClass {
 }
 
 case class CMaxInteger(v: BigInt, isExclusive: Boolean) extends Constraint {
   def validate(datatype: DataType, value: String, record: Record): Option[ValidationResult] =
     ???
 }
+object CMaxInteger extends ConstraintClass {
+}
 
 case class CMinInteger(v: BigInt, isExclusive: Boolean) extends Constraint {
   def validate(datatype: DataType, value: String, record: Record): Option[ValidationResult] =
     ???
+}
+object CMinInteger extends ConstraintClass {
 }
 
 case class CMaxDecimal(v: BigDecimal, isExclusive: Boolean) extends Constraint {
   def validate(datatype: DataType, value: String, record: Record): Option[ValidationResult] =
     ???
 }
+object CMaxDecimal extends ConstraintClass {
+}
 
 case class CMinDecimal(v: BigDecimal, isExclusive: Boolean) extends Constraint {
   def validate(datatype: DataType, value: String, record: Record): Option[ValidationResult] =
     ???
+}
+object CMinDecimal extends ConstraintClass {
 }
 
 case class CRegex(regex: Regex) extends Constraint {
   def validate(datatype: DataType, value: String, record: Record): Option[ValidationResult] =
     ???
 }
+object CRegex extends ConstraintClass {
+}
 
 case class CMaxItems(n: Int) extends Constraint {
   def validate(datatype: DataType, value: String, record: Record): Option[ValidationResult] =
     ???
+}
+object CMaxItems extends ConstraintClass {
 }
 
 case class CMinItems(n: Int) extends Constraint {
   def validate(datatype: DataType, value: String, record: Record): Option[ValidationResult] =
     ???
 }
+object CMinItems extends ConstraintClass {
+}
 
 case class CUniqueItems(b: Boolean) extends Constraint {
   def validate(datatype: DataType, value: String, record: Record): Option[ValidationResult] =
     ???
+}
+object CUniqueItems extends ConstraintClass {
 }
