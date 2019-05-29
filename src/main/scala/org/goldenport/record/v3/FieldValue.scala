@@ -37,7 +37,8 @@ import org.goldenport.record.v2.{Record => Record2, RecordRecord}
  *  version Sep.  4, 2018
  *  version Oct. 30, 2018
  *  version Dec. 28, 2018
- * @version Jan. 21, 2019
+ *  version Jan. 21, 2019
+ * @version May.  9, 2019
  * @author  ASAMI, Tomoharu
  */
 sealed abstract class FieldValue {
@@ -60,6 +61,7 @@ sealed abstract class FieldValue {
   def normalizeHttp: FieldValue
   def +(p: FieldValue): FieldValue
   def toMulti: MultipleValue
+  def mapContent(p: Any => Any): FieldValue
 }
 
 case class SingleValue(value: Any) extends FieldValue {
@@ -119,6 +121,7 @@ case class SingleValue(value: Any) extends FieldValue {
   }
   def +(p: FieldValue): FieldValue = MultipleValue(value +: p.takeVector)
   def toMulti: MultipleValue = MultipleValue(Vector(value))
+  def mapContent(p: Any => Any): FieldValue = copy(p(value))
 }
 
 case class MultipleValue(values: Seq[Any]) extends FieldValue {
@@ -160,6 +163,7 @@ case class MultipleValue(values: Seq[Any]) extends FieldValue {
   }
   def +(p: FieldValue): FieldValue = MultipleValue(values ++ p.takeVector)
   def toMulti = this
+  def mapContent(p: Any => Any): FieldValue = copy(values = values.map(p))
 }
 
 case object EmptyValue extends FieldValue {
@@ -176,6 +180,7 @@ case object EmptyValue extends FieldValue {
   def normalizeHttp: FieldValue = this
   def +(p: FieldValue): FieldValue = p
   def toMulti = MultipleValue(Vector.empty)
+  def mapContent(p: Any => Any): FieldValue = this
 }
 
 object FieldValue {

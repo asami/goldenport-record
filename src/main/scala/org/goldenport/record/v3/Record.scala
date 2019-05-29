@@ -45,7 +45,8 @@ import org.goldenport.values.PathName
  *  version Jan. 29, 2019
  *  version Feb. 28, 2019
  *  version Mar.  6, 2019
- * @version Apr. 29, 2019
+ *  version Apr. 29, 2019
+ * @version May.  9, 2019
  * @author  ASAMI, Tomoharu
  */
 case class Record(
@@ -189,7 +190,17 @@ case class Record(
 
   def removeField(key: String): Record = copy(fields = fields.filterNot(_.key.name == key))
 
-  def complement(p: IRecord): IRecord = ???
+  def complement(p: IRecord): IRecord = RAISE.notImplementedYetDefect
+
+  def mapField(p: Field => Field): Record = copy(fields = fields.map(p))
+
+  def flatMapField(p: Field => Seq[Field]): Record = copy(fields = fields.flatMap(p))
+
+  def mapFieldValue(p: FieldValue => FieldValue): Record =
+    copy(fields = fields.map(_.mapValue(p)))
+
+  def mapValue(p: Any => Any): Record = 
+    copy(fields = fields.map(_.mapContent(p)))
 }
 
 object Record {

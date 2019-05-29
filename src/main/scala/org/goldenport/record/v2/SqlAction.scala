@@ -2,6 +2,7 @@ package org.goldenport.record.v2
 
 import scalaz._, Scalaz._
 import java.net.URI
+import org.goldenport.RAISE
 
 /*
  * Derived from SqlSchema.
@@ -12,7 +13,8 @@ import java.net.URI
  *  version Jun. 24, 2013
  *  version Feb.  6, 2014
  *  version Jan. 27, 2015
- * @version May. 26, 2017
+ *  version May. 26, 2017
+ * @version May. 29, 2019
  * @author  ASAMI, Tomoharu
  */
 trait SqlAction {
@@ -59,33 +61,49 @@ trait SqlActionCommand {
     before_Insert(source)
   }
 
+  // legacy
   def beforeInsert(xs: Seq[ActionContext]): Seq[ActionContext] = {
     before_Insert(xs)
   }
+
+  def beforeInserts(xs: ActionContextChunk): ActionContextChunk =
+    before_Inserts(xs)
 
   def afterInsert(source: ActionContext): ActionContext = {
     after_Insert(source)
   }
 
+  // legacy
   def afterInsert(xs: Seq[ActionContext]): Seq[ActionContext] = {
     after_Insert(xs)
   }
+
+  def afterInserts(xs: ActionContextChunk): ActionContextChunk =
+    after_Inserts(xs)
 
   def beforeUpdate(source: ActionContext): ActionContext = {
     before_Update(source)
   }
 
+  // legacy
   def beforeUpdate(xs: Seq[ActionContext]): Seq[ActionContext] = {
     before_Update(xs)
   }
+
+  def beforeUpdates(xs: ActionContextChunk): ActionContextChunk =
+    before_Updates(xs)
 
   def afterUpdate(source: ActionContext): ActionContext = {
     after_Update(source)
   }
 
+  // legacy
   def afterUpdate(xs: Seq[ActionContext]): Seq[ActionContext] = {
     after_Update(xs)
   }
+
+  def afterUpdates(xs: ActionContextChunk): ActionContextChunk =
+    after_Updates(xs)
 
   def beforeDelete(source: ActionContext): ActionContext = {
     before_Delete(source)
@@ -107,29 +125,47 @@ trait SqlActionCommand {
     source
   }
 
+  // legacy
   protected def before_Insert(xs: Seq[ActionContext]): Seq[ActionContext] = {
     xs.map(before_Insert(_))
   }
 
+  protected def before_Inserts(p: ActionContextChunk): ActionContextChunk = {
+    val r = before_Insert(p.toActionContexts)
+    p.withActionContexts(r)
+  }
+
   protected def after_Insert(source: ActionContext): ActionContext = source
 
+  // legacy
   protected def after_Insert(xs: Seq[ActionContext]): Seq[ActionContext] = {
     xs.map(after_Insert(_))
   }
+
+  protected def after_Inserts(p: ActionContextChunk): ActionContextChunk =
+    p.run(after_Insert)
 
   protected def before_Update(source: ActionContext): ActionContext = {
     source
   }
 
+  // legacy
   protected def before_Update(xs: Seq[ActionContext]): Seq[ActionContext] = {
     xs.map(before_Update(_))
   }
 
+  protected def before_Updates(p: ActionContextChunk): ActionContextChunk =
+    p.run(before_Update)
+
   protected def after_Update(source: ActionContext): ActionContext = source
 
+  // legacy
   protected def after_Update(xs: Seq[ActionContext]): Seq[ActionContext] = {
     xs.map(after_Update(_))
   }
+
+  protected def after_Updates(p: ActionContextChunk): ActionContextChunk =
+    p.run(after_Update)
 
   protected def before_Delete(source: ActionContext): ActionContext = {
     source
@@ -230,6 +266,7 @@ case class SqlActionCommands(commands: Seq[SqlActionCommand]) {
     commands.foldLeft(ActionContext(record, connection = conn))((a, x) => x.beforeInsert(a))
   }
 
+  // legacy
   def beforeInsert(
     rs: Seq[Record],
     conn: Option[java.sql.Connection]
@@ -238,11 +275,24 @@ case class SqlActionCommands(commands: Seq[SqlActionCommand]) {
     commands.foldLeft(acs)((a, x) => x.beforeInsert(a))
   }
 
+  def beforeInserts(
+    rs: Seq[Record],
+    conn: Option[java.sql.Connection]
+  ): ActionContextChunk = {
+    val acs = rs.map(ActionContext(_))
+    val acc = ActionContextChunk(acs, conn)
+    commands.foldLeft(acc)((z, x) => x.beforeInserts(z))
+  }
+
   def afterInsert(source: ActionContext): ActionContext =
     commands./:(source)((z, x) => x.afterInsert(z))
 
+  // legacy
   def afterInsert(rs: Seq[ActionContext]): Seq[ActionContext] =
     rs.map(afterInsert)
+
+  def afterInserts(p: ActionContextChunk): ActionContextChunk =
+    commands.foldLeft(p)((z, x) => x.afterInserts(z))
 
   def beforeUpdate(
     record: Record,
@@ -259,11 +309,23 @@ case class SqlActionCommands(commands: Seq[SqlActionCommand]) {
     commands.foldLeft(acs)((a, x) => x.beforeUpdate(a))
   }
 
+  def beforeUpdates(
+    rs: Seq[Record],
+    conn: Option[java.sql.Connection]
+  ): ActionContextChunk = {
+    val acs = rs.map(ActionContext(_))
+    val acc = ActionContextChunk(acs, conn)
+    commands.foldLeft(acc)((z, x) => x.beforeUpdates(z))
+  }
+
   def afterUpdate(source: ActionContext): ActionContext =
     commands./:(source)((z, x) => x.afterUpdate(z))
 
   def afterUpdate(rs: Seq[ActionContext]): Seq[ActionContext] =
     rs.map(afterUpdate)
+
+  def afterUpdates(p: ActionContextChunk): ActionContextChunk =
+    p.run(afterUpdate)
 
   def beforeDelete(
     record: Record,

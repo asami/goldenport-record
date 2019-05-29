@@ -8,7 +8,8 @@ import org.goldenport.record.v3.sql.{SqlContext, SqlBuilder}
 
 /*
  * @since   Apr.  5, 2019
- * @version Apr. 16, 2019
+ *  version Apr. 16, 2019
+ * @version May.  9, 2019
  * @author  ASAMI, Tomoharu
  */
 class SqlStore(
@@ -66,16 +67,19 @@ object SqlStore {
     tableName: Option[String] = None
   ) extends Collection {
     protected val id_column = "id"
+    protected final def store_name = store.name
     protected lazy val table_name = tableName getOrElse name.name
 
+    private lazy val _sql_builder = SqlBuilder(table_name, id_column)
+
     def get(id: Id): Option[Record] = {
-      val sql = s"""SELECT * FROM ${table_name} WHERE ${id_column} = '$id'"""
-      store.sqlContext.queryHeadOption(name, sql)
+      val sql = _sql_builder.get(id)
+      store.sqlContext.queryHeadOption(store_name, sql)
     }
 
     def query(q: Query): RecordSequence = {
-      val sql = s"""SELECT * FROM ${table_name} WHERE ${q.where}"""
-      store.sqlContext.querySequence(name, sql)
+      val sql = s"""SELECT * FROM ${table_name} WHERE ${q.where} LIMIT 10"""
+      store.sqlContext.querySequence(store_name, sql)
     }
 
     def insert(rec: Record): Id = {
@@ -83,7 +87,7 @@ object SqlStore {
       val columns = ???
       val values = ???
       val sql = s"""INSERT INTO ${table_name} $columns ($values)"""
-      store.sqlContext.mutate(name, sql)
+      store.sqlContext.mutate(store_name, sql)
       val id = idoption.getOrElse(_fetch_insert_id)
       Id.create(id)
     }
@@ -93,23 +97,22 @@ object SqlStore {
     // http://www.mysqltutorial.org/mysql-last_insert_id.aspx
     private def _fetch_insert_id_mysql = {
       val sql = s"""SELECT LAST_INSERT_ID()"""
-      store.sqlContext.queryHeadOption(name, sql).getOrElse(-1)
+      store.sqlContext.queryHeadOption(store_name, sql).getOrElse(-1)
     }
 
     def update(id: Id, rec: Record): Unit = {
-      val values = ???
-      val sql = s"""UPDATE ${table_name} SET $values WHERE id = '${id.string}'"""
-      store.sqlContext.mutate(name, sql)
+      val sql = _sql_builder.update(id.string, rec)
+      store.sqlContext.mutate(store_name, sql)
     }
 
     def delete(id: Id): Unit = {
       val sql = s"""DELETE FROM ${table_name} WHERE id = '${id.string}"""
-      store.sqlContext.mutate(name, sql)
+      store.sqlContext.mutate(store_name, sql)
     }
 
     def drop(): Unit = {
       val sql = s"""DROP TABLE ${table_name}"""
-      store.sqlContext.execute(name, sql)
+      store.sqlContext.execute(store_name, sql)
     }
   }
 

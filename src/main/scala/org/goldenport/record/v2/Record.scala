@@ -56,7 +56,8 @@ import org.goldenport.util.{TimestampUtils, DateUtils}
  *  version Nov.  7, 2018
  *  version Dec. 29, 2018
  *  version Feb. 10, 2019
- * @version Apr. 11, 2019
+ *  version Apr. 11, 2019
+ * @version May. 10, 2019
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -1204,6 +1205,8 @@ case class Field(key: Symbol, values: List[Any]) {
   }
 
   def update(p: String): Field = copy(values = List(p))
+
+  def updateList(v: Seq[Any]): Field = Field(key, List(v.toList))
 
   def mapDouble(f: Double => Double): Field = {
     try {

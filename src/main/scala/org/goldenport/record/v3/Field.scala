@@ -38,7 +38,8 @@ import org.goldenport.record.util.AnyUtils
  *  version Oct. 30, 2018
  *  version Dec. 29, 2018
  *  version Jan.  7, 2019
- * @version Mar. 23, 2019
+ *  version Mar. 23, 2019
+ * @version May.  9, 2019
  * @author  ASAMI, Tomoharu
  */
 case class Field(
@@ -56,6 +57,12 @@ case class Field(
   def asRecordList: List[Record] = value.asRecordList
 
   def withKey(name: String): Field = copy(key = Symbol(name))
+
+  def withValue(p: FieldValue): Field = copy(value = p)
+
+  def mapValue(p: FieldValue => FieldValue): Field = copy(value = p(value))
+
+  def mapContent(p: Any => Any): Field = copy(value = value.mapContent(p))
 
   def keyValue: Option[(Symbol, Any)] = {
     val data = value.getValue

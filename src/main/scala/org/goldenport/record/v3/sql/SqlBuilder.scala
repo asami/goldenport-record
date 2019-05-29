@@ -1,13 +1,18 @@
 package org.goldenport.record.v3.sql
 
+import java.util.{Date, TimeZone}
+import java.sql.Timestamp
+import org.joda.time._
 import org.goldenport.RAISE
 import org.goldenport.record.sql.SqlDatatype
+import org.goldenport.record.store
 import org.goldenport.record.v2.{Schema, Column, SqlColumn, DataType}
 import org.goldenport.record.v3._
+import org.goldenport.record.util.DateUtils
 
 /*
  * @since   Apr.  6, 2019
- * @version Apr. 16, 2019
+ * @version May.  9, 2019
  * @author  ASAMI, Tomoharu
  */
 class SqlBuilder( // MySQL
@@ -162,7 +167,11 @@ class SqlBuilder( // MySQL
   def dropTable(): String = s"""DROP TABLE $table_name"""
 
   def get(id: Any): String = {
-    s"""SELECT * FROM ${table_name} WHERE ${id_column} = ${literal(id)}"""
+    val idliteral = id match {
+      case m: store.Id => m.literal
+      case m => m
+    }
+    s"""SELECT * FROM ${table_name} WHERE ${id_column} = ${literal(idliteral)}"""
   }
 
   def query(q: String): String = {
@@ -189,6 +198,23 @@ class SqlBuilder( // MySQL
     case SingleValue(v) => literal(v)
     case m: MultipleValue => RAISE.notImplementedYetDefect
     case m: String => literalString(m)
+    case m: Boolean => m.toString
+    case m: Char => s"'$m'"
+    case m: Byte => m.toString
+    case m: Short => m.toString
+    case m: Int => m.toString
+    case m: Long => m.toString
+    case m: Float => m.toString
+    case m: Double => m.toString
+    case m: BigInt => m.toString
+    case m: BigDecimal => m.toString
+    case m: Timestamp => literalString(m.toString) // GMT
+    case m: Date => literalString(DateUtils.toIsoDateString(m)) // ISO Date/GMT
+    case m: DateTime => literalString(m.toString)
+    case m: LocalDate => literalString(m.toString)
+    case m: LocalDateTime => RAISE.notImplementedYetDefect
+    case m: store.Id => m.string
+    case m => literalString(m)
   }
 
   def literalString(p: Any): String = "'" + escape(p.toString) + "'"
@@ -237,11 +263,18 @@ class SqlBuilder( // MySQL
   }
 
   def updateValues(rec: Record): String = rec.fields.map(x =>
-    s"`${x.key.name}` = ${literal(x.value)}"
+//    s"`${x.key.name}` = ${literal(x.value)}" // XXX MySQL
+    s"${x.key.name} = ${literal(x.value)}"
   ).mkString(", ")
 }
 
 object SqlBuilder {
+  def apply(tablename: String): SqlBuilder =
+    new SqlBuilder(tablename, None, None)
+
+  def apply(tablename: String, idcolumn: String): SqlBuilder =
+    new SqlBuilder(tablename, Some(idcolumn), None)
+
   def create(tablename: String, schema: Schema): SqlBuilder = {
     new SqlBuilder(tablename, None, Some(schema))
   }
