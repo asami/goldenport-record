@@ -31,7 +31,8 @@ import org.goldenport.record.v2.projector.ProjectorContext
  *  version Jul. 28, 2018
  *  version Aug. 24, 2018
  *  version Sep.  4, 2018
- * @version Jan.  9, 2019
+ *  version Jan.  9, 2019
+ * @version Jul.  7, 2019
  * @author  ASAMI, Tomoharu
  */
 case class Column(
@@ -65,6 +66,7 @@ case class Column(
   else
     s"Column(${show})"
 
+  lazy val key: Symbol = Symbol(name)
   def show: String = s"$name,${datatype.name},${multiplicity.mark}"
   def showlong: String = s"${show},${form},${extension}"
 

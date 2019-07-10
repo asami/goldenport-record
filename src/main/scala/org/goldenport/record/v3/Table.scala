@@ -3,13 +3,16 @@ package org.goldenport.record.v3
 import org.w3c.dom._
 import play.api.libs.json._
 import org.goldenport.exception.RAISE
+import org.goldenport.matrix.{IMatrix, VectorRowColumnMatrixBase, VectorRowColumnMatrix}
 import org.goldenport.record.v2.{Schema, Column}
+import org.goldenport.record.util.AnyUtils
 
 /*
  * @since   Aug. 24, 2018
  *  version Sep.  4, 2018
  *  version Dec. 27, 2018
- * @version May. 27, 2019
+ *  version May. 27, 2019
+ * @version Jun. 23, 2019
  * @author  ASAMI, Tomoharu
  */
 case class Table(
@@ -21,6 +24,78 @@ case class Table(
   def toTable = this
   def toRecordList: List[Record] = records.toList
   def toRecordVector: Vector[Record] = records
+  lazy val width = meta.getWidth getOrElse data.width
+  def height = records.length
+
+  override def toString() = print
+
+  def print = s"Table[${width}x${height}]"
+  def display = print
+  def show = {
+    val tv = TableVisualizer()
+    tv.plainText(this)
+  }
+
+  lazy val data: Table.Data = {
+    case class Z(
+      columns: Vector[Column] = Vector.empty,
+      matrix: Vector[Vector[Table.Cell]] = Vector.empty
+    ) {
+      def r = Table.Data(columns, Table.DataMatrix.create(matrix))
+
+      def +(rhs: Record) = {
+        val cs: Vector[Column] = rhs.fields./:(columns) { (z, x) =>
+          if (z.exists(_.name == x.key.name))
+            z.map(xx =>
+              if (xx.name == x.key.name)
+                _to_column(xx, x)
+              else
+                xx
+            )
+          else
+            z :+ _to_column(x)
+        }
+        val ds = cs./:(Vector.empty[Table.Cell]) { (z, x) =>
+          val a = rhs.getValue(x.name).map {
+            case m: SingleValue => _to_content(m)
+            case m: MultipleValue => _to_content(m)
+            case EmptyValue => Table.Cell.empty
+          } getOrElse {
+            Table.Cell.empty
+          }
+          z :+ a
+        }
+        Z(cs, matrix :+ ds)
+      }
+
+      import org.goldenport.record.v2.{Field => _, Table => _, _}
+
+      private def _to_column(p: Field): Column = {
+        p.value match {
+          case SingleValue(v) => Column(p.name, _datatype(v), MOne)
+          case MultipleValue(v) => Column(p.name, _datatype_multi(v), _multiplicity(v))
+          case EmptyValue => ???
+        }
+      }
+
+      private def _datatype(p: Any): DataType = XString // TODO
+
+      private def _datatype_multi(p: Seq[Any]): DataType = XString // TODO
+
+      private def _multiplicity(p: Seq[Any]): Multiplicity =
+        if (p.isEmpty)
+          MZeroMore
+        else
+          MOneMore
+
+      private def _to_column(c: Column, p: Field): Column = c // TODO datatype & multiplicity
+
+      private def _to_content(p: SingleValue): Table.Cell = Table.Cell(p.value)
+
+      private def _to_content(p: MultipleValue): Table.Cell = Table.Cell(p.values) // TODO
+    }
+    records./:(Z())(_+_).r
+  }
 }
 
 object Table {
@@ -31,6 +106,8 @@ object Table {
   case class MetaData(
     schema: Option[Schema]
   ) {
+    def getWidth: Option[Int] = schema.map(_.columns.length)
+
     def getKey(i: Int): Option[Symbol] = schema.
       flatMap(_.columns.lift(i).map(x => Symbol(x.name)))
   }
@@ -38,11 +115,44 @@ object Table {
     val empty = MetaData(None)
   }
 
-  case class Cell(content: String, width: Option[Int] = None)
+  case class Data(
+    columns: Vector[Column],
+    matrix: DataMatrix
+  ) {
+    def width = columns.length
+  }
 
-  case class Head(names: List[Cell])
+  case class Cell(content: Any, width: Option[Int] = None)
+  object Cell {
+    val empty = Cell("")
+  }
 
-  case class Foot(data: List[Cell])
+  case class DataMatrix(
+    matrix: Vector[Vector[Cell]]
+  ) extends VectorRowColumnMatrixBase[Cell] {
+  def appendRows(ps: IMatrix[Cell]): DataMatrix = ???
+  }
+  object DataMatrix {
+    def create(pss: Seq[Seq[Cell]]): DataMatrix = DataMatrix(
+      pss.toVector.map(_.toVector)
+    )
+  }
+
+  case class Head(names: List[Cell]) {
+    def matrix: IMatrix[Cell] = VectorRowColumnMatrix.create(Vector(names))
+  }
+  object Head {
+    def apply(name: String, names: String*): Head = create(name +: names)
+
+    def create(ps: Seq[String]): Head = Head(ps.map(Cell(_)).toList)
+  }
+
+  case class Foot(data: List[Cell]) {
+    def matrix: IMatrix[Cell] = ???
+  }
+
+  def apply(head: Table.Head, data: Seq[Record]): Table =
+    Table(data.toVector, head = Some(head))
 
   def create(p: JsArray): Table = RAISE.notImplementedYetDefect
 
@@ -72,7 +182,7 @@ object Table {
 
   private def _create_head(p: Element): Option[Head] = {
     val trs = _create_trs(p)
-    trs.map(Head)
+    trs.map(Head(_))
   }
 
   private def _create_foot(p: Element): Option[Foot] = {
@@ -108,8 +218,10 @@ object Table {
     ps.map(_make_meta).getOrElse(MetaData.empty)
 
   private def _make_meta(p: Head): MetaData = {
-    val a = p.names.map(x => Column(x.content)) // TODO width
+    val a = p.names.map(x => Column(_to_string(x.content))) // TODO width
     val s = Schema(a)
     MetaData(Some(s))
   }
+
+  private def _to_string(p: Any): String = AnyUtils.toString(p)
 }

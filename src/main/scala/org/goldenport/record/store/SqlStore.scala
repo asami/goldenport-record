@@ -5,11 +5,13 @@ import org.goldenport.RAISE
 import org.goldenport.record.v2.Schema
 import org.goldenport.record.v3._
 import org.goldenport.record.v3.sql.{SqlContext, SqlBuilder}
+import org.goldenport.record.sql.SqlU
 
 /*
  * @since   Apr.  5, 2019
  *  version Apr. 16, 2019
- * @version May.  9, 2019
+ *  version May.  9, 2019
+ * @version Jul. 10, 2019
  * @author  ASAMI, Tomoharu
  */
 class SqlStore(
@@ -78,14 +80,19 @@ object SqlStore {
     }
 
     def query(q: Query): RecordSequence = {
-      val sql = s"""SELECT * FROM ${table_name} WHERE ${q.where} LIMIT 10"""
+      val limit = 10
+      val sql = s"""SELECT * FROM ${table_name} WHERE ${q.where} LIMIT $limit"""
       store.sqlContext.querySequence(store_name, sql)
     }
 
     def insert(rec: Record): Id = {
       val idoption = rec.get('id)
-      val columns = ???
-      val values = ???
+      val columns = rec.fields.map(_.key.name).map(x => s"`$x`").mkString(", ")
+      val values = rec.fields.map(_.value match {
+        case EmptyValue => "NULL"
+        case SingleValue(v) => SqlU.literal(v)
+        case m: MultipleValue => RAISE.notImplementedYetDefect
+      })
       val sql = s"""INSERT INTO ${table_name} $columns ($values)"""
       store.sqlContext.mutate(store_name, sql)
       val id = idoption.getOrElse(_fetch_insert_id)

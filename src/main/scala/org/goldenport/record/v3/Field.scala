@@ -39,7 +39,8 @@ import org.goldenport.record.util.AnyUtils
  *  version Dec. 29, 2018
  *  version Jan.  7, 2019
  *  version Mar. 23, 2019
- * @version May.  9, 2019
+ *  version May.  9, 2019
+ * @version Jul.  7, 2019
  * @author  ASAMI, Tomoharu
  */
 case class Field(
@@ -126,11 +127,15 @@ object Field {
   }
   object MetaData {
     val empty = MetaData(None)
+
+    def apply(p: Column): MetaData = MetaData(Some(p))
   }
 
   def apply(kv: (String, FieldValue)): Field = apply(kv._1, kv._2)
 
   def apply(key: String, value: FieldValue): Field = Field(Symbol(key), value)
+
+  def apply(c: Column, value: FieldValue): Field = Field(c.key, value, MetaData(c))
 
   def create(key: String, value: Any): Field = create(Symbol(key), value)
 
@@ -153,4 +158,26 @@ object Field {
   }
 
   def create(key: String, p: JsValue): Field = Field(Symbol(key), FieldValue.create(p))
+
+  def create(c: Column, p: Any): Field = {
+    import org.goldenport.record.v2.{MOne, MZeroOne, MOneMore, MZeroMore, MRange, MRanges}
+    val v = c.multiplicity match {
+      case MOne => _single_value(c, p)
+      case MZeroOne => _single_value(c, p)
+      case MOneMore => _multiple_value(c, p)
+      case MZeroMore => _multiple_value(c, p)
+      case m: MRange => _multiple_value(c, p)
+      case m: MRanges => _multiple_value(c, p)
+    }
+    Field(c, v)
+  }
+
+  private def _single_value(c: Column, p: Any) = SingleValue(c.datatype.toInstance(p))
+
+  private def _multiple_value(c: Column, p: Any): MultipleValue = p match {
+    case m: Array[_] => MultipleValue(m.map(c.datatype.toInstance(_)))
+    case m: Iterable[_] => MultipleValue(m.toVector.map(c.datatype.toInstance(_)))
+    case m: Iterator[_] => MultipleValue(m.toVector.map(c.datatype.toInstance(_)))
+    case m => MultipleValue(Vector(c.datatype.toInstance(m)))
+  }
 }

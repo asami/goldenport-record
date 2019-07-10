@@ -46,7 +46,9 @@ import org.goldenport.values.PathName
  *  version Feb. 28, 2019
  *  version Mar.  6, 2019
  *  version Apr. 29, 2019
- * @version May.  9, 2019
+ *  version May.  9, 2019
+ *  version Jun. 15, 2019
+ * @version Jul.  7, 2019
  * @author  ASAMI, Tomoharu
  */
 case class Record(
@@ -95,6 +97,10 @@ case class Record(
   // }
 
   def getValue(key: Symbol): Option[FieldValue] = {
+    getField(key).map(_.value)
+  }
+
+  def getValue(key: String): Option[FieldValue] = {
     getField(key).map(_.value)
   }
 
@@ -311,6 +317,13 @@ object Record {
   def create(p: JsObject): Record = {
     val xs = p.fields.map {
       case (k, v) => Field.create(k, v)
+    }
+    Record(xs)
+  }
+
+  def create(schema: Schema, data: Seq[Any]): Record = {
+    val xs = schema.columns.toVector.zip(data).map {
+      case (c, d) => Field.create(c, d)
     }
     Record(xs)
   }
