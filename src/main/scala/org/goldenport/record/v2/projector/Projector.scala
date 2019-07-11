@@ -24,7 +24,7 @@ import org.goldenport.values.PathName
  *  version Jul. 28, 2018
  *  version Aug. 30, 2018
  *  version Sep.  3, 2018
- * @version Jul. 10, 2019
+ * @version Jul. 11, 2019
  * @author  ASAMI, Tomoharu
  */
 case class Projector(
@@ -84,8 +84,10 @@ case class Projector(
       ).toMap
       a.toList.foldMap {
         case (k, v) => labelnamemap.get(k).
-            map(s => 
-              if (a.get(s).isDefined)
+            map(s =>
+              if (k == s)
+                Map(k -> v)
+              else if (a.get(s).isDefined)
                 Map.empty[String, List[Any]] // assume already projected
               else
                 Map(s -> v)
