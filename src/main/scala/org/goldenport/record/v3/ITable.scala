@@ -8,7 +8,8 @@ import org.goldenport.record.v2.Schema
  * @since   Sep.  2, 2018
  *  version Dec. 27, 2018
  *  version Feb. 11, 2019
- * @version Jun. 23, 2019
+ *  version Jun. 23, 2019
+ * @version Jul. 26, 2019
  * @author  ASAMI, Tomoharu
  */
 trait ITable extends org.goldenport.table.ITable {
@@ -19,8 +20,4 @@ trait ITable extends org.goldenport.table.ITable {
   def data: Table.Data
   def toRecordList: List[Record]
   def toRecordVector: Vector[Record]
-  def print: String
-  def display: String
-  def show: String
 }
-

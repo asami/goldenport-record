@@ -5,14 +5,17 @@ import org.goldenport.collection.NonEmptyVector
 
 /*
  * @since   Apr. 20, 2019
- * @version Apr. 20, 2019
+ * @version Jul. 29, 2019
  * @author  ASAMI, Tomoharu
  */
 case class CompositeRecord(records: NonEmptyVector[IRecord]) extends IRecord {
   private def _records = records.vector
+  def keys: List[Symbol] = _records.flatMap(_.keys).distinct.toList
   def keyNames: List[String] = _records.flatMap(_.keyNames).distinct.toList
-  val print: String = toRecord.print
-  val show: String = toRecord.show
+  override def length = records.length
+  def print: String = toRecord.print
+  def display: String = toRecord.display
+  def show: String = toRecord.show
   lazy val toRecord: Record = {
     case class Z(xs: Vector[Field] = Vector.empty) {
       def r = Record(xs)

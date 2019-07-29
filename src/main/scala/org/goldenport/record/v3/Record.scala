@@ -2,6 +2,7 @@ package org.goldenport.record.v3
 
 import scalaz._, Scalaz._
 import java.sql.Timestamp
+import org.w3c.dom.{Element, Attr}
 import org.joda.time.DateTime
 import play.api.libs.json._
 import org.goldenport.RAISE
@@ -10,6 +11,8 @@ import org.goldenport.record.util.StringUtils
 import org.goldenport.record.v2.{Record => Record2, Field => Field2, Schema}
 import org.goldenport.record.v2.util.RecordUtils
 import org.goldenport.collection.{NonEmptyVector, VectorMap}
+import org.goldenport.xsv.Lxsv
+import org.goldenport.xml.dom.DomUtils
 import org.goldenport.values.PathName
 
 /*
@@ -48,7 +51,7 @@ import org.goldenport.values.PathName
  *  version Apr. 29, 2019
  *  version May.  9, 2019
  *  version Jun. 15, 2019
- * @version Jul.  7, 2019
+ * @version Jul. 29, 2019
  * @author  ASAMI, Tomoharu
  */
 case class Record(
@@ -56,7 +59,7 @@ case class Record(
   meta: Record.MetaData = Record.MetaData.empty,
   extra: Record.Extra = Record.Extra.empty
 ) extends IRecord
-    with XmlPart with JsonPart with CsvPart with LtsvPart
+    with XmlPart with JsonPart with CsvPart with LtsvPart with LxsvPart
     with HttpPart with SqlPart
     with CompatibilityPart {
   def toRecord = this
@@ -73,11 +76,12 @@ case class Record(
   def nonDefined(key: Symbol): Boolean = !isDefined(key)
   def nonDefined(key: String): Boolean = !isDefined(key)
 
+  lazy val keys: List[Symbol] = fields.map(_.key).toList
   lazy val keyNames: List[String] = fields.map(_.name).toList
 
-  lazy val print: String = toLtsv.replace("\t", "  ")
-
-  def show: String = print
+  def print: String = toLxsv.print
+  def display: String = print // TODO
+  def show: String = print // TODO
 
   def get(key: String): Option[Any] = getField(key).flatMap(_.value.getValue)
 
@@ -240,6 +244,10 @@ object Record {
 
   def apply(ps: Iterator[Field]): Record = Record(ps.toVector)
 
+  def apply(map: scala.collection.Map[Symbol, Any]): Record = apply(map.toVector)
+
+  def apply(data: Seq[(Symbol, Any)]): Record = createSymbolAnySeq(data)
+
   def data(data: (String, Any)*): Record = createDataSeq(data)
 
   def dataOption(data: (String, Option[Any])*): Record = {
@@ -301,17 +309,31 @@ object Record {
     ltsv.map(fromLtsv).getOrElse(Record.empty)
   }
 
-  def fromJson(p: String): Record = create(Json.parse(p))
+  def create(lxsv: Lxsv): Record = apply(lxsv.vectormap)
+
+  def fromJson(p: String): Either[RecordSequence, Record] = create(Json.parse(p))
 
   def fromXml(p: String): Record = RAISE.notImplementedYetDefect
 
-  def create(p: JsValue): Record = p match {
-    case null => Record.empty
-    case JsNull => Record.empty
-    case m: JsUndefined => Record.empty
-    case m: JsObject => create(m)
-    case _: JsArray => throw new IllegalArgumentException(s"Array: $p")
+  // def fromDom(p: org.w3c.dom.Node): Either[RecordSequence, Record] = create(p)
+
+  def create(p: JsValue): Either[RecordSequence, Record] = p match {
+    case null => Right(Record.empty)
+    case JsNull => Right(Record.empty)
+    case m: JsUndefined => Right(Record.empty)
+    case m: JsObject => Right(create(m))
+    case m: JsArray => Left(create(m))
     case _ => throw new IllegalArgumentException(s"Not object: $p")
+  }
+
+  def create(p: JsArray): RecordSequence = {
+    val xs = p.value.map(_create_record)
+    RecordSequence(xs.toVector)
+  }
+
+  private def _create_record(p: JsValue): Record = create(p) match {
+    case Left(rs) => RAISE.notImplementedYetDefect
+    case Right(r) => r
   }
 
   def create(p: JsObject): Record = {
@@ -320,6 +342,90 @@ object Record {
     }
     Record(xs)
   }
+
+  def create(p: org.w3c.dom.Node): Either[RecordSequence, Record] = p match {
+    case m: org.w3c.dom.Document => create(m.getDocumentElement)
+    case m: org.w3c.dom.Element => _create_record_or_sequence(m)
+    case m => RAISE.notImplementedYetDefect(s"Not element: $m")
+  }
+
+  private def _create_record_or_sequence(p: org.w3c.dom.Element) = {
+    val xs = DomUtils.elementsIndexedSeq(p)
+    if (xs.isEmpty) {
+      Left(RecordSequence.empty)
+    } else {
+      if (_is_element_list(xs))
+        Left(_create_record_sequence(xs))
+      else
+        Right(_create_record(p, xs))
+    }
+  }
+
+  private def _is_element_list(xs: Seq[Element]): Boolean =
+    xs.map(DomUtils.localName).toSet.size == 1
+
+  private def _create_record(elem: Element): Record = {
+    val xs = DomUtils.elementsIndexedSeq(elem)
+    _create_record(elem, xs)
+  }
+
+  private def _create_record(elem: Element, children: IndexedSeq[Element]): Record = {
+    val attrs = DomUtils.attributes(elem)
+    val a = attrs.map(_to_field)
+    val b = children.map(_to_field)
+    Record(a ++ b)
+  }
+
+  private def _to_field(p: Attr): Field = {
+    val name = p.getName
+    val value = p.getValue
+    Field.create(name, value)
+  }
+
+  private def _to_field(p: Element): Field = {
+    val name = DomUtils.localName(p)
+    val children = DomUtils.childrenIndexedSeq(p)
+    val elements = DomUtils.elementsIndexedSeq(p)
+    val value = if (children.isEmpty)
+      EmptyValue
+    else if (elements.isEmpty)
+      _text_value(children)
+    else if (DomUtils.isElementTextMix(children))
+      _dom_value(children)
+    else if (_is_element_list(elements))
+      _list_value(elements)
+    else
+      _record_value(elements)
+    Field.create(name, value)
+  }
+
+  private def _text_value(ps: Seq[org.w3c.dom.Node]): SingleValue = {
+    val v = ps.map(_.getTextContent).mkString
+    SingleValue(v)
+  }
+
+  private def _dom_value(ps: Seq[org.w3c.dom.Node]): FieldValue =
+    ps.toList match {
+      case Nil => EmptyValue
+      case x :: Nil => SingleValue(x)
+      case x :: xs =>
+        val df = x.getOwnerDocument.createDocumentFragment()
+        df.appendChild(x)
+        for (a <- xs)
+          df.appendChild(a)
+        SingleValue(df)
+    }
+
+  private def _list_value(ps: Seq[Element]): MultipleValue = {
+    val vs = ps.map(_create_record)
+    MultipleValue(vs)
+  }
+
+  private def _record_value(ps: Seq[Element]): SingleValue =
+    RAISE.notImplementedYetDefect
+
+  private def _create_record_sequence(ps: IndexedSeq[Element]): RecordSequence =
+    RecordSequence(ps.map(_create_record).toVector)
 
   def create(schema: Schema, data: Seq[Any]): Record = {
     val xs = schema.columns.toVector.zip(data).map {

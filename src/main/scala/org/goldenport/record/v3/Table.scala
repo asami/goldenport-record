@@ -12,7 +12,8 @@ import org.goldenport.record.util.AnyUtils
  *  version Sep.  4, 2018
  *  version Dec. 27, 2018
  *  version May. 27, 2019
- * @version Jun. 23, 2019
+ *  version Jun. 23, 2019
+ * @version Jul. 29, 2019
  * @author  ASAMI, Tomoharu
  */
 case class Table(
@@ -29,8 +30,8 @@ case class Table(
 
   override def toString() = print
 
-  def print = s"Table[${width}x${height}]"
-  def display = print
+  def print = show
+  def display = s"Table[${width}x${height}]"
   def show = {
     val tv = TableVisualizer()
     tv.plainText(this)
@@ -74,7 +75,7 @@ case class Table(
         p.value match {
           case SingleValue(v) => Column(p.name, _datatype(v), MOne)
           case MultipleValue(v) => Column(p.name, _datatype_multi(v), _multiplicity(v))
-          case EmptyValue => ???
+          case EmptyValue => RAISE.notImplementedYetDefect
         }
       }
 
@@ -113,6 +114,8 @@ object Table {
   }
   object MetaData {
     val empty = MetaData(None)
+
+    def apply(schema: Schema): MetaData = MetaData(Some(schema))
   }
 
   case class Data(
@@ -130,7 +133,8 @@ object Table {
   case class DataMatrix(
     matrix: Vector[Vector[Cell]]
   ) extends VectorRowColumnMatrixBase[Cell] {
-  def appendRows(ps: IMatrix[Cell]): DataMatrix = ???
+  def appendRow(ps: Seq[Cell]): DataMatrix = RAISE.unsupportedOperationFault
+  def appendRows(ps: IMatrix[Cell]): DataMatrix = RAISE.notImplementedYetDefect
   }
   object DataMatrix {
     def create(pss: Seq[Seq[Cell]]): DataMatrix = DataMatrix(
@@ -148,29 +152,57 @@ object Table {
   }
 
   case class Foot(data: List[Cell]) {
-    def matrix: IMatrix[Cell] = ???
+    def matrix: IMatrix[Cell] = RAISE.notImplementedYetDefect
   }
 
   def apply(head: Table.Head, data: Seq[Record]): Table =
     Table(data.toVector, head = Some(head))
 
-  def create(p: JsArray): Table = RAISE.notImplementedYetDefect
+  def create(p: JsValue): Table = Record.create(p) match {
+    case Left(rs) => 
+      val schema = IRecord.makeSchema(rs)
+      create(schema, rs.irecords)
+    case Right(r) => 
+      val schema = IRecord.makeSchema(r)
+      create(schema, Vector(r))
+  }
 
-  def create(p: Node): Table = createOption(p).getOrElse(RAISE.invalidArgumentFault("No table content"))
+  def create(p: Node): Table = Record.create(p) match {
+    case Left(rs) =>
+      val schema = IRecord.makeSchema(rs)
+      create(schema, rs.irecords)
+    case Right(r) =>
+      val schema = IRecord.makeSchema(r)
+      create(schema, Vector(r))
+  }
 
-  def createOption(p: Node): Option[Table] = _create(p)
+  def create(schema: Schema, ps: Seq[IRecord]): Table = {
+    val head = _create_head(schema)
+    Table(ps.map(_.toRecord).toVector, MetaData(schema), Some(head))
+  }
 
-  private def _create(p: Node): Option[Table] = Option(p) flatMap {
-    case m: Element => _create_element(m)
+  private def _create_head(schema: Schema): Head = {
+    val xs = schema.columns.map(_to_cell)
+    Head(xs.toList)
+  }
+
+  private def _to_cell(p: Column): Cell = Cell(p.name)
+
+  def createHtml(p: Node): Table = createHtmlOption(p).getOrElse(RAISE.invalidArgumentFault("No table content"))
+
+  def createHtmlOption(p: Node): Option[Table] = _create_html(p)
+
+  private def _create_html(p: Node): Option[Table] = Option(p) flatMap {
+    case m: Element => _create_element_html(m)
     case m => None
   }
 
-  private def _create_element(p: Element): Option[Table] =
+  private def _create_element_html(p: Element): Option[Table] =
     Option(p.getLocalName()).map(_.toLowerCase).collect {
-      case "table" => _create_table(p)
+      case "table" => _create_table_html(p)
     }
 
-  private def _create_table(p: Element): Table = {
+  private def _create_table_html(p: Element): Table = {
     val head = p.getElementByLocalNameIC("thead").flatMap(_create_head)
     val foot = p.getElementByLocalNameIC("tfoot").flatMap(_create_foot)
     val meta = _make_meta(head)

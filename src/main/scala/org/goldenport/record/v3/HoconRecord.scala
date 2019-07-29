@@ -8,14 +8,17 @@ import org.goldenport.hocon.RichConfig
 /*
  * @since   Oct. 21, 2018
  *  version Mar. 24, 2019
- * @version Apr. 20, 2019
+ *  version Apr. 20, 2019
+ * @version Jul. 29, 2019
  * @author  ASAMI, Tomoharu
  */
 case class HoconRecord(hocon: RichConfig) extends IRecord {
   lazy val toRecord: Record = Record(fields)
+  lazy val keys: List[Symbol] = keyNames.map(x => Symbol(x))
   lazy val keyNames: List[String] = fields.map(_.name).toList
-  lazy val print: String = toRecord.print
-  lazy val show: String = toRecord.show
+  def print: String = toRecord.print
+  def display: String = toRecord.display
+  def show: String = toRecord.show
   lazy val fields: Seq[Field] = hocon.config.entrySet.asScala.toVector.map { x =>
     val key = x.getKey
     val value = x.getValue match {

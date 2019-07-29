@@ -8,17 +8,21 @@ import org.goldenport.record.v3.{FieldValue, EmptyValue, SingleValue, MultipleVa
  * @since   Nov.  7, 2018
  *  version Dec. 11, 2018
  *  version Jan. 21, 2019
- * @version Apr. 20, 2019
+ *  version Apr. 20, 2019
+ * @version Jul. 29, 2019
  * @author  ASAMI, Tomoharu
  */
 case class RecordRecord(record: Record) extends IRecord {
   import RecordRecord._
 
   def toRecord: Record3 = toRecord3(record)
+  def keys: List[Symbol] = RAISE.notImplementedYetDefect
   def keyNames: List[String] = RAISE.notImplementedYetDefect
+  override def length = record.length
   def print: String = RAISE.notImplementedYetDefect
+  def display: String = RAISE.notImplementedYetDefect
   def show: String = RAISE.notImplementedYetDefect
-  def fields: Seq[Field3] = record.fields.map(toField3)
+  lazy val fields: Seq[Field3] = record.fields.map(toField3)
   def isEmpty: Boolean = record.isEmpty
   def isDefined(key: String): Boolean = record.isDefined(key)
   def isDefined(key: Symbol): Boolean = record.isDefined(key)

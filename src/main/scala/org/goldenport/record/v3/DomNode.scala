@@ -5,7 +5,7 @@ import org.goldenport.RAISE
 
 /*
  * @since   Jan.  5, 2019
- * @version Jan.  6, 2019
+ * @version Jul. 14, 2019
  * @author  ASAMI, Tomoharu
  */
 sealed trait DomNode extends Node with DomNodeImpl {
@@ -53,7 +53,7 @@ trait DomNodeImpl {
   def getLocalName(): String = RAISE.notImplementedYetDefect(this, "getLocalName")
   def getNamespaceURI(): String = RAISE.notImplementedYetDefect(this, "getNamespaceURI")
   def getNextSibling(): Node = RAISE.notImplementedYetDefect(this, "getNextSibling")
-  def getNodeName(): String = RAISE.notImplementedYetDefect(this, "getNodeName")
+  def getNodeName(): String = RAISE.notImplementedYetDefect(this, s"getNodeName(${getClass.getSimpleName})")
   def getNodeValue(): String = RAISE.notImplementedYetDefect(this, "getNodeValue")
   def getOwnerDocument(): Document = RAISE.notImplementedYetDefect(this, "getOwnerDocument")
   def getParentNode(): Node = RAISE.notImplementedYetDefect(this, "getParentNode")

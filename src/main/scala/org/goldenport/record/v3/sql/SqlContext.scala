@@ -10,7 +10,8 @@ import org.goldenport.record.v3.{IRecord, Record, RecordSequence}
 /*
  * @since   Mar. 23, 2019
  *  version Apr.  8, 2019
- * @version May. 25, 2019
+ *  version May. 25, 2019
+ * @version Jul. 26, 2019
  * @author  ASAMI, Tomoharu
  */
 class SqlContext(
@@ -27,10 +28,10 @@ class SqlContext(
 
   def takeDatabaseNames: List[Symbol] = transaction.takeDatabaseNames
 
-  def query(sql: String): IndexedSeq[Record] = query(KEY_DEFAULT, sql)
+  def query(sql: String): IndexedSeq[IRecord] = query(KEY_DEFAULT, sql)
 
-  def query(database: Symbol, sql: String): IndexedSeq[Record] =
-    querySequence(database, sql).vector
+  def query(database: Symbol, sql: String): IndexedSeq[IRecord] =
+    querySequence(database, sql).irecords
 
   def querySequence(sql: String): RecordSequence = RecordSequence.createClose(queryIterator(sql))
 
@@ -200,7 +201,7 @@ object SqlContext {
 
   val empty = new SqlContext(
     RichConfig.empty,
-    new EachTimeTransaction(NonEmptyVector(new PlainCPFactory(RichConfig.empty)))
+    new AutoCommitTransaction(NonEmptyVector(new PlainCPFactory(RichConfig.empty)))
   )
 
   case class DatabaseConfig(
@@ -280,11 +281,14 @@ object SqlContext {
 
     def execute[T](db: Symbol)(body: java.sql.Connection => T): T = {
       val conn = openConnection(db)
-      conn.setAutoCommit(true)
       try {
-        body(conn)
+        val r = body(conn)
+        conn.commit()
+        r
+      } catch {
+        case e: Throwable => conn.rollback(); throw e
       } finally {
-        Try(conn.close())
+        conn.close()
       }
     }
 
@@ -299,6 +303,50 @@ object SqlContext {
     def close(): Unit = {
       RAISE.notImplementedYetDefect
     }
+  }
+
+  class AutoCommitTransaction(
+    val factories: NonEmptyVector[SqlConnectionFactory]
+  ) extends TransactionStrategy {
+    def queryIterator(db: Symbol)(body: java.sql.Connection => ResultSet): RecordIterator = {
+      val conn = take_connection(db)
+      val rs = body(conn)
+      ConnectionResultSetRecordIterator.create(rs)
+    }
+
+    def execute[T](db: Symbol)(body: java.sql.Connection => T): T = {
+      val conn = take_connection(db)
+      try {
+        conn.setAutoCommit(false)
+        val r = body(conn)
+        conn.commit()
+        r
+      } catch {
+        case e: Throwable => conn.rollback(); throw e
+      }
+    }
+
+    private def _execute_h2[T](db: Symbol)(body: java.sql.Connection => T): T = {
+      val conn = take_connection(db)
+      conn.setAutoCommit(true)
+      body(conn)
+    }
+
+    private def _execute_mysql[T](db: Symbol)(body: java.sql.Connection => T): T = {
+      val conn = take_connection(db)
+      try {
+        conn.setAutoCommit(false)
+        val r = body(conn)
+        conn.commit()
+        r
+      } catch {
+        case e: Throwable => conn.rollback(); throw e
+      }
+    }
+
+    def commit(): Unit = {}
+    def abort(): Unit = {}
+    def close(): Unit = {}
   }
 
   class ScopeTransaction(
@@ -329,12 +377,12 @@ object SqlContext {
     }
   }
 
-  def create(p: RichConfig): SqlContext = new SqlContext(
+  def createSync(p: RichConfig): SqlContext = new SqlContext(
     p,
-    new EachTimeTransaction(NonEmptyVector(new PlainCPFactory(p)))
+    new AutoCommitTransaction(NonEmptyVector(new PlainCPFactory(p)))
   )
 
-  def createCF(p: RichConfig): SqlContext = createHikari(p)
+  def createConnectionPool(p: RichConfig): SqlContext = createHikari(p)
 
   def createHikari(p: RichConfig): SqlContext = new SqlContext(
     p,

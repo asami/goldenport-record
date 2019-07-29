@@ -12,7 +12,8 @@ import org.goldenport.record.util.DateUtils
 
 /*
  * @since   Apr.  6, 2019
- * @version May.  9, 2019
+ *  version May.  9, 2019
+ * @version Jul. 15, 2019
  * @author  ASAMI, Tomoharu
  */
 class SqlBuilder( // MySQL
@@ -178,14 +179,18 @@ class SqlBuilder( // MySQL
     s"""SELECT * FROM ${table_name} WHERE ${q}"""
   }
 
-  def insert(rec: Record): String = {
+  def insert(p: IRecord): String = {
+    val rec = p.toRecord
     val idoption = rec.get(id_column)
     val columns = insertColumns(schema, rec)
     val values = insertValues(schema, rec)
-    s"""INSERT INTO ${table_name} $columns ($values)"""
+    s"""INSERT INTO ${table_name} $columns VALUES ($values)"""
   }
 
-  def update(id: Any, rec: Record): String = {
+  def inserts(rs: Seq[IRecord]): String = RAISE.notImplementedYetDefect
+
+  def update(id: Any, p: IRecord): String = {
+    val rec = p.toRecord
     val values = updateValues(schema, rec.removeField(id_column))
     s"""UPDATE ${table_name} SET $values WHERE id = ${literal(id)}"""
   }
@@ -247,7 +252,7 @@ class SqlBuilder( // MySQL
     schema.columns./:(Z())(_+_).r
   }
 
-  def insertValues(rec: Record): String = rec.fields.map(_.value).map(literal).mkString("(", ", ", ")")
+  def insertValues(rec: Record): String = rec.fields.map(_.value).map(literal).mkString(", ")
 
   def updateValues(schema: Option[Schema], rec: Record): String =
     schema.map(updateValues(_, rec)).getOrElse(updateValues(rec))
@@ -274,6 +279,9 @@ object SqlBuilder {
 
   def apply(tablename: String, idcolumn: String): SqlBuilder =
     new SqlBuilder(tablename, Some(idcolumn), None)
+
+  def apply(tablename: String, idcolumn: String, schema: Option[Schema]): SqlBuilder =
+    new SqlBuilder(tablename, Some(idcolumn), schema)
 
   def create(tablename: String, schema: Schema): SqlBuilder = {
     new SqlBuilder(tablename, None, Some(schema))

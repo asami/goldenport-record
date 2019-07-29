@@ -11,7 +11,7 @@ import org.goldenport.record.sql.SqlU
  * @since   Apr.  5, 2019
  *  version Apr. 16, 2019
  *  version May.  9, 2019
- * @version Jul. 10, 2019
+ * @version Jul. 15, 2019
  * @author  ASAMI, Tomoharu
  */
 class SqlStore(
@@ -66,13 +66,14 @@ object SqlStore {
   case class SqlCollection(
     store: SqlStore,
     name: Symbol,
-    tableName: Option[String] = None
+    tableName: Option[String] = None,
+    schema: Option[Schema] = None
   ) extends Collection {
     protected val id_column = "id"
     protected final def store_name = store.name
     protected lazy val table_name = tableName getOrElse name.name
 
-    private lazy val _sql_builder = SqlBuilder(table_name, id_column)
+    private lazy val _sql_builder = SqlBuilder(table_name, id_column, schema)
 
     def get(id: Id): Option[Record] = {
       val sql = _sql_builder.get(id)
@@ -80,20 +81,25 @@ object SqlStore {
     }
 
     def query(q: Query): RecordSequence = {
+      // TODO SqlBuilder
       val limit = 10
       val sql = s"""SELECT * FROM ${table_name} WHERE ${q.where} LIMIT $limit"""
       store.sqlContext.querySequence(store_name, sql)
     }
 
-    def insert(rec: Record): Id = {
+    def insert(rec: IRecord): Id = {
       val idoption = rec.get('id)
-      val columns = rec.fields.map(_.key.name).map(x => s"`$x`").mkString(", ")
-      val values = rec.fields.map(_.value match {
-        case EmptyValue => "NULL"
-        case SingleValue(v) => SqlU.literal(v)
-        case m: MultipleValue => RAISE.notImplementedYetDefect
-      })
-      val sql = s"""INSERT INTO ${table_name} $columns ($values)"""
+      // val columns = rec.fields.map(_.key.name).map(x => s"`$x`").mkString(", ")
+      // val values = rec.fields.map(_.value match {
+      //   case EmptyValue => "NULL"
+      //   case SingleValue(v) => v match {
+      //     case m: Record => RAISE.notImplementedYetDefect
+      //     case m => SqlU.literal(m)
+      //   }
+      //   case m: MultipleValue => RAISE.notImplementedYetDefect
+      // }).mkString(",")
+      val sql = _sql_builder.insert(rec)
+      // val sql = s"""INSERT INTO ${table_name} ($columns) ($values)"""
       store.sqlContext.mutate(store_name, sql)
       val id = idoption.getOrElse(_fetch_insert_id)
       Id.create(id)
@@ -107,17 +113,19 @@ object SqlStore {
       store.sqlContext.queryHeadOption(store_name, sql).getOrElse(-1)
     }
 
-    def update(id: Id, rec: Record): Unit = {
+    def update(id: Id, rec: IRecord): Unit = {
       val sql = _sql_builder.update(id.string, rec)
       store.sqlContext.mutate(store_name, sql)
     }
 
     def delete(id: Id): Unit = {
+      // TODO SqlBuilder
       val sql = s"""DELETE FROM ${table_name} WHERE id = '${id.string}"""
       store.sqlContext.mutate(store_name, sql)
     }
 
     def drop(): Unit = {
+      // TODO SqlBuilder
       val sql = s"""DROP TABLE ${table_name}"""
       store.sqlContext.execute(store_name, sql)
     }
@@ -130,8 +138,8 @@ object SqlStore {
   ) extends Collection {
     def get(id: Id): Option[Record] = RAISE.notImplementedYetDefect
     def query(q: Query): RecordSequence = RAISE.notImplementedYetDefect
-    def insert(rec: Record): Id = RAISE.notImplementedYetDefect
-    def update(id: Id, rec: Record): Unit = RAISE.notImplementedYetDefect
+    def insert(rec: IRecord): Id = RAISE.notImplementedYetDefect
+    def update(id: Id, rec: IRecord): Unit = RAISE.notImplementedYetDefect
     def delete(id: Id): Unit = RAISE.notImplementedYetDefect
     def drop(): Unit = RAISE.notImplementedYetDefect
   }
