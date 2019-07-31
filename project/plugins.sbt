@@ -3,3 +3,5 @@ resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/group
 addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "2.4.0")
 
 addSbtPlugin("org.ensime" % "ensime-sbt-cmd" % "0.1.2")
+
+addSbtPlugin("com.github.tototoshi" % "sbt-automkcol" % "1.5.0")
