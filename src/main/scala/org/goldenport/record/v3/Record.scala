@@ -51,7 +51,7 @@ import org.goldenport.values.PathName
  *  version Apr. 29, 2019
  *  version May.  9, 2019
  *  version Jun. 15, 2019
- * @version Jul. 29, 2019
+ * @version Jul. 30, 2019
  * @author  ASAMI, Tomoharu
  */
 case class Record(
@@ -311,27 +311,32 @@ object Record {
 
   def create(lxsv: Lxsv): Record = apply(lxsv.vectormap)
 
-  def fromJson(p: String): Either[RecordSequence, Record] = create(Json.parse(p))
+  def fromJson(p: String): Either[RecordSequence, Record] = createRecordOrSequence(Json.parse(p))
 
   def fromXml(p: String): Record = RAISE.notImplementedYetDefect
 
   // def fromDom(p: org.w3c.dom.Node): Either[RecordSequence, Record] = create(p)
 
-  def create(p: JsValue): Either[RecordSequence, Record] = p match {
+  def create(p: JsValue): Record = createRecordOrSequence(p) match {
+    case Left(rs) => RAISE.invalidArgumentFault("Record sequence, not record")
+    case Right(r) => r
+  }
+
+  def createRecordOrSequence(p: JsValue): Either[RecordSequence, Record] = p match {
     case null => Right(Record.empty)
     case JsNull => Right(Record.empty)
     case m: JsUndefined => Right(Record.empty)
     case m: JsObject => Right(create(m))
-    case m: JsArray => Left(create(m))
+    case m: JsArray => Left(createSequence(m))
     case _ => throw new IllegalArgumentException(s"Not object: $p")
   }
 
-  def create(p: JsArray): RecordSequence = {
+  def createSequence(p: JsArray): RecordSequence = {
     val xs = p.value.map(_create_record)
     RecordSequence(xs.toVector)
   }
 
-  private def _create_record(p: JsValue): Record = create(p) match {
+  private def _create_record(p: JsValue): Record = createRecordOrSequence(p) match {
     case Left(rs) => RAISE.notImplementedYetDefect
     case Right(r) => r
   }
@@ -343,8 +348,13 @@ object Record {
     Record(xs)
   }
 
-  def create(p: org.w3c.dom.Node): Either[RecordSequence, Record] = p match {
-    case m: org.w3c.dom.Document => create(m.getDocumentElement)
+  def create(p: org.w3c.dom.Node): Record = createRecordOrSequence(p) match {
+    case Left(rs) => RAISE.invalidArgumentFault("Record sequence, not record")
+    case Right(r) => r
+  }
+
+  def createRecordOrSequence(p: org.w3c.dom.Node): Either[RecordSequence, Record] = p match {
+    case m: org.w3c.dom.Document => createRecordOrSequence(m.getDocumentElement)
     case m: org.w3c.dom.Element => _create_record_or_sequence(m)
     case m => RAISE.notImplementedYetDefect(s"Not element: $m")
   }

@@ -5,11 +5,13 @@ import java.net.{URL, URI}
 import java.sql.Timestamp
 import scala.util.control.NonFatal
 import scala.math.{BigInt, BigDecimal}
+import org.goldenport.RAISE
 import org.goldenport.Strings
 import org.goldenport.Strings.notblankp
 import org.goldenport.record.command.NullValue
+import org.goldenport.record.query.QueryExpression
 import org.goldenport.record.util.AnyUtils
-import org.goldenport.record.v3.IRecord
+import org.goldenport.record.v3.{IRecord, FieldValue, EmptyValue, SingleValue, MultipleValue}
 import org.goldenport.util.{TimestampUtils, DateUtils}
 
 /*
@@ -57,7 +59,8 @@ import org.goldenport.util.{TimestampUtils, DateUtils}
  *  version Dec. 29, 2018
  *  version Feb. 10, 2019
  *  version Apr. 11, 2019
- * @version May. 10, 2019
+ *  version May. 10, 2019
+ * @version Jul. 31, 2019
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -935,6 +938,8 @@ case class Record(
     copy(a, inputFiles = b)
   }
 
+  def mapField(f: Field => Field): Record = copy(fields = fields.map(f))
+
   def transform(f: Field => List[Field]): Record = {
     copy(fields = fields.flatMap(f))
   }
@@ -993,11 +998,11 @@ case class Record(
   }
 
   def replaceFields(pf: PartialFunction[Field, Field]): Record = {
-    ???
+    RAISE.notImplementedYetDefect
   }
 
   def replaceValues(pf: PartialFunction[Any, Any]): Record = {
-    ???
+    RAISE.notImplementedYetDefect
   }
 
   private def _replace_values(rec: Record, pf: PartialFunction[Any, Any]): Record = {
@@ -1206,6 +1211,8 @@ case class Field(key: Symbol, values: List[Any]) {
 
   def update(p: String): Field = copy(values = List(p))
 
+  def update(name: String, p: QueryExpression): Field = copy(key = Symbol(name), values = List(p))
+
   def updateList(v: Seq[Any]): Field = Field(key, List(v.toList))
 
   def mapDouble(f: Double => Double): Field = {
@@ -1320,6 +1327,15 @@ case class Field(key: Symbol, values: List[Any]) {
 
   def updateKey(k: Symbol): Field = {
     if (key == k) this else copy(key = k)
+  }
+
+  def toFieldValue: FieldValue = values match {
+    case Nil => EmptyValue
+    case x :: Nil => x match {
+      case y: List[_] => MultipleValue(y)
+      case _ => SingleValue(x)
+    }
+    case xs => MultipleValue(xs)
   }
 }
 

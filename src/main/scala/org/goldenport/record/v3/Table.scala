@@ -158,7 +158,7 @@ object Table {
   def apply(head: Table.Head, data: Seq[Record]): Table =
     Table(data.toVector, head = Some(head))
 
-  def create(p: JsValue): Table = Record.create(p) match {
+  def create(p: JsValue): Table = Record.createRecordOrSequence(p) match {
     case Left(rs) => 
       val schema = IRecord.makeSchema(rs)
       create(schema, rs.irecords)
@@ -167,7 +167,7 @@ object Table {
       create(schema, Vector(r))
   }
 
-  def create(p: Node): Table = Record.create(p) match {
+  def create(p: Node): Table = Record.createRecordOrSequence(p) match {
     case Left(rs) =>
       val schema = IRecord.makeSchema(rs)
       create(schema, rs.irecords)

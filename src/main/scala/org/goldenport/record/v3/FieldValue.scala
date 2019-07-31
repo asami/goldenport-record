@@ -38,7 +38,8 @@ import org.goldenport.record.v2.{Record => Record2, RecordRecord}
  *  version Oct. 30, 2018
  *  version Dec. 28, 2018
  *  version Jan. 21, 2019
- * @version May.  9, 2019
+ *  version May.  9, 2019
+ * @version Jul. 31, 2019
  * @author  ASAMI, Tomoharu
  */
 sealed abstract class FieldValue {
@@ -51,7 +52,10 @@ sealed abstract class FieldValue {
   def takeVector: Vector[Any]
   def asString: String = as_string
   def asInt: Int = getValue.map(AnyUtils.toInt).getOrElse(RAISE.invalidArgumentFault("empty"))
-  def asLong: Long = getValue.map(AnyUtils.toInt).getOrElse(RAISE.invalidArgumentFault("empty"))
+  def asLong: Long = getValue.map(AnyUtils.toLong).getOrElse(RAISE.invalidArgumentFault("empty"))
+  def asFloat: Float = getValue.map(AnyUtils.toFloat).getOrElse(RAISE.invalidArgumentFault("empty"))
+  def asDouble: Double = getValue.map(AnyUtils.toDouble).getOrElse(RAISE.invalidArgumentFault("empty"))
+  def asBigDecimal: BigDecimal = getValue.map(AnyUtils.toBigDecimal).getOrElse(RAISE.invalidArgumentFault("empty"))
   def asTimestamp: Timestamp = getValue.map(AnyUtils.toTimestamp).getOrElse(RAISE.invalidArgumentFault("empty"))
   def asRecord: Record
   def asRecordList: List[Record]

@@ -36,7 +36,8 @@ import org.goldenport.record.util.{
  *  version Oct. 22, 2017
  *  version Nov. 13, 2017
  *  version Jan. 21, 2018
- * @version Jan. 10, 2019
+ *  version Jan. 10, 2019
+ * @version Jul. 31, 2019
  * @author  ASAMI, Tomoharu
  */
 sealed trait DataType {
@@ -81,6 +82,7 @@ sealed trait DataType {
   }
 
   def toQueryExpression(ctx: QueryExpression.Context, p: Any): QueryExpression = p match {
+    case m: QueryExpression => m
     case m: String => string_to_query_exrepssion(ctx, m)
     case m => EqualQuery(m)
   }
@@ -1001,7 +1003,7 @@ case object XDateTime extends DataType {
   }
 
   override protected def period_to_query_expression(ctx: QueryExpression.Context, p: String): QueryExpression = {
-    val builder = DateTimePeriod.Builder(ctx.datetime, ctx.timezone)
+    val builder = DateTimePeriod.Builder(ctx.datetime, ctx.timezoneJoda)
     DateTimePeriodQuery(builder.fromExpression(p))
   }
 }
