@@ -40,7 +40,8 @@ import org.goldenport.record.util.AnyUtils
  *  version Jan.  7, 2019
  *  version Mar. 23, 2019
  *  version May.  9, 2019
- * @version Jul.  7, 2019
+ *  version Jul.  7, 2019
+ * @version Aug.  3, 2019
  * @author  ASAMI, Tomoharu
  */
 case class Field(
@@ -53,6 +54,8 @@ case class Field(
   def asStringList: List[String] = RAISE.unsupportedOperationFault
   def asInt: Int = value.asInt
   def asLong: Long = value.asLong
+  def asFloat: Float = value.asFloat
+  def asDouble: Double = value.asDouble
   def asTimestamp: Timestamp = value.asTimestamp
   def asRecord: Record = value.asRecord
   def asRecordList: List[Record] = value.asRecordList

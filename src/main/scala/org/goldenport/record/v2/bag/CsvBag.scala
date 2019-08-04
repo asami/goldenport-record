@@ -37,7 +37,8 @@ import RecordBag._
  *  version Sep.  2, 2017
  *  version Jan. 23, 2018
  *  version Jul. 18, 2018
- * @version Feb. 12, 2019
+ *  version Feb. 12, 2019
+ * @version Aug.  5, 2019
  * @author  ASAMI, Tomoharu
  */
 class CsvBag(
@@ -126,7 +127,7 @@ class CsvBag(
 
   override def dataVectorsR: Process[Task, Vector[Any]] = super.dataVectorsR // TODO performance
 
-  override def toTable: ITable = to_vector_table
+  // override def toTable: ITable = to_record_table
 
   def openWriter(): Writer = {
     val writer = bag.openWriter(codec)

@@ -18,7 +18,8 @@ import org.goldenport.record.util.AnyUtils
  *  version Jan.  6, 2019
  *  version Feb. 28, 2019
  *  version Apr. 29, 2019
- * @version Jul. 29, 2019
+ *  version Jul. 29, 2019
+ * @version Aug.  3, 2019
  * @author  ASAMI, Tomoharu
  */
 trait IRecord extends org.goldenport.record.IRecord
@@ -111,6 +112,7 @@ object IRecord {
 
   def makeSchema(p: RecordSequence): Schema = makeSchema(p.irecords)
 
+  // See org.goldenport.record.v2.util.RecordUtils.buildSchema
   def makeSchema(ps: Seq[IRecord]): Schema = {
     case class Z(columns: List[Slot] = Nil) {
       // TODO MOne, MOneMore

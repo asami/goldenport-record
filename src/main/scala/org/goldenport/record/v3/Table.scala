@@ -13,7 +13,8 @@ import org.goldenport.record.util.AnyUtils
  *  version Dec. 27, 2018
  *  version May. 27, 2019
  *  version Jun. 23, 2019
- * @version Jul. 29, 2019
+ *  version Jul. 29, 2019
+ * @version Aug.  3, 2019
  * @author  ASAMI, Tomoharu
  */
 case class Table(
@@ -22,12 +23,13 @@ case class Table(
   head: Option[Table.Head] = None,
   foot: Option[Table.Foot] = None
 ) extends ITable {
+  lazy val schema = meta.schema getOrElse Record.makeSchema(records) // TODO unify data and head
   def toTable = this
   def toRecordList: List[Record] = records.toList
   def toRecordVector: Vector[Record] = records
   lazy val width = meta.getWidth getOrElse data.width
   def height = records.length
-
+  def matrix: IMatrix[Any] = VectorRowColumnMatrix(records.map(_.fields.map(_make_value).toVector))
   override def toString() = print
 
   def print = show
@@ -37,7 +39,7 @@ case class Table(
     tv.plainText(this)
   }
 
-  lazy val data: Table.Data = {
+  lazy val data: Table.Data = { // TODO unify schema
     case class Z(
       columns: Vector[Column] = Vector.empty,
       matrix: Vector[Vector[Table.Cell]] = Vector.empty
@@ -97,12 +99,19 @@ case class Table(
     }
     records./:(Z())(_+_).r
   }
+
+  private def _make_value(p: Field): Any = schema.getColumn(p.key).
+    map(c => p.value.getValue.map(c.datatype.toInstance).getOrElse(Table.Empty)).
+    getOrElse(p.value.getValue.getOrElse(Table.Empty))
 }
 
 object Table {
   import org.goldenport.xml.dom.RichElement.Implicits._
 
   val empty = Table(Vector.empty)
+
+  case object Empty {
+  }
 
   case class MetaData(
     schema: Option[Schema]
@@ -127,7 +136,7 @@ object Table {
 
   case class Cell(content: Any, width: Option[Int] = None)
   object Cell {
-    val empty = Cell("")
+    val empty = Cell(Empty)
   }
 
   case class DataMatrix(
@@ -180,6 +189,14 @@ object Table {
     val head = _create_head(schema)
     Table(ps.map(_.toRecord).toVector, MetaData(schema), Some(head))
   }
+
+  def create(schema: Option[Schema], ps: Seq[IRecord]): Table =
+    schema.map(create(_, ps)).getOrElse(create(IRecord.makeSchema(ps), ps))
+
+  def create(schema: Option[Schema], ps: RecordSequence): Table =
+    create(schema, ps.irecords)
+
+  // def createSeqSeq(schema: Schema, ps: Seq[Seq[Any]]): Table =
 
   private def _create_head(schema: Schema): Head = {
     val xs = schema.columns.map(_to_cell)

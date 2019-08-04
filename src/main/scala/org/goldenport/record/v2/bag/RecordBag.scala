@@ -12,6 +12,7 @@ import org.goldenport.matrix._
 import org.goldenport.table.ITable
 import org.goldenport.record.v2._
 import org.goldenport.record.v2.projector.Projector
+import org.goldenport.record.v3.{ITable => ITable3, Table => Table3, Record => Record3, RecordSequence}
 import org.goldenport.record.util.AnyUtils
 
 /*
@@ -20,7 +21,8 @@ import org.goldenport.record.util.AnyUtils
  *  version Aug.  1, 2016
  *  version Sep. 22, 2016
  *  version Aug. 30, 2017
- * @version Feb. 12, 2019
+ *  version Feb. 12, 2019
+ * @version Aug.  3, 2019
  * @author  ASAMI, Tomoharu
  */
 trait RecordBag extends Bag {
@@ -103,6 +105,7 @@ trait RecordBag extends Bag {
   def records: IndexedSeq[Record] = recordsR.runLog.run
   def headerDataRecords: IndexedSeq[Record] = headerDataRecordsR.runLog.run
   def dataRecords: IndexedSeq[Record] = dataRecordsR.runLog.run
+  def dataRecordSequence: RecordSequence = RecordSequence(dataRecords.map(Record3.create))
 
   def rowVectorDoubleIterator: Iterator[Vector[Double]] = toMatrixDouble.rowIterator
   def columnVectorDoubleIterator: Iterator[Vector[Double]] = toMatrixDouble.columnIterator
@@ -129,12 +132,12 @@ trait RecordBag extends Bag {
 
   def dataVectorsDouble: IndexedSeq[Vector[Double]] = dataVectorsR.map(_.map(AnyUtils.toDouble)).runLog.run
 
-  def toTable: ITable = to_record_table
+  // def toTable: ITable = to_record_table
+  def toTable: ITable3 = to_record_table
 
-  protected final def to_record_table: ITable = Table(dataRecords.toVector, getSchema)
+  protected final def to_record_table: ITable3 = Table3.create(getSchema, dataRecordSequence)
 
-  protected final def to_vector_table: ITable =
-    org.goldenport.table.Table(dataVectors, getSchema)
+// protected final def to_vector_table: ITable3 = Table3.createSeqSeq(getSchema, dataVectors)
 
   def recordW: Sink[Task, Record]
   def recordsW: Sink[Task, Seq[Record]]

@@ -51,7 +51,8 @@ import org.goldenport.values.PathName
  *  version Apr. 29, 2019
  *  version May.  9, 2019
  *  version Jun. 15, 2019
- * @version Jul. 30, 2019
+ *  version Jul. 30, 2019
+ * @version Aug.  3, 2019
  * @author  ASAMI, Tomoharu
  */
 case class Record(
@@ -135,9 +136,27 @@ case class Record(
 
   def asLong(key: Symbol): Long = {
     getLong(key) getOrElse {
-      throw new IllegalArgumentException(s"Missing int '$key.name'")
+      throw new IllegalArgumentException(s"Missing long '$key.name'")
     }
   }
+
+  def getFloat(key: Symbol): Option[Float] = getField(key).map(_.asFloat)
+  def getFloat(key: String): Option[Float] = getField(key).map(_.asFloat)
+
+  def asFloat(key: Symbol): Float =
+    getFloat(key) getOrElse {
+      throw new IllegalArgumentException(s"Missing float '$key.name'")
+    }
+  def asFloat(key: String): Float = asFloat(Symbol(key))
+
+  def getDouble(key: Symbol): Option[Double] = getField(key).map(_.asDouble)
+  def getDouble(key: String): Option[Double] = getField(key).map(_.asDouble)
+
+  def asDouble(key: Symbol): Double =
+    getDouble(key) getOrElse {
+      throw new IllegalArgumentException(s"Missing double '$key.name'")
+    }
+  def asDouble(key: String): Double = asDouble(Symbol(key))
 
   // def getTimestamp(key: Symbol): Option[Timestamp] = {
   //   getField(key).map(_.asTimestamp)
@@ -275,7 +294,7 @@ object Record {
       case m => m
     }
     def tofield(f: Field2) = {
-      val v = f.values match {
+      val v = f.values match { // unify Field#toFieldValue
         case Nil => EmptyValue
         case x :: Nil => x match {
           case ms: Seq[_] => MultipleValue(ms.map(tovalue))
@@ -444,11 +463,14 @@ object Record {
     Record(xs)
   }
 
-  def buildSchema(p: IRecord): Schema = RecordUtils.buildSchema(p.toRecord.toRecord2)
-  def buildSchema(ps: Seq[IRecord]): Schema = {
-    val xs = ps.map(_.toRecord.toRecord2)
-    RecordUtils.buildSchema(xs)
-  }
+  def makeSchema(p: Record, ps: Record*): Schema = IRecord.makeSchema(p +: ps)
+  def makeSchema(ps: Seq[Record]): Schema = IRecord.makeSchema(ps)
+
+  // def buildSchema(p: IRecord): Schema = RecordUtils.buildSchema(p.toRecord.toRecord2)
+  // def buildSchema(ps: Seq[IRecord]): Schema = {
+  //   val xs = ps.map(_.toRecord.toRecord2)
+  //   RecordUtils.buildSchema(xs)
+  // }
 
   /*
    * Normalize multiplicity, nesting
