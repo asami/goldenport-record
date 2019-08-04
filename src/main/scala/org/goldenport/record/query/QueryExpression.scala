@@ -16,17 +16,21 @@ import QueryExpression.Context
 /*
  * @since   Jun. 25, 2018
  *  version Jan. 10, 2019
- * @version Jul. 31, 2019
+ *  version Jul. 31, 2019
+ * @version Aug.  5, 2019
  * @author  ASAMI, Tomoharu
  */
 sealed trait QueryExpression {
   def expression(column: String): String
+  def isAccept(p: Any): Boolean
 
-  protected def to_literal(p: Any): String = SqlU.literal(p)
+  protected final def to_literal(p: Any): String = SqlU.literal(p)
 
-  protected def to_literal(c: Column, d: Any): String = to_literal(c.datatype, d)
+  protected final def to_literal(c: Column, d: Any): String = to_literal(c.datatype, d)
 
-  protected def to_literal(dt: DataType, d: Any): String = SqlU.literal(dt, d)
+  protected final def to_literal(dt: DataType, d: Any): String = SqlU.literal(dt, d)
+
+  protected final def to_literal_list(ps: Seq[Any]) = ps.map(to_literal).mkString(", ")
 }
 
 sealed trait QueryExpressionClass {
@@ -63,12 +67,17 @@ sealed trait QueryExpressionClass {
 
 case object NoneQuery extends QueryExpression {
   def expression(column: String) = "1 = 1"
+  def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
 
   def create(params: List[String], v: FieldValue)(implicit ctx: Context): QueryExpression = this
 }
 
 case class EqualQuery(value: Any) extends QueryExpression {
-  def expression(column: String) = s"${column} = ${to_literal(value)}"
+  def expression(column: String) = value match {
+    case m: Seq[_] => s"""${column} IN (${to_literal_list(m)})"""
+    case _ => s"${column} = ${to_literal(value)}"
+  }
+  def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
 }
 object EqualQuery extends QueryExpressionClass {
   val name = "equal"
@@ -82,16 +91,26 @@ object EqualQuery extends QueryExpressionClass {
 }
 
 case class NotEqualQuery(value: Any) extends QueryExpression {
-  def expression(column: String) = s"${column} <> ${to_literal(value)}"
+  def expression(column: String) = value match {
+    case m: Seq[_] => s"""${column} NOT IN (${to_literal_list(m)})"""
+    case m => s"${column} <> ${to_literal(value)}"
+  }
+  def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
 }
 object NotEqualQuery extends QueryExpressionClass {
   val name = "not-equal"
 
-  def create(params: List[String], v: FieldValue)(implicit ctx: Context): QueryExpression = NotEqualQuery(v)
+  def create(params: List[String], v: FieldValue)(implicit ctx: Context): QueryExpression = 
+    v match {
+      case EmptyValue => NotEqualQuery("")
+      case m: SingleValue => NotEqualQuery(m.value)
+      case m: MultipleValue => NotEqualQuery(m.values)
+    }
 }
 
 case class GreaterQuery(value: Any) extends QueryExpression {
   def expression(column: String) = s"${column} > ${to_literal(value)}"
+  def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
 }
 object GreaterQuery extends QueryExpressionClass {
   val name = "greater"
@@ -101,6 +120,7 @@ object GreaterQuery extends QueryExpressionClass {
 
 case class GreaterEqualQuery(value: Any) extends QueryExpression {
   def expression(column: String) = s"${column} >= ${to_literal(value)}"
+  def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
 }
 object GreaterEqualQuery extends QueryExpressionClass {
   val name = "greater-equal"
@@ -110,6 +130,7 @@ object GreaterEqualQuery extends QueryExpressionClass {
 
 case class LesserQuery(value: Any) extends QueryExpression {
   def expression(column: String) = s"${column} < ${to_literal(value)}"
+  def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
 }
 object LesserQuery extends QueryExpressionClass {
   val name = "lesser"
@@ -119,6 +140,7 @@ object LesserQuery extends QueryExpressionClass {
 
 case class LesserEqualQuery(value: Any) extends QueryExpression {
   def expression(column: String) = s"${column} <= ${to_literal(value)}"
+  def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
 }
 object LesserEqualQuery extends QueryExpressionClass {
   val name = "lesser-equal"
@@ -128,6 +150,7 @@ object LesserEqualQuery extends QueryExpressionClass {
 
 case class RangeInclusiveQuery(start: Any, end: Any) extends QueryExpression {
   def expression(column: String) = s"(${to_literal(start)} <= ${column} AND ${column} <= ${to_literal(end)})"
+  def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
 }
 object RangeInclusiveQuery extends QueryExpressionClass {
   val name = "range-inclusive"
@@ -140,6 +163,7 @@ object RangeInclusiveQuery extends QueryExpressionClass {
 
 case class RangeExclusiveQuery(start: Any, end: Any) extends QueryExpression {
   def expression(column: String) = s"(${to_literal(start)} < ${column} AND ${column} < ${to_literal(end)})"
+  def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
 }
 object RangeExclusiveQuery extends QueryExpressionClass {
   val name = "range-exclusive"
@@ -152,6 +176,7 @@ object RangeExclusiveQuery extends QueryExpressionClass {
 
 case class RangeInclusiveExclusiveQuery(start: Any, end: Any) extends QueryExpression {
   def expression(column: String) = s"(${to_literal(start)} <= ${column} AND ${column} < ${to_literal(end)})"
+  def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
 }
 object RangeInclusiveExclusiveQuery extends QueryExpressionClass {
   val name = "range-inclusive-exclusive"
@@ -164,6 +189,7 @@ object RangeInclusiveExclusiveQuery extends QueryExpressionClass {
 
 case class RangeExclusiveInclusiveQuery(start: Any, end: Any) extends QueryExpression {
   def expression(column: String) = s"(${to_literal(start)} < ${column} AND ${column} <= ${to_literal(end)})"
+  def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
 }
 object RangeExclusiveInclusiveQuery extends QueryExpressionClass {
   val name = "range-exclusive-inclusive"
@@ -176,6 +202,7 @@ object RangeExclusiveInclusiveQuery extends QueryExpressionClass {
 
 case class DateTimePeriodQuery(period: DateTimePeriod) extends QueryExpression {
   def expression(column: String) = s"$column ${period.toSqlBetweenDateTime}"
+  def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
 }
 object DateTimePeriodQuery extends QueryExpressionClass {
   val name = "datetime-period"
@@ -190,6 +217,7 @@ object DateTimePeriodQuery extends QueryExpressionClass {
 
 case class LikeQuery(value: Any) extends QueryExpression {
   def expression(column: String) = s"${column} LIKE ${to_literal(value)}"
+  def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
 }
 object LikeQuery extends QueryExpressionClass {
   val name = "like"
@@ -198,7 +226,8 @@ object LikeQuery extends QueryExpressionClass {
 }
 
 case class RegexQuery(value: Any) extends QueryExpression {
-  def expression(column: String) = s"${column} REGEX ${to_literal(value)}"
+  def expression(column: String) = s"${column} REGEXP ${to_literal(value)}"
+  def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
 }
 object RegexQuery extends QueryExpressionClass {
   val name = "regex"
@@ -208,6 +237,7 @@ object RegexQuery extends QueryExpressionClass {
 
 case class FirstMatchQuery(value: Any) extends QueryExpression {
   def expression(column: String) = s"""${column} LIKE ${to_literal(value + "%")}"""
+  def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
 }
 object FirstMatchQuery extends QueryExpressionClass {
   val name = "first-match"
@@ -217,6 +247,7 @@ object FirstMatchQuery extends QueryExpressionClass {
 
 case class LastMatchQuery(value: Any) extends QueryExpression {
   def expression(column: String) = s"""${column} LIKE ${to_literal("%" + value)}"""
+  def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
 }
 object LastMatchQuery extends QueryExpressionClass {
   val name = "last-match"
@@ -226,6 +257,7 @@ object LastMatchQuery extends QueryExpressionClass {
 
 case class FirstLastMatchQuery(value: Any) extends QueryExpression {
   def expression(column: String) = s"""${column} LIKE ${to_literal("%" + value + "%")}"""
+  def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
 }
 object FirstLastMatchQuery extends QueryExpressionClass {
   val name = "first-last-match"
@@ -237,6 +269,8 @@ case object IsNullQuery extends QueryExpression with QueryExpressionClass {
   val name = "is-null"
 
   def expression(column: String) = s"${column} IS NULL"
+  def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
+
   def create(params: List[String], v: FieldValue)(implicit ctx: Context): QueryExpression = this
 }
 
@@ -244,6 +278,8 @@ case object IsNotNullQuery extends QueryExpression with QueryExpressionClass {
   val name = "is-not-null"
 
   def expression(column: String) = s"${column} IS NOT NULL"
+  def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
+
   def create(params: List[String], v: FieldValue)(implicit ctx: Context): QueryExpression = this
 }
 
@@ -251,6 +287,8 @@ case object AllQuery extends QueryExpression with QueryExpressionClass {
   val name = "all"
 
   def expression(column: String) = "1 = 1"
+  def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
+
   def create(params: List[String], v: FieldValue)(implicit ctx: Context): QueryExpression = this
 }
 
