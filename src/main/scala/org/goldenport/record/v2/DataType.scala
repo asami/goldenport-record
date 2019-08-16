@@ -12,6 +12,7 @@ import scalaz._, Scalaz._
 import Validator._
 import org.goldenport.Strings
 import org.goldenport.exception.RAISE
+import org.goldenport.extension.IRecord
 import org.goldenport.i18n.I18NString
 import org.goldenport.values.DateTimePeriod
 import org.goldenport.record.query._
@@ -37,7 +38,8 @@ import org.goldenport.record.util.{
  *  version Nov. 13, 2017
  *  version Jan. 21, 2018
  *  version Jan. 10, 2019
- * @version Jul. 31, 2019
+ *  version Jul. 31, 2019
+ * @version Aug. 16, 2019
  * @author  ASAMI, Tomoharu
  */
 sealed trait DataType {
@@ -279,6 +281,7 @@ object DataType {
     case _: DateTime => XDateTime
     case _: URL => XLink
     case _: Record => XRecordInstance
+    case _: IRecord => XRecordInstance
     case m: Seq[_] => guessSeq(m)
     case m: Array[_] => guessSeq(m.toList)
     case _ => XString
