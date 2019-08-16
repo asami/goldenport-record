@@ -18,7 +18,7 @@ import QueryExpression.Context
  * @since   Jun. 25, 2018
  *  version Jan. 10, 2019
  *  version Jul. 31, 2019
- * @version Aug. 14, 2019
+ * @version Aug. 16, 2019
  * @author  ASAMI, Tomoharu
  */
 sealed trait QueryExpression {
@@ -112,7 +112,7 @@ sealed trait QueryExpressionClass {
       val s0 = a.substring(0, i)
       val (s, low) = _inex(s0)
       val e0 = a.substring(i + 1)
-      val (e, high) = _inex(s0)
+      val (e, high) = _inex(e0)
       (Strings.blankopt(s), Strings.blankopt(e), low, high)
     }
   }
