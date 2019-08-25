@@ -2,15 +2,26 @@ package org.goldenport.record.v3
 
 import org.w3c.dom._
 import org.goldenport.RAISE
+import org.goldenport.collection.VectorMap
+import org.goldenport.xml.dom.ImmutableNodeImpl
 
 /*
  * @since   Jan.  5, 2019
- * @version Jul. 14, 2019
+ *  version Jul. 14, 2019
+ * @version Aug. 23, 2019
  * @author  ASAMI, Tomoharu
  */
 sealed trait DomNode extends Node with DomNodeImpl {
   def field: Field
   def parent: IRecord
+
+  lazy val meta = field.meta.column.map(_.xml)
+  lazy val prefix: Option[String] = meta.flatMap(_.prefix)
+  lazy val namespaceUri: Option[String] = meta.flatMap(_.namespaceUri)
+  private lazy val _local_name: String = meta.flatMap(_.name) getOrElse field.name
+  lazy val name: String = prefix.map(x => s"$x:${_local_name}").getOrElse(_local_name)
+
+  def getLocalName(): String = _local_name
 
   lazy val children: Vector[DomNode] = field.value match {
     case EmptyValue => Vector.empty
@@ -19,6 +30,11 @@ sealed trait DomNode extends Node with DomNodeImpl {
       case m => Vector(ValueNode(field, parent))
     }
     case MultipleValue(vs) => RAISE.notImplementedYetDefect
+  }
+
+  lazy val domContents: Vector[DomNode] = children collect {
+    case m: ElementNode => m
+    case m: ValueNode => m
   }
 
   lazy val domElements: Vector[ElementNode] = children collect {
@@ -34,7 +50,8 @@ sealed trait DomNode extends Node with DomNodeImpl {
   }
 }
 
-trait DomNodeImpl {
+trait DomNodeImpl extends ImmutableNodeImpl { self: Node =>
+  def domContents: Vector[DomNode]
   def domElements: Vector[ElementNode]
   def domAttributes: Vector[AttributeNode]
   def domValues: Vector[ValueNode]
@@ -43,15 +60,17 @@ trait DomNodeImpl {
    * Accessor
    */
   // Members declared in org.w3c.dom.Node
-  def getAttributes(): NamedNodeMap = RAISE.notImplementedYetDefect(this, "getAttributes")
-  def getChildNodes(): NodeList = RAISE.notImplementedYetDefect(this, "getChildNodes")
   def getFeature(p: String, q: String): Object = RAISE.notImplementedYetDefect(s"${p}")
-
+  def getNamespaceURI(): String = RAISE.notImplementedYetDefect(this, "getNamespaceURI")
+  // def getLocalName(): String = RAISE.notImplementedYetDefect(this, "getLocalName")
+  def hasAttribute(name: String): Boolean = domAttributes.exists(_.name == name)
+  def hasAttributeNS(p: String, q: String): Boolean = RAISE.notImplementedYetDefect(s"${p}")
+  def getAttribute(name: String): String = Option(getAttributeNode(name)).map(_.getValue).getOrElse(null)
+  def getAttributeNS(p: String, q: String): String = RAISE.notImplementedYetDefect(s"${p}")
+  def getAttributes(): NamedNodeMap = DomNamedNodeMap(domAttributes)
+  def getChildNodes(): NodeList = DomNodeList(domContents)
   def getFirstChild(): Node = domElements.headOption.getOrElse(null)
   def getLastChild(): Node = domElements.lastOption.getOrElse(null)
-
-  def getLocalName(): String = RAISE.notImplementedYetDefect(this, "getLocalName")
-  def getNamespaceURI(): String = RAISE.notImplementedYetDefect(this, "getNamespaceURI")
   def getNextSibling(): Node = RAISE.notImplementedYetDefect(this, "getNextSibling")
   def getNodeName(): String = RAISE.notImplementedYetDefect(this, s"getNodeName(${getClass.getSimpleName})")
   def getNodeValue(): String = RAISE.notImplementedYetDefect(this, "getNodeValue")
@@ -71,40 +90,42 @@ trait DomNodeImpl {
   def lookupNamespaceURI(p: String): String = RAISE.notImplementedYetDefect(s"${p}")
   def lookupPrefix(p: String): String = RAISE.notImplementedYetDefect(s"${p}")
   def getBaseURI(): String = RAISE.notImplementedYetDefect(this, "getBaseURI")
-  def normalize(): Unit = RAISE.notImplementedYetDefect(this, "getBaseURI")
-  def cloneNode(p: Boolean): Node = RAISE.notImplementedYetDefect(s"${p}")
+//  def normalize(): Unit = RAISE.notImplementedYetDefect(this, "getBaseURI")
+//  def cloneNode(p: Boolean): Node = RAISE.notImplementedYetDefect(s"${p}")
   def compareDocumentPosition(p: Node): Short = RAISE.notImplementedYetDefect(s"${p}")
+  // Members declared in org.w3c.dom.Element
+  def getAttributeNode(name: String): Attr = domAttributes.find(_.name == name).getOrElse(null)
+  def getAttributeNodeNS(p: String, q: String): Attr = RAISE.notImplementedYetDefect(s"${p}")
 
   /*
    * Mutator
    */
   // Members declared in org.w3c.dom.Node
-  def appendChild(p: Node): Node = RAISE.unsupportedOperationFault(s"${p}")
-  def insertBefore(p: Node, q: Node): Node = RAISE.unsupportedOperationFault(s"${p}")
+//  def appendChild(p: Node): Node = RAISE.unsupportedOperationFault(s"${p}")
+//  def insertBefore(p: Node, q: Node): Node = RAISE.unsupportedOperationFault(s"${p}")
 
-  def removeChild(p: Node): Node = RAISE.unsupportedOperationFault(s"${p}")
-  def replaceChild(p: Node, q: Node): Node = RAISE.unsupportedOperationFault(s"${p}")
-  def setNodeValue(p: String): Unit = RAISE.unsupportedOperationFault(s"${p}")
-  def setPrefix(p: String): Unit = RAISE.unsupportedOperationFault(s"${p}")
-  def setTextContent(p: String): Unit = RAISE.unsupportedOperationFault(s"${p}")
-  def setUserData(p: String, q: Any, r: UserDataHandler): Object = RAISE.unsupportedOperationFault(s"${p}")
+//  def removeChild(p: Node): Node = RAISE.unsupportedOperationFault(s"${p}")
+//  def replaceChild(p: Node, q: Node): Node = RAISE.unsupportedOperationFault(s"${p}")
+//  def setNodeValue(p: String): Unit = RAISE.unsupportedOperationFault(s"${p}")
+//  def setPrefix(p: String): Unit = RAISE.unsupportedOperationFault(s"${p}")
+//  def setTextContent(p: String): Unit = RAISE.unsupportedOperationFault(s"${p}")
+//  def setUserData(p: String, q: Any, r: UserDataHandler): Object = RAISE.unsupportedOperationFault(s"${p}")
 }
 
 case class AttributeNode(
   field: Field,
   parent: IRecord
 ) extends DomNode with Attr {
-  def name = field.name
   /*
    * Accessor
    */
   // Node
   def getNodeType(): Short = Node.ATTRIBUTE_NODE
   // Attr
-  def getName(): String = field.name
-  def getOwnerElement(): Element = RAISE.notImplementedYetDefect
   def getSchemaTypeInfo(): TypeInfo = RAISE.notImplementedYetDefect
-  def getSpecified(): Boolean = RAISE.notImplementedYetDefect
+  def getOwnerElement(): Element = parent
+  def getSpecified(): Boolean = true
+  def getName(): String = name
   def getValue(): String = field.value.asString
   def isId(): Boolean = field.name.equalsIgnoreCase("id")
 
@@ -119,13 +140,13 @@ case class ElementNode(
   field: Field,
   parent: IRecord
 ) extends DomNode with Element with ElementNodeImpl {
-  def name = field.name
+  // def name = field.name
 
-  /*
-   * Accessor
-   */
-  // Members declared in org.w3c.dom.Element
-  def getTagName(): String = field.name
+  // /*
+  //  * Accessor
+  //  */
+  // // Members declared in org.w3c.dom.Element
+  def getTagName(): String = name
 }
 
 trait ElementNodeImpl {
@@ -140,12 +161,6 @@ trait ElementNodeImpl {
   def getNodeType(): Short = Node.ELEMENT_NODE
   // Members declared in org.w3c.dom.Element
   def getSchemaTypeInfo(): TypeInfo = RAISE.notImplementedYetDefect
-  def hasAttribute(name: String): Boolean = domAttributes.exists(_.name == name)
-  def hasAttributeNS(p: String, q: String): Boolean = RAISE.notImplementedYetDefect(s"${p}")
-  def getAttribute(name: String): String = Option(getAttributeNode(name)).map(_.getValue).getOrElse(null)
-  def getAttributeNS(p: String, q: String): String = RAISE.notImplementedYetDefect(s"${p}")
-  def getAttributeNode(name: String): Attr = domAttributes.find(_.name == name).getOrElse(null)
-  def getAttributeNodeNS(p: String, q: String): Attr = RAISE.notImplementedYetDefect(s"${p}")
   def getElementsByTagName(name: String): NodeList = DomNodeList(domElements.filter(_.name == name))
   def getElementsByTagNameNS(p: String, q: String): NodeList = RAISE.notImplementedYetDefect(s"${p}")
 
@@ -169,11 +184,14 @@ case class ValueNode(
   field: Field,
   parent: IRecord
 ) extends DomNode with Text {
+  override lazy val children = Vector.empty
+
   /*
    * Accessor
    */
   // Members declared in org.w3c.dom.Node
   def getNodeType(): Short = Node.TEXT_NODE
+  override def getLocalName(): String = null
   // Members declared in org.w3c.dom.CharacterData
   def getData(): String = field.asString
   def getLength(): Int = field.asString.length
@@ -201,4 +219,25 @@ case class ValueNode(
 case class DomNodeList(nodes: Vector[DomNode]) extends NodeList {
   def getLength(): Int = nodes.length
   def item(i: Int): Node = nodes(i)
+}
+
+case class DomNodeKey(ns: Option[String], name: String)
+object DomNodeKey {
+  def apply(name: String): DomNodeKey = DomNodeKey(None, name)
+  def apply(ns: String, name: String): DomNodeKey = DomNodeKey(Some(ns), name)
+}
+
+case class DomNamedNodeMap(m: VectorMap[DomNodeKey, Node]) extends NamedNodeMap {
+  def getLength(): Int = m.size
+  def getNamedItem(name: String): Node = m.get(DomNodeKey(name)) getOrElse null
+  def getNamedItemNS(ns: String, name: String): Node = m.get(DomNodeKey(ns, name)) getOrElse null
+  def item(i: Int): Node = m.valueVector.lift(i) getOrElse null
+  def removeNamedItem(name: String): Node = RAISE.unsupportedOperationFault
+  def removeNamedItemNS(name: String, ns: String): Node = RAISE.unsupportedOperationFault
+  def setNamedItem(node: Node): Node = RAISE.unsupportedOperationFault
+  def setNamedItemNS(node: Node): Node = RAISE.unsupportedOperationFault
+}
+object DomNamedNodeMap {
+  def apply(ps: Vector[AttributeNode]): DomNamedNodeMap =
+    DomNamedNodeMap(VectorMap(ps.map(x => DomNodeKey(x.name) -> x)))
 }

@@ -14,7 +14,7 @@ import org.goldenport.record.util.AnyUtils
  *  version May. 27, 2019
  *  version Jun. 23, 2019
  *  version Jul. 29, 2019
- * @version Aug.  3, 2019
+ * @version Aug. 21, 2019
  * @author  ASAMI, Tomoharu
  */
 case class Table(
@@ -134,7 +134,9 @@ object Table {
     def width = columns.length
   }
 
-  case class Cell(content: Any, width: Option[Int] = None)
+  case class Cell(content: Any, width: Option[Int] = None) {
+    def text: String = AnyUtils.toString(content)
+  }
   object Cell {
     val empty = Cell(Empty)
   }
@@ -142,8 +144,8 @@ object Table {
   case class DataMatrix(
     matrix: Vector[Vector[Cell]]
   ) extends VectorRowColumnMatrixBase[Cell] {
-  def appendRow(ps: Seq[Cell]): DataMatrix = RAISE.unsupportedOperationFault
-  def appendRows(ps: IMatrix[Cell]): DataMatrix = RAISE.notImplementedYetDefect
+    def appendRow(ps: Seq[Cell]): DataMatrix = DataMatrix(matrix :+ ps.toVector)
+    def appendRows(ps: IMatrix[Cell]): DataMatrix = DataMatrix(matrix ++ ps.rowIterator)
   }
   object DataMatrix {
     def create(pss: Seq[Seq[Cell]]): DataMatrix = DataMatrix(

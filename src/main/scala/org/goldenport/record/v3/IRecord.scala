@@ -19,13 +19,14 @@ import org.goldenport.record.util.AnyUtils
  *  version Feb. 28, 2019
  *  version Apr. 29, 2019
  *  version Jul. 29, 2019
- * @version Aug.  3, 2019
+ * @version Aug. 22, 2019
  * @author  ASAMI, Tomoharu
  */
 trait IRecord extends org.goldenport.record.IRecord
     with org.w3c.dom.Element with DomPart {
   def toRecord: Record
   def toMap: Map[String, Any] = toRecord.toMap // XXX
+  def getSchema: Option[Schema]
   def fields: Seq[Field]
   def isEmpty: Boolean
   def isDefined(key: Symbol): Boolean
@@ -92,6 +93,8 @@ object IRecord {
   import play.api.libs.functional.syntax._
   import org.goldenport.json.JsonUtils.Implicits._
   import org.goldenport.record.v2.util.RecordUtils
+
+  final val DEFAULT_TAG_NAME = "record"
 
   implicit object IRecordFormat extends Format[IRecord] {
     def reads(json: JsValue): JsResult[IRecord] = json match {

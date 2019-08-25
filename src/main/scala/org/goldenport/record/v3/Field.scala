@@ -41,7 +41,7 @@ import org.goldenport.record.util.AnyUtils
  *  version Mar. 23, 2019
  *  version May.  9, 2019
  *  version Jul.  7, 2019
- * @version Aug.  3, 2019
+ * @version Aug. 23, 2019
  * @author  ASAMI, Tomoharu
  */
 case class Field(
@@ -87,11 +87,13 @@ case class Field(
 
   def getJsonField: Option[(String, JsValue)] = value.getJson.map(x => name -> x)
 
-  def isAttribute = value match {
-    case EmptyValue => true
-    case _: SingleValue => true
-    case _: MultipleValue => false
-  }
+  def isAttribute = meta.column.flatMap(_.xml.isAttribute).getOrElse(
+    value match {
+      case EmptyValue => true
+      case m: SingleValue => m.isSimpleData
+      case _: MultipleValue => false
+    }
+  )
 
   def toField2: Field2 = value match {
     case EmptyValue => Field2(key, Nil)
@@ -117,7 +119,7 @@ case class Field(
 
 object Field {
   case class MetaData(
-    column: Option[Column]
+    column: Option[Column] = None
   ) {
     def name = column.map(_.name)
     def datatype = column.map(_.datatype)
@@ -129,7 +131,7 @@ object Field {
     def form = column.map(_.form) // HTML FORM
   }
   object MetaData {
-    val empty = MetaData(None)
+    val empty = MetaData()
 
     def apply(p: Column): MetaData = MetaData(Some(p))
   }
@@ -142,6 +144,8 @@ object Field {
 
   def create(key: String, value: Any): Field = create(Symbol(key), value)
 
+  def create(key: String, value: Any, column: Column): Field = create(Symbol(key), value, column)
+
   def create(key: Symbol, value: Any): Field = {
     value match {
       case m: FieldValue => apply(key, m)
@@ -150,6 +154,10 @@ object Field {
       case xs: Seq[_] => Field(key, MultipleValue(xs))
       case x => Field(key, SingleValue(x))
     }
+  }
+
+  def create(key: Symbol, value: Any, column: Column): Field = {
+    create(key, value).copy(meta = MetaData(column))
   }
 
   def create(data: (Symbol, Any)): Field = {

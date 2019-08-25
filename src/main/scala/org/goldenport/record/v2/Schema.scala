@@ -50,7 +50,8 @@ import org.goldenport.record.v3.IRecord
  *  version Jan.  1, 2019
  *  version Feb. 12, 2019
  *  version Apr. 29, 2019
- * @version May.  1, 2019
+ *  version May.  1, 2019
+ * @version Aug. 20, 2019
  * @author  ASAMI, Tomoharu
  */
 case class Schema(
@@ -69,7 +70,8 @@ case class Schema(
 //  isCsvTitle: Option[Boolean] = None,
 //  comment: String = "",
 //  history: String = ""
-  desc: Description = Description.empty
+  desc: Description = Description.empty,
+  xml: XmlSchema = XmlSchema.default
 ) extends org.goldenport.table.ISchema {
   import scalaz.syntax.foldable._
   implicit object ValidationResultMonoid extends Monoid[ValidationResult] {

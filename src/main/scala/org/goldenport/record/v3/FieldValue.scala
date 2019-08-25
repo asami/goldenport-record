@@ -39,7 +39,8 @@ import org.goldenport.record.v2.{Record => Record2, RecordRecord}
  *  version Dec. 28, 2018
  *  version Jan. 21, 2019
  *  version May.  9, 2019
- * @version Jul. 31, 2019
+ *  version Jul. 31, 2019
+ * @version Aug. 23, 2019
  * @author  ASAMI, Tomoharu
  */
 sealed abstract class FieldValue {
@@ -126,6 +127,15 @@ case class SingleValue(value: Any) extends FieldValue {
   def +(p: FieldValue): FieldValue = MultipleValue(value +: p.takeVector)
   def toMulti: MultipleValue = MultipleValue(Vector(value))
   def mapContent(p: Any => Any): FieldValue = copy(p(value))
+
+  def isSimpleData: Boolean = !isComplexData
+  def isComplexData: Boolean = value match {
+    case _: IRecord => true
+    case _: ITable => true
+    case _: Seq[_] => true
+    case _: Array[_] => true
+    case _ => false
+  }
 }
 
 case class MultipleValue(values: Seq[Any]) extends FieldValue {

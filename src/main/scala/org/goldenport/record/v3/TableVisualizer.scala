@@ -6,7 +6,7 @@ import org.goldenport.util.AnyUtils
 
 /*
  * @since   Jun. 16, 2019
- * @version Jun. 23, 2019
+ * @version Aug. 24, 2019
  * @author  ASAMI, Tomoharu
  */
 case class TableVisualizer(
@@ -63,7 +63,7 @@ case class TableVisualizer(
   private def _to_string(p: Table.Cell): String = AnyUtils.toString(p.content)
 }
 object TableVisualizer {
-  def thick = TableVisualizer(MatrixVisualizer.JisThickLineStyle)
+  val thick = TableVisualizer(MatrixVisualizer.JisThickLineStyle)
 
   def apply(p: MatrixVisualizer.LineStyle): TableVisualizer = TableVisualizer(Some(p))
 }

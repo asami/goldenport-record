@@ -15,6 +15,7 @@ import com.asamioffice.goldenport.io.UURL
 import org.goldenport.Platform
 import org.goldenport.Strings
 import org.goldenport.values.FileName
+import org.goldenport.io.ResourceHandle
 import org.goldenport.bag._
 import org.goldenport.record.v2._
 import org.goldenport.record.v2.bag.RecordBag._
@@ -26,7 +27,7 @@ import org.goldenport.util.StringUtils
  *  version Oct. 28, 2015
  *  version Sep. 22, 2016
  *  version Sep. 21, 2017
- * @version Aug.  5, 2019
+ * @version Aug. 18, 2019
  * @author  ASAMI, Tomoharu
  */
 class ExcelBag(
@@ -446,6 +447,19 @@ object ExcelBag {
     val kind = _to_kind(uri)
     val name = _to_name(uri)
     new ExcelBag(kind, file, strategy, name = name, properties = properties)
+  }
+
+  def loadResource(rh: ResourceHandle, strategy: Strategy = Strategy.windowsAuto): ExcelBag = {
+    val filename = rh.name
+    val kind = _to_kind(filename)
+    val name = _to_name(filename)
+    val bag = BufferFileBag.create(strategy.codec)
+    for {
+      in <- resource.managed(rh.openInputStream())
+    } {
+      bag.write(in)
+    }
+    create(kind, bag, strategy, name)
   }
 
   case class View(

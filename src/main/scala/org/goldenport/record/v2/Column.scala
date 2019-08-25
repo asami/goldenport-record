@@ -32,7 +32,8 @@ import org.goldenport.record.v2.projector.ProjectorContext
  *  version Aug. 24, 2018
  *  version Sep.  4, 2018
  *  version Jan.  9, 2019
- * @version Jul.  7, 2019
+ *  version Jul.  7, 2019
+ * @version Aug. 23, 2019
  * @author  ASAMI, Tomoharu
  */
 case class Column(
@@ -53,6 +54,7 @@ case class Column(
   desc: Description = Description.empty,
   layout: Column.Layout = Column.Layout.empty,
   form: Column.Form = Column.Form.empty,
+  xml: Column.Xml = Column.Xml.default,
   extension: Column.Extension = Column.Extension.empty
 //  operations: Seq[Operation] = Nil,
 //  extjs: Map[String, Any] = Map.empty,
@@ -238,6 +240,18 @@ object Column {
   }
   object Form {
     val empty = Form()
+  }
+
+  case class Xml(
+    isAttribute: Option[Boolean] = None,
+    namespaceUri: Option[String] = None,
+    prefix: Option[String] = None,
+    name: Option[String] = None
+  )
+  object Xml {
+    val default = Xml()
+    val attribute = Xml(Some(true))
+    val element = Xml(Some(false))
   }
 
   case class Extension(

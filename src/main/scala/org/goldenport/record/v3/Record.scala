@@ -52,7 +52,7 @@ import org.goldenport.values.PathName
  *  version May.  9, 2019
  *  version Jun. 15, 2019
  *  version Jul. 30, 2019
- * @version Aug.  3, 2019
+ * @version Aug. 22, 2019
  * @author  ASAMI, Tomoharu
  */
 case class Record(
@@ -67,6 +67,7 @@ case class Record(
   def toRecord2: Record2 = extra.v2.
     map(_.copy(fields.map(_.toField2).toList)).
     getOrElse(Record2(fields.map(_.toField2).toList))
+  def getSchema: Option[Schema] = meta.schema
 
   override def toMap = toRecord2.toMap // XXX
 
