@@ -2,7 +2,7 @@ organization := "org.goldenport"
 
 name := "goldenport-record"
 
-version := "1.3.10"
+version := "1.3.11"
 
 scalaVersion := "2.10.3"
 // crossScalaVersions := Seq("2.9.2", "2.9.1")
@@ -25,7 +25,7 @@ libraryDependencies += "org.goldenport" %% "goldenport-atom" % "1.0.1"
 
 // libraryDependencies += "org.goldenport" % "goldenport-java-lib" % "0.1.2"
 
-libraryDependencies += "org.goldenport" %% "goldenport-scala-lib" % "1.2.44"
+libraryDependencies += "org.goldenport" %% "goldenport-scala-lib" % "1.2.45"
 
 // libraryDependencies += "org.smartdox" %% "smartdox" % "1.2.2"
 
@@ -57,14 +57,3 @@ mavenrepo := sys.env.getOrElse("PUBLISH_MAVEN_REPO", default = "target/maven-rep
 publishTo <<= mavenrepo { v: String =>
   Some(Resolver.file("file", file(v)))
 }
-// AutoMkcol.globalSettings
-
-// credentials += Credentials(Path.userHome / ".sbt" / ".credentials")
-
-// publishTo <<= version { v: String =>
-//   val backlog = "https://everforth.backlog.jp/dav/APC/maven/"
-//   if (v.trim.endsWith("SNAPSHOT"))
-//     Some("Backlog snapshots" at backlog + "snapshots")
-//   else
-//     Some("Backlog releases" at backlog + "releases")
-// }
