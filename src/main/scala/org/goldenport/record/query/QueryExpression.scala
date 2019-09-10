@@ -18,7 +18,8 @@ import QueryExpression.Context
  * @since   Jun. 25, 2018
  *  version Jan. 10, 2019
  *  version Jul. 31, 2019
- * @version Aug. 16, 2019
+ *  version Aug. 16, 2019
+ * @version Sep.  9, 2019
  * @author  ASAMI, Tomoharu
  */
 sealed trait QueryExpression {
@@ -37,6 +38,9 @@ sealed trait QueryExpression {
 
   protected final def map_powertype_value(pt: PowertypeClass, v: Any): Either[Throwable, Any] =
     map_powertype_instance(pt, v).right.map(_.value)
+
+  protected final def map_powertype_values(pt: PowertypeClass, vs: Seq[Any]): Seq[Either[Throwable, Any]] =
+    vs.map(map_powertype_value(pt, _))
 
   protected final def map_powertype_instance(pt: PowertypeClass, v: Any): Either[Throwable, Powertype] = {
     val r = v match {
@@ -173,6 +177,39 @@ object NotEqualQuery extends QueryExpressionClass {
       case m: SingleValue => NotEqualQuery(m.value)
       case m: MultipleValue => NotEqualQuery(m.values)
     }
+}
+
+case class EnumQuery(values: List[Any]) extends QueryExpression {
+  def expression(column: String) = values match {
+    case m: Seq[_] => s"""${column} IN (${to_literal_list(m)})"""
+    case m => s"${column} <> ${to_literal_list(values)}"
+  }
+  def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
+
+  override def mapPowertypeOrException(pt: PowertypeClass) = {
+    // map_powertype_values(pt, values).map(_.right.map(x => copy(x)))
+    RAISE.notImplementedYetDefect
+  }
+}
+object EnumQuery extends QueryExpressionClass {
+  val name = "enum"
+
+  def create(params: List[String], v: FieldValue)(implicit ctx: Context): QueryExpression =
+    params match {
+      case Nil => _create_comma(v)
+      case "comma" :: Nil => _create_comma(v)
+      case m => RAISE.invalidArgumentFault(s"Unknown delimiter: $m")
+    }
+
+  private def _create_comma(v: FieldValue): QueryExpression = _create(",", v)
+
+  private def _create(delimiter: String, v: FieldValue): QueryExpression = {
+    val r = v.takeList.flatMap {
+      case m: String => Strings.totokens(m, delimiter)
+      case m => List(m)
+    }
+    EnumQuery(r)
+  }
 }
 
 case class GreaterQuery(value: Any) extends QueryExpression {
@@ -456,6 +493,7 @@ object QueryExpression {
     IsNotNullQuery,
     EqualQuery,
     NotEqualQuery,
+    EnumQuery,
     GreaterQuery,
     GreaterEqualQuery,
     LesserQuery,
