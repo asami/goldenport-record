@@ -7,7 +7,8 @@ import org.goldenport.record.v2.Record
 /*
  * @since   Apr.  2, 2018
  *  version May. 31, 2018
- * @version Sep. 12, 2018
+ *  version Sep. 12, 2018
+ * @version Sep. 13, 2019
  * @author  ASAMI, Tomoharu
  */
 trait UnitOfWorkHelper {
@@ -49,6 +50,11 @@ trait UnitOfWorkHelper {
   ): UnitOfWorkFM[GetResult] = UnitOfWork.store.get(
     store, StringId(id))
 
+  protected def store_get_sync(
+    store: Store, id: String
+  ): UnitOfWorkFM[GetResult] = UnitOfWork.store.getSync(
+    store, StringId(id))
+
   protected def store_get_share(
     store: Store, id: String
   ): UnitOfWorkFM[GetResult] = UnitOfWork.store.getShare(
@@ -64,14 +70,31 @@ trait UnitOfWorkHelper {
   ): UnitOfWorkFM[GetsResult] = UnitOfWork.store.gets(
     store, ids.map(StringId))
 
+  protected def store_get_sync(
+    store: Store, ids: Seq[String]
+  ): UnitOfWorkFM[GetsResult] = UnitOfWork.store.getsSync(
+    store, ids.map(StringId))
+
   protected def store_select(
     store: Store, query: String
   ): UnitOfWorkFM[SelectResult] = UnitOfWork.store.select(
     store, Query(query))
 
+  protected def store_select_sync(
+    store: Store, query: String
+  ): UnitOfWorkFM[SelectResult] = UnitOfWork.store.selectSync(
+    store, Query(query))
+
   protected def store_select(
     store: Store, query: Query
   ): UnitOfWorkFM[SelectResult] = UnitOfWork.store.select(
+    store,
+    query
+  )
+
+  protected def store_select_sync(
+    store: Store, query: Query
+  ): UnitOfWorkFM[SelectResult] = UnitOfWork.store.selectSync(
     store,
     query
   )
