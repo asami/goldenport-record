@@ -51,7 +51,8 @@ import org.goldenport.record.v3.IRecord
  *  version Feb. 12, 2019
  *  version Apr. 29, 2019
  *  version May.  1, 2019
- * @version Aug. 20, 2019
+ *  version Aug. 20, 2019
+ * @version Oct.  1, 2019
  * @author  ASAMI, Tomoharu
  */
 case class Schema(
@@ -467,7 +468,7 @@ object Schema {
         val multiplicity = (json \ "multiplicity").asOpt[Multiplicity] getOrElse MOne
         val label = (json \ "label").asOpt[String]
         val i18nLabel = (json \ "i18nLabel").asOpt[I18NString]
-        val constraints = (json \ "constrains").as[List[Constraint]]
+        val constraints = (json \ "constrains").asOpt[List[Constraint]] getOrElse Nil
         val form = (json \ "form").asOpt[Form] getOrElse Form.empty
         JsSuccess(
           Column(name, datatype, multiplicity,
@@ -499,11 +500,13 @@ object Schema {
       def reads(json: JsValue): JsResult[Schema] = {
         val columns = (json \ "columns") match {
           case JsArray(xs) => xs.map(_.as[Column])
-          case m => RAISE.noReachDefect // JsError(s"Unknown element in columns: $m")
+          case _: JsUndefined => Nil
+          case m => RAISE.noReachDefect(s"Unknown element in columns: $m") // JsError(s"Unknown element in columns: $m")
         }
         val validators = (json \ "validators") match {
           case JsArray(xs) => xs.map(_.as[Validator])
-          case m => RAISE.noReachDefect // JsError(s"Unknown element in columns: $m")
+          case _: JsUndefined => Nil
+          case m => RAISE.noReachDefect(s"Unknown element in columns: $m") // JsError(s"Unknown element in columns: $m")
         }
         JsSuccess(Schema(columns, validators = validators))
       }
