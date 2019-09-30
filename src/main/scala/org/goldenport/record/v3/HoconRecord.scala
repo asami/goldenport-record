@@ -11,13 +11,14 @@ import org.goldenport.record.v2.Schema
  *  version Mar. 24, 2019
  *  version Apr. 20, 2019
  *  version Jul. 29, 2019
- * @version Aug. 22, 2019
+ *  version Aug. 22, 2019
+ * @version Sep. 23, 2019
  * @author  ASAMI, Tomoharu
  */
 case class HoconRecord(hocon: RichConfig) extends IRecord {
   lazy val toRecord: Record = Record(fields)
   def getSchema: Option[Schema] = None
-  lazy val keys: List[Symbol] = keyNames.map(x => Symbol(x))
+  lazy val keySymbols: List[Symbol] = keyNames.map(x => Symbol(x))
   lazy val keyNames: List[String] = fields.map(_.name).toList
   def print: String = toRecord.print
   def display: String = toRecord.display

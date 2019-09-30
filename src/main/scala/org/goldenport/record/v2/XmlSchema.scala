@@ -5,7 +5,7 @@ import java.net.URI
 
 /*
  * @since   Aug. 21, 2019
- * @version Aug. 23, 2019
+ * @version Sep. 30, 2019
  * @author  ASAMI, Tomoharu
  */
 case class XmlSchema(
@@ -13,7 +13,7 @@ case class XmlSchema(
   prefix: Option[String] = None,
   localName: Option[String] = None
 ) {
-  def tagName: Option[String] = localName.map(x =>
+  lazy val tagName: Option[String] = localName.map(x =>
     prefix.map(p => s"$p:$x").getOrElse(x)
   )
 }

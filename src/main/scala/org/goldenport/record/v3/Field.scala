@@ -41,7 +41,8 @@ import org.goldenport.record.util.AnyUtils
  *  version Mar. 23, 2019
  *  version May.  9, 2019
  *  version Jul.  7, 2019
- * @version Aug. 23, 2019
+ *  version Aug. 23, 2019
+ * @version Sep. 30, 2019
  * @author  ASAMI, Tomoharu
  */
 case class Field(
@@ -87,7 +88,9 @@ case class Field(
 
   def getJsonField: Option[(String, JsValue)] = value.getJson.map(x => name -> x)
 
-  def isAttribute = meta.column.flatMap(_.xml.isAttribute).getOrElse(
+  def isAttributeOption = meta.column.flatMap(_.xml.isAttribute)
+
+  def isAttribute = isAttributeOption.getOrElse(
     value match {
       case EmptyValue => true
       case m: SingleValue => m.isSimpleData

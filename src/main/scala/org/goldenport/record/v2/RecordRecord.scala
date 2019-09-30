@@ -10,7 +10,8 @@ import org.goldenport.record.v3.{FieldValue, EmptyValue, SingleValue, MultipleVa
  *  version Jan. 21, 2019
  *  version Apr. 20, 2019
  *  version Jul. 29, 2019
- * @version Aug. 22, 2019
+ *  version Aug. 22, 2019
+ * @version Sep. 23, 2019
  * @author  ASAMI, Tomoharu
  */
 case class RecordRecord(record: Record) extends IRecord {
@@ -18,7 +19,7 @@ case class RecordRecord(record: Record) extends IRecord {
 
   def toRecord: Record3 = toRecord3(record)
   def getSchema: Option[Schema] = None
-  def keys: List[Symbol] = RAISE.notImplementedYetDefect
+  def keySymbols: List[Symbol] = RAISE.notImplementedYetDefect
   def keyNames: List[String] = RAISE.notImplementedYetDefect
   override def length = record.length
   def print: String = RAISE.notImplementedYetDefect

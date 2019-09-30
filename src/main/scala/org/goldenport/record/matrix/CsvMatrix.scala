@@ -3,6 +3,7 @@ package org.goldenport.record.matrix
 import java.net.URI
 import org.goldenport.RAISE
 import org.goldenport.matrix._
+import org.goldenport.values.NumberRange
 import org.goldenport.record.v2.bag.CsvBag
 
 /*
@@ -10,7 +11,8 @@ import org.goldenport.record.v2.bag.CsvBag
  *  version Feb. 11, 2019
  *  version Jun. 23, 2019
  *  version Jul. 16, 2019
- * @version Aug. 26, 2019
+ *  version Aug. 26, 2019
+ * @version Sep. 19, 2019
  * @author  ASAMI, Tomoharu
  */
 case class CsvMatrix(bag: CsvBag) extends IMatrix[Double] {
@@ -23,11 +25,17 @@ case class CsvMatrix(bag: CsvBag) extends IMatrix[Double] {
   def apply(x: Int, y: Int): Double = matrix.apply(x, y)
   def width: Int = matrix.width
   def height: Int = matrix.height
-  def rowIterator: Iterator[Vector[Double]] = matrix.rowIterator
-  def columnIterator: Iterator[Vector[Double]] = matrix.columnIterator
+  override def rowIterator: Iterator[Vector[Double]] = matrix.rowIterator
+  override def columnIterator: Iterator[Vector[Double]] = matrix.columnIterator
+  def projection(p: NumberRange): IMatrix[Double] = RAISE.notImplementedYetDefect
+  def selection(p: NumberRange): IMatrix[Double] = RAISE.notImplementedYetDefect
+  def toDoubleMatrix: IMatrix[Double] = RAISE.notImplementedYetDefect
+  def makeDoubleMatrix: IMatrix[Double] = RAISE.notImplementedYetDefect
 
   def appendRow(ps: Seq[Double]): CsvMatrix = RAISE.unsupportedOperationFault
   def appendRows(ps: IMatrix[Double]): CsvMatrix = RAISE.notImplementedYetDefect
+  def appendColumn(ps: Seq[Double]): IMatrix[Double] = RAISE.notImplementedYetDefect
+  def appendColumns(ps: IMatrix[Double]): IMatrix[Double] = RAISE.notImplementedYetDefect
 
   def transpose: IMatrix[Double] = RAISE.notImplementedYetDefect
 }

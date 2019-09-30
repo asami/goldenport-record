@@ -8,17 +8,42 @@ import org.goldenport.collection.VectorMap
  * @since   Aug. 23, 2018
  *  version Sep. 20, 2018
  *  version Jan.  6, 2019
- * @version Aug. 23, 2019
+ *  version Aug. 23, 2019
+ * @version Sep. 30, 2019
  * @author  ASAMI, Tomoharu
  */
 trait DomPart extends DomNodeImpl with ElementNodeImpl { self: IRecord =>
   import DomPart._
 
-  lazy val domNodes = fields.toVector.map { x =>
+  def domPolicy: DomNode.Policy = DomNode.XsltPolicy // TODO
+
+  lazy val domNodes: Vector[DomNode] = domNodes(domPolicy)
+
+  def domNodes(p: DomNode.Policy): Vector[DomNode] = p match {
+    case DomNode.ElementPolicy => dom_nodes_policy_element
+    case DomNode.AttributePolicy => dom_nodes_policy_attribute
+    case DomNode.XsltPolicy => dom_nodes_policy_xslt
+  }
+
+  protected final def dom_nodes_policy_element = fields.toVector.map { x =>
+    if (x.isAttributeOption == Some(true))
+      AttributeNode(x, this)
+    else
+      FieldElementNode(x, this) // TODO or RecordElementNode
+  }
+
+  protected final def dom_nodes_policy_attribute = fields.toVector.map { x =>
     if (x.isAttribute)
       AttributeNode(x, this)
     else
-      ElementNode(x, this)
+      FieldElementNode(x, this) // TODO or RecordElementNode
+  }
+
+  protected final def dom_nodes_policy_xslt = fields.toVector.flatMap { x =>
+    if (x.isAttribute)
+      Vector(AttributeNode(x, this), FieldElementNode(x, this))
+    else
+      Vector(FieldElementNode(x, this)) // TODO or RecordElementNode
   }
 
   lazy val domContents: Vector[DomNode] = domNodes collect {

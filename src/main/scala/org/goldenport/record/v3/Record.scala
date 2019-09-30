@@ -52,14 +52,15 @@ import org.goldenport.values.PathName
  *  version May.  9, 2019
  *  version Jun. 15, 2019
  *  version Jul. 30, 2019
- * @version Aug. 22, 2019
+ *  version Aug. 22, 2019
+ * @version Sep. 30, 2019
  * @author  ASAMI, Tomoharu
  */
 case class Record(
   fields: Seq[Field],
   meta: Record.MetaData = Record.MetaData.empty,
   extra: Record.Extra = Record.Extra.empty
-) extends IRecord
+) extends IRecord with ElementNode with MapPart
     with XmlPart with JsonPart with CsvPart with LtsvPart with LxsvPart
     with HttpPart with SqlPart
     with CompatibilityPart {
@@ -69,16 +70,17 @@ case class Record(
     getOrElse(Record2(fields.map(_.toField2).toList))
   def getSchema: Option[Schema] = meta.schema
 
-  override def toMap = toRecord2.toMap // XXX
+  override def toMap = this
 
-  def isEmpty: Boolean = fields.isEmpty
+  override def isEmpty: Boolean = fields.isEmpty
   def isDefined(key: Symbol): Boolean = fields.exists(_.key == key)
   def isDefined(key: String): Boolean = isDefined(Symbol(key))
 
   def nonDefined(key: Symbol): Boolean = !isDefined(key)
   def nonDefined(key: String): Boolean = !isDefined(key)
 
-  lazy val keys: List[Symbol] = fields.map(_.key).toList
+  override def keys: List[String] = keyNames
+  lazy val keySymbols: List[Symbol] = fields.map(_.key).toList
   lazy val keyNames: List[String] = fields.map(_.name).toList
 
   def print: String = toLxsv.print
@@ -240,6 +242,9 @@ object Record {
     schema: Option[Schema]
   ) {
     def columns: Option[List[Field.MetaData]] = schema.map(_.columns.map(x => Field.MetaData(Some(x))).toList)
+    def prefix: Option[String] = schema.flatMap(_.xml.prefix)
+    def namespaceUri: Option[String] = schema.flatMap(_.xml.namespaceUri)
+    def localName: Option[String] = schema.flatMap(_.xml.localName)
   }
   object MetaData {
     val empty = MetaData(None)
@@ -329,7 +334,11 @@ object Record {
     ltsv.map(fromLtsv).getOrElse(Record.empty)
   }
 
-  def create(lxsv: Lxsv): Record = apply(lxsv.vectormap)
+  def create(lxsv: Lxsv): Record = apply(lxsv.valueMap)
+
+  def fromLxsv(lxsv: Option[String]): Record = lxsv.map(fromLxsv).getOrElse(Record.empty)
+
+  def fromLxsv(lxsv: String): Record = create(Lxsv.create(lxsv))
 
   def fromJson(p: String): Either[RecordSequence, Record] = createRecordOrSequence(Json.parse(p))
 

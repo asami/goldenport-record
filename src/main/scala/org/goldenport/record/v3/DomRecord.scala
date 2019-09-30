@@ -8,12 +8,13 @@ import org.goldenport.record.v2.Schema
  *  version Jan.  3, 2019
  *  version Apr. 20, 2019
  *  version Jul. 29, 2019
- * @version Aug. 22, 2019
+ *  version Aug. 22, 2019
+ * @version Sep. 23, 2019
  * @author  ASAMI, Tomoharu
  */
 case class DomRecord() extends IRecord {
   def getSchema: Option[Schema] = None
-  def keys: List[Symbol] = RAISE.notImplementedYetDefect
+  def keySymbols: List[Symbol] = RAISE.notImplementedYetDefect
   def keyNames: List[String] = RAISE.notImplementedYetDefect
   def print: String = RAISE.notImplementedYetDefect
   def display: String = RAISE.notImplementedYetDefect

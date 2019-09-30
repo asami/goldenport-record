@@ -7,13 +7,14 @@ import org.goldenport.record.v2.Schema
 /*
  * @since   Apr. 20, 2019
  *  version Jul. 29, 2019
- * @version Aug. 22, 2019
+ *  version Aug. 22, 2019
+ * @version Sep. 23, 2019
  * @author  ASAMI, Tomoharu
  */
 case class CompositeRecord(records: NonEmptyVector[IRecord]) extends IRecord {
   private def _records = records.vector
   def getSchema: Option[Schema] = records.head.getSchema
-  def keys: List[Symbol] = _records.flatMap(_.keys).distinct.toList
+  def keySymbols: List[Symbol] = _records.flatMap(_.keySymbols).distinct.toList
   def keyNames: List[String] = _records.flatMap(_.keyNames).distinct.toList
   override def length = records.length
   def print: String = toRecord.print

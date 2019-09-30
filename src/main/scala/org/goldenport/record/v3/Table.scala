@@ -4,6 +4,7 @@ import org.w3c.dom._
 import play.api.libs.json._
 import org.goldenport.exception.RAISE
 import org.goldenport.matrix.{IMatrix, VectorRowColumnMatrixBase, VectorRowColumnMatrix}
+import org.goldenport.values.NumberRange
 import org.goldenport.record.v2.{Schema, Column}
 import org.goldenport.record.util.AnyUtils
 
@@ -14,7 +15,8 @@ import org.goldenport.record.util.AnyUtils
  *  version May. 27, 2019
  *  version Jun. 23, 2019
  *  version Jul. 29, 2019
- * @version Aug. 21, 2019
+ *  version Aug. 21, 2019
+ * @version Sep. 19, 2019
  * @author  ASAMI, Tomoharu
  */
 case class Table(
@@ -27,8 +29,8 @@ case class Table(
   def toTable = this
   def toRecordList: List[Record] = records.toList
   def toRecordVector: Vector[Record] = records
-  lazy val width = meta.getWidth getOrElse data.width
-  def height = records.length
+  override lazy val width = meta.getWidth getOrElse data.width
+  override def height = records.length
   def matrix: IMatrix[Any] = VectorRowColumnMatrix(records.map(_.fields.map(_make_value).toVector))
   override def toString() = print
 
@@ -132,6 +134,7 @@ object Table {
     matrix: DataMatrix
   ) {
     def width = columns.length
+    def height = matrix.height
   }
 
   case class Cell(content: Any, width: Option[Int] = None) {
@@ -144,8 +147,12 @@ object Table {
   case class DataMatrix(
     matrix: Vector[Vector[Cell]]
   ) extends VectorRowColumnMatrixBase[Cell] {
+    def toCellMatrix: IMatrix[Cell] = RAISE.notImplementedYetDefect
+    def makeCellMatrix: IMatrix[Cell] = RAISE.notImplementedYetDefect
     def appendRow(ps: Seq[Cell]): DataMatrix = DataMatrix(matrix :+ ps.toVector)
     def appendRows(ps: IMatrix[Cell]): DataMatrix = DataMatrix(matrix ++ ps.rowIterator)
+    def appendColumn(ps: Seq[Cell]): IMatrix[Cell] = RAISE.notImplementedYetDefect
+    def appendColumns(ps: IMatrix[Cell]): IMatrix[Cell] = RAISE.notImplementedYetDefect
   }
   object DataMatrix {
     def create(pss: Seq[Seq[Cell]]): DataMatrix = DataMatrix(
