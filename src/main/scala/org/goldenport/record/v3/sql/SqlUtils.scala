@@ -9,7 +9,8 @@ import org.goldenport.record.v3.{Record, Field}
 /*
  * @since   Mar. 23, 2019
  *  version Mar. 23, 2019
- * @version Apr.  6, 2019
+ *  version Apr.  6, 2019
+ * @version Oct.  7, 2019
  * @author  ASAMI, Tomoharu
  */
 object SqlUtils {
@@ -68,7 +69,11 @@ object SqlUtils {
     (column.name +: column.aliases).toStream.flatMap(x =>
       rs.getObject(x) match {
         case null => None
-        case m => Some(Field.create(column.name, m))
+        case m =>
+          if (rs.wasNull)
+            Some(Field.createEmpty(column.name))
+          else
+            Some(Field.create(column.name, m))
       }
     ).headOption
 

@@ -16,7 +16,8 @@ import org.goldenport.record.util.AnyUtils
  *  version Jun. 23, 2019
  *  version Jul. 29, 2019
  *  version Aug. 21, 2019
- * @version Sep. 19, 2019
+ *  version Sep. 19, 2019
+ * @version Oct.  8, 2019
  * @author  ASAMI, Tomoharu
  */
 case class Table(
@@ -145,7 +146,8 @@ object Table {
   }
 
   case class DataMatrix(
-    matrix: Vector[Vector[Cell]]
+    matrix: Vector[Vector[Cell]],
+    emptyValue: Option[Cell] = Some(Cell.empty)
   ) extends VectorRowColumnMatrixBase[Cell] {
     def toCellMatrix: IMatrix[Cell] = RAISE.notImplementedYetDefect
     def makeCellMatrix: IMatrix[Cell] = RAISE.notImplementedYetDefect
@@ -161,7 +163,7 @@ object Table {
   }
 
   case class Head(names: List[Cell]) {
-    def matrix: IMatrix[Cell] = VectorRowColumnMatrix.create(Vector(names))
+    def matrix: IMatrix[Cell] = DataMatrix.create(Vector(names))
   }
   object Head {
     def apply(name: String, names: String*): Head = create(name +: names)
@@ -170,7 +172,7 @@ object Table {
   }
 
   case class Foot(data: List[Cell]) {
-    def matrix: IMatrix[Cell] = RAISE.notImplementedYetDefect
+    def matrix: IMatrix[Cell] = DataMatrix.create(Vector(data))
   }
 
   def apply(head: Table.Head, data: Seq[Record]): Table =
@@ -203,7 +205,9 @@ object Table {
     schema.map(create(_, ps)).getOrElse(create(IRecord.makeSchema(ps), ps))
 
   def create(schema: Option[Schema], ps: RecordSequence): Table =
-    create(schema, ps.irecords)
+    create(schema orElse ps.schema, ps.irecords)
+
+  def create(ps: RecordSequence): Table = create(ps.schema, ps.irecords)
 
   // def createSeqSeq(schema: Schema, ps: Seq[Seq[Any]]): Table =
 

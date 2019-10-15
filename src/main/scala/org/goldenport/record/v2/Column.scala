@@ -33,7 +33,8 @@ import org.goldenport.record.v2.projector.ProjectorContext
  *  version Sep.  4, 2018
  *  version Jan.  9, 2019
  *  version Jul.  7, 2019
- * @version Aug. 23, 2019
+ *  version Aug. 23, 2019
+ * @version Oct.  9, 2019
  * @author  ASAMI, Tomoharu
  */
 case class Column(
@@ -149,7 +150,10 @@ case class Column(
     i18nLabel.flatMap(_.get(locale)) orElse label getOrElse UString.capitalize(name)
 
   def isRequired: Boolean = multiplicity == MOne || multiplicity == MOneMore
+
   def getPlaceholder(locale: Locale): Option[String] = form.placeholder.flatMap(_.get(locale))
+
+  def sqlColumnName: String = sql.getColumnName getOrElse name
 
   /*
    * Format for display

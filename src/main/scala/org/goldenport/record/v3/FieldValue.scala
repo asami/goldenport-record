@@ -1,6 +1,7 @@
 package org.goldenport.record.v3
 
 import scalaz._, Scalaz._
+import scala.util.control.NonFatal
 import java.sql.Timestamp
 import play.api.libs.json._
 import org.goldenport.Strings
@@ -40,10 +41,17 @@ import org.goldenport.record.v2.{Record => Record2, RecordRecord}
  *  version Jan. 21, 2019
  *  version May.  9, 2019
  *  version Jul. 31, 2019
- * @version Aug. 23, 2019
+ *  version Aug. 23, 2019
+ * @version Oct.  7, 2019
  * @author  ASAMI, Tomoharu
  */
 sealed abstract class FieldValue {
+  override def toString() = try {
+    s"${getClass.getSimpleName}(${as_string})"
+  } catch {
+    case NonFatal(e) => s"""${getClass.getSimpleName}#toString(${getValue.map(_.getClass.getSimpleName).getOrElse("#Empty")}): $e"""
+  }
+
   protected lazy val as_string = getValue.map(AnyUtils.toString).getOrElse("")
 
   def getValue: Option[Any]

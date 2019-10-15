@@ -19,7 +19,7 @@ import QueryExpression.Context
  *  version Jan. 10, 2019
  *  version Jul. 31, 2019
  *  version Aug. 16, 2019
- * @version Sep.  9, 2019
+ * @version Oct. 15, 2019
  * @author  ASAMI, Tomoharu
  */
 sealed trait QueryExpression {
@@ -209,6 +209,39 @@ object EnumQuery extends QueryExpressionClass {
       case m => List(m)
     }
     EnumQuery(r)
+  }
+}
+
+case class EnumOrNullQuery(values: List[Any]) extends QueryExpression {
+  def expression(column: String) = values match {
+    case m: Seq[_] => s"""(${column} IN (${to_literal_list(m)}) OR ${column} IS NULL)"""
+    case m => s"(${column} <> ${to_literal_list(values)} OR ${column} IS NULL)"
+  }
+  def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
+
+  override def mapPowertypeOrException(pt: PowertypeClass) = {
+    // map_powertype_values(pt, values).map(_.right.map(x => copy(x)))
+    RAISE.notImplementedYetDefect
+  }
+}
+object EnumOrNullQuery extends QueryExpressionClass {
+  val name = "enum-or-null"
+
+  def create(params: List[String], v: FieldValue)(implicit ctx: Context): QueryExpression =
+    params match {
+      case Nil => _create_comma(v)
+      case "comma" :: Nil => _create_comma(v)
+      case m => RAISE.invalidArgumentFault(s"Unknown delimiter: $m")
+    }
+
+  private def _create_comma(v: FieldValue): QueryExpression = _create(",", v)
+
+  private def _create(delimiter: String, v: FieldValue): QueryExpression = {
+    val r = v.takeList.flatMap {
+      case m: String => Strings.totokens(m, delimiter)
+      case m => List(m)
+    }
+    EnumOrNullQuery(r)
   }
 }
 

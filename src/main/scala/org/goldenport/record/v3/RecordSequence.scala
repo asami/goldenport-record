@@ -1,6 +1,7 @@
 package org.goldenport.record.v3
 
 import org.w3c.dom._
+import org.goldenport.record.v2.Schema
 import org.goldenport.record.v3.sql.RecordIterator
 
 /*
@@ -8,11 +9,16 @@ import org.goldenport.record.v3.sql.RecordIterator
  *  version Apr.  6, 2019
  *  version Jul. 28, 2019
  *  version Aug.  3, 2019
- * @version Sep. 30, 2019
+ *  version Sep. 30, 2019
+ * @version Oct.  7, 2019
  * @author  ASAMI, Tomoharu
  */
-case class RecordSequence(irecords: Vector[IRecord]) extends DocumentFragment with DomNodeImpl {
-  lazy val toRecords: Vector[Record] = irecords.map(_.toRecord)
+case class RecordSequence(
+  irecords: Vector[IRecord],
+  schema: Option[Schema] = None
+) extends DocumentFragment with DomNodeImpl {
+  def toRecords: Vector[Record] = irecords.map(_.toRecord)
+  def toTable: Table = Table.create(this)
 
   // Members declared in org.w3c.dom.Node
   def getNodeType(): Short = Node.DOCUMENT_FRAGMENT_NODE
@@ -33,6 +39,12 @@ object RecordSequence {
 
   def createClose(iter: RecordIterator): RecordSequence = try {
     RecordSequence(iter.toVector)
+  } finally {
+    iter.close()
+  }
+
+  def createClose(schema: Schema, iter: RecordIterator): RecordSequence = try {
+    RecordSequence(iter.toVector, Some(schema))
   } finally {
     iter.close()
   }

@@ -6,12 +6,14 @@ import org.goldenport.RAISE
 import org.goldenport.hocon.RichConfig
 import org.goldenport.collection.NonEmptyVector
 import org.goldenport.record.v3.{IRecord, Record, RecordSequence}
+import org.goldenport.record.v2.Schema
 
 /*
  * @since   Mar. 23, 2019
  *  version Apr.  8, 2019
  *  version May. 25, 2019
- * @version Jul. 26, 2019
+ *  version Jul. 26, 2019
+ * @version Oct.  7, 2019
  * @author  ASAMI, Tomoharu
  */
 class SqlContext(
@@ -28,32 +30,43 @@ class SqlContext(
 
   def takeDatabaseNames: List[Symbol] = transaction.takeDatabaseNames
 
-  def query(sql: String): IndexedSeq[IRecord] = query(KEY_DEFAULT, sql)
+  def select(sql: String): IndexedSeq[IRecord] = select(KEY_DEFAULT, sql)
 
-  def query(database: Symbol, sql: String): IndexedSeq[IRecord] =
-    querySequence(database, sql).irecords
+  def select(database: Symbol, sql: String): IndexedSeq[IRecord] =
+    selectSequence(database, sql).irecords
 
-  def querySequence(sql: String): RecordSequence = RecordSequence.createClose(queryIterator(sql))
+  def selectSequence(sql: String): RecordSequence = RecordSequence.createClose(selectIterator(sql))
 
-  def querySequence(database: Symbol, sql: String): RecordSequence =
-    RecordSequence.createClose(queryIterator(database, sql))
+  def selectSequence(database: Symbol, schema: Option[Schema], sql: String): RecordSequence =
+    schema.map(selectSequence(database, _, sql)).getOrElse(selectSequence(database, sql))
 
-  def queryIterator(sql: String): RecordIterator = queryIterator(KEY_DEFAULT, sql)
+  def selectSequence(database: Symbol, schema: Schema, sql: String): RecordSequence =
+    RecordSequence.createClose(schema, selectIterator(database, schema, sql))
 
-  def queryIterator(database: Symbol, sql: String): RecordIterator = transaction.queryIterator(database) { conn => 
+ def selectSequence(database: Symbol, sql: String): RecordSequence =
+    RecordSequence.createClose(selectIterator(database, sql))
+
+  def selectIterator(sql: String): RecordIterator = selectIterator(KEY_DEFAULT, sql)
+
+  def selectIterator(database: Symbol, schema: Schema, sql: String): RecordIterator = transaction.queryIterator(database, schema) { conn => 
     val stmt = conn.createStatement()
     stmt.executeQuery(sql)
   }
 
-  def queryFold[T](sql: String)(f: RecordIterator => T): T = queryFold(KEY_DEFAULT, sql)(f)
+  def selectIterator(database: Symbol, sql: String): RecordIterator = transaction.queryIterator(database) { conn => 
+    val stmt = conn.createStatement()
+    stmt.executeQuery(sql)
+  }
 
-  def queryFold[T](database: Symbol, sql: String)(f: RecordIterator => T): T =
-    f(queryIterator(database, sql))
+  def selectFold[T](sql: String)(f: RecordIterator => T): T = selectFold(KEY_DEFAULT, sql)(f)
 
-  def queryHeadOption(database: Symbol, sql: String): Option[Record] = {
+  def selectFold[T](database: Symbol, sql: String)(f: RecordIterator => T): T =
+    f(selectIterator(database, sql))
+
+  def selectHeadOption(database: Symbol, sql: String): Option[Record] = {
     var iter: RecordIterator = null
     try {
-      iter = queryIterator(database, sql)
+      iter = selectIterator(database, sql)
       if (iter.hasNext)
         Some(iter.next)
       else
@@ -242,6 +255,8 @@ object SqlContext {
 
     def queryIterator(db: Symbol)(body: java.sql.Connection => ResultSet): RecordIterator
 
+    def queryIterator(db: Symbol, schema: Schema)(body: java.sql.Connection => ResultSet): RecordIterator
+
     def execute[T](db: Symbol)(body: java.sql.Connection => T): T
 
     def commit(): Unit
@@ -279,6 +294,12 @@ object SqlContext {
       ConnectionResultSetRecordIterator.create(rs)
     }
 
+    def queryIterator(db: Symbol, schema: Schema)(body: java.sql.Connection => ResultSet): RecordIterator = {
+      val conn = openConnection(db)
+      val rs = body(conn)
+      ConnectionResultSetRecordIterator.create(schema, rs)
+    }
+
     def execute[T](db: Symbol)(body: java.sql.Connection => T): T = {
       val conn = openConnection(db)
       try {
@@ -312,6 +333,12 @@ object SqlContext {
       val conn = take_connection(db)
       val rs = body(conn)
       ConnectionResultSetRecordIterator.create(rs)
+    }
+
+    def queryIterator(db: Symbol, schema: Schema)(body: java.sql.Connection => ResultSet): RecordIterator = {
+      val conn = take_connection(db)
+      val rs = body(conn)
+      ConnectionResultSetRecordIterator.create(schema, rs)
     }
 
     def execute[T](db: Symbol)(body: java.sql.Connection => T): T = {
@@ -356,6 +383,12 @@ object SqlContext {
       val conn = take_connection(db)
       val rs = body(conn)
       ResultSetRecordIterator.create(rs)
+    }
+
+    def queryIterator(db: Symbol, schema: Schema)(body: java.sql.Connection => ResultSet): RecordIterator = {
+      val conn = take_connection(db)
+      val rs = body(conn)
+      ResultSetRecordIterator.create(schema, rs)
     }
 
     def execute[T](db: Symbol)(body: java.sql.Connection => T): T = {

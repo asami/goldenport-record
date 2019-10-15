@@ -9,10 +9,14 @@ import java.net.URI
  *  version Jan.  9, 2013
  *  version Mar. 10, 2013
  *  version Apr.  4, 2013
- * @version Dec. 14, 2015
+ *  version Dec. 14, 2015
+ * @version Oct.  3, 2019
  * @author  ASAMI, Tomoharu
  */
-case class SqlSchema(actions: Seq[SqlAction]) {
+case class SqlSchema(
+  actions: Seq[SqlAction],
+  tableName: Option[String] = None
+) {
   def isUseId = actions.exists(_.useId)
 }
 

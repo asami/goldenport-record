@@ -1,5 +1,6 @@
 package org.goldenport.record.v3
 
+import scala.util.control.NonFatal
 import java.sql.Timestamp
 import java.util.Locale
 import org.joda.time.DateTime
@@ -42,7 +43,8 @@ import org.goldenport.record.util.AnyUtils
  *  version May.  9, 2019
  *  version Jul.  7, 2019
  *  version Aug. 23, 2019
- * @version Sep. 30, 2019
+ *  version Sep. 30, 2019
+ * @version Oct.  7, 2019
  * @author  ASAMI, Tomoharu
  */
 case class Field(
@@ -50,6 +52,12 @@ case class Field(
   value: FieldValue,
   meta: Field.MetaData = Field.MetaData.empty
 ) {
+  override def toString() = try {
+    s"Field($key: ${value.asString})"
+  } catch {
+    case NonFatal(e) => s"Field#toString($key, ): $e"
+  }
+
   def name: String = key.name
   def asString: String = value.asString
   def asStringList: List[String] = RAISE.unsupportedOperationFault
@@ -194,4 +202,6 @@ object Field {
     case m: Iterator[_] => MultipleValue(m.toVector.map(c.datatype.toInstance(_)))
     case m => MultipleValue(Vector(c.datatype.toInstance(m)))
   }
+
+  def createEmpty(name: String): Field = Field(name, EmptyValue)
 }

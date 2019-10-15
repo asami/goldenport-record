@@ -6,7 +6,8 @@ import org.goldenport.util.AnyUtils
 
 /*
  * @since   Jun. 16, 2019
- * @version Aug. 24, 2019
+ *  version Aug. 24, 2019
+ * @version Oct.  8, 2019
  * @author  ASAMI, Tomoharu
  */
 case class TableVisualizer(
@@ -60,7 +61,7 @@ case class TableVisualizer(
     footervis.plainText(columns, p.matrix)
   }
 
-  private def _to_string(p: Table.Cell): String = AnyUtils.toString(p.content)
+  private def _to_string(p: Table.Cell): String = AnyUtils.toPrint(p.content)
 }
 object TableVisualizer {
   val thick = TableVisualizer(MatrixVisualizer.JisThickLineStyle)
