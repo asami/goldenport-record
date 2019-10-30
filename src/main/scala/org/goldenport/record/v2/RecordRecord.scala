@@ -11,7 +11,8 @@ import org.goldenport.record.v3.{FieldValue, EmptyValue, SingleValue, MultipleVa
  *  version Apr. 20, 2019
  *  version Jul. 29, 2019
  *  version Aug. 22, 2019
- * @version Sep. 23, 2019
+ *  version Sep. 23, 2019
+ * @version Oct. 16, 2019
  * @author  ASAMI, Tomoharu
  */
 case class RecordRecord(record: Record) extends IRecord {
@@ -25,6 +26,7 @@ case class RecordRecord(record: Record) extends IRecord {
   def print: String = RAISE.notImplementedYetDefect
   def display: String = RAISE.notImplementedYetDefect
   def show: String = RAISE.notImplementedYetDefect
+  def embed: String = display
   lazy val fields: Seq[Field3] = record.fields.map(toField3)
   def isEmpty: Boolean = record.isEmpty
   def isDefined(key: String): Boolean = record.isDefined(key)

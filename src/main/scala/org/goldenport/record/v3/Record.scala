@@ -53,7 +53,8 @@ import org.goldenport.values.PathName
  *  version Jun. 15, 2019
  *  version Jul. 30, 2019
  *  version Aug. 22, 2019
- * @version Sep. 30, 2019
+ *  version Sep. 30, 2019
+ * @version Oct. 16, 2019
  * @author  ASAMI, Tomoharu
  */
 case class Record(
@@ -86,6 +87,7 @@ case class Record(
   def print: String = toLxsv.print
   def display: String = print // TODO
   def show: String = print // TODO
+  def embed: String = display
 
   def get(key: String): Option[Any] = getField(key).flatMap(_.value.getValue)
 

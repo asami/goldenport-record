@@ -9,7 +9,8 @@ import org.goldenport.record.v2.Schema
  *  version Apr. 20, 2019
  *  version Jul. 29, 2019
  *  version Aug. 22, 2019
- * @version Sep. 23, 2019
+ *  version Sep. 23, 2019
+ * @version Oct. 16, 2019
  * @author  ASAMI, Tomoharu
  */
 case class JsonRecord() extends IRecord {
@@ -19,6 +20,7 @@ case class JsonRecord() extends IRecord {
   def print: String = RAISE.notImplementedYetDefect
   def display: String = RAISE.notImplementedYetDefect
   def show: String = RAISE.notImplementedYetDefect
+  def embed: String = display
   def fields: Seq[Field] = RAISE.notImplementedYetDefect
   def get(key: Symbol): Option[Any] = RAISE.notImplementedYetDefect
   def get(key: String): Option[Any] = RAISE.notImplementedYetDefect

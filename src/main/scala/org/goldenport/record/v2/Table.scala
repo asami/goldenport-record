@@ -7,7 +7,8 @@ import org.goldenport.record.v3.{IRecord, FieldValue}
  * @since   Feb. 11, 2019
  *  version Jun. 23, 2019
  *  version Jul. 28, 2019
- * @version Aug.  3, 2019
+ *  version Aug.  3, 2019
+ * @version Oct. 16, 2019
  * @author  ASAMI, Tomoharu
  */
 case class Table(
@@ -20,6 +21,7 @@ case class Table(
   def print: String = toString
   def display: String = print
   def show: String = display
+  def embed: String = display
 
   private def _make_value(p: Field): Any = schema.getColumn(p.key).
     map(c => p.toFieldValue.getValue.map(c.datatype.toInstance).getOrElse(Table.Empty)).

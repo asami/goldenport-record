@@ -2,9 +2,11 @@ package org.goldenport.record.v3.sql
 
 import scala.util.Try
 import java.sql.ResultSet
+import java.sql.Connection._
 import org.goldenport.RAISE
 import org.goldenport.hocon.RichConfig
 import org.goldenport.collection.NonEmptyVector
+import org.goldenport.value._
 import org.goldenport.record.v3.{IRecord, Record, RecordSequence}
 import org.goldenport.record.v2.Schema
 
@@ -13,13 +15,14 @@ import org.goldenport.record.v2.Schema
  *  version Apr.  8, 2019
  *  version May. 25, 2019
  *  version Jul. 26, 2019
- * @version Oct.  7, 2019
+ * @version Oct. 31, 2019
  * @author  ASAMI, Tomoharu
  */
 class SqlContext(
   val config: RichConfig,
 //  factories: NonEmptyVector[SqlConnectionFactory]
-  val transaction: SqlContext.TransactionStrategy
+  val transaction: SqlContext.TransactionStrategy,
+  val isolation: SqlContext.IsolationLevel
 ) {
   import SqlContext._
 
@@ -214,7 +217,8 @@ object SqlContext {
 
   val empty = new SqlContext(
     RichConfig.empty,
-    new AutoCommitTransaction(NonEmptyVector(new PlainCPFactory(RichConfig.empty)))
+    new AutoCommitTransaction(NonEmptyVector(new PlainCPFactory(RichConfig.empty))),
+    TransactionReadUncommitted
   )
 
   case class DatabaseConfig(
@@ -410,15 +414,65 @@ object SqlContext {
     }
   }
 
-  def createSync(p: RichConfig): SqlContext = new SqlContext(
-    p,
-    new AutoCommitTransaction(NonEmptyVector(new PlainCPFactory(p)))
-  )
+  def createEachTime(p: RichConfig): SqlContext = {
+    val isolation = TransactionReadUncommitted // TODO
+    new SqlContext(
+      p,
+      new EachTimeTransaction(NonEmptyVector(new PlainCPFactory(p))),
+      isolation
+    )
+  }
+
+  def createAutoCommit(p: RichConfig): SqlContext = {
+    val isolation = TransactionReadUncommitted // TODO
+    new SqlContext(
+      p,
+      new AutoCommitTransaction(NonEmptyVector(new PlainCPFactory(p))),
+      isolation
+    )
+  }
 
   def createConnectionPool(p: RichConfig): SqlContext = createHikari(p)
 
-  def createHikari(p: RichConfig): SqlContext = new SqlContext(
-    p,
-    new ScopeTransaction(NonEmptyVector(new HikariCPFactory(p)))
-  )
+  def createHikari(p: RichConfig): SqlContext = {
+    val isolation = TransactionReadUncommitted // TODO
+    new SqlContext(
+      p,
+      new ScopeTransaction(NonEmptyVector(new HikariCPFactory(p))),
+      isolation
+    )
+  }
+
+  sealed trait IsolationLevel extends NamedValueInstance {
+    def jdbc: Int
+  }
+  object IsolationLevel extends EnumerationClass[IsolationLevel] {
+    val elements = Vector(
+      TransactionNone,
+      TransactionReadUncommitted,
+      TransactionReadCommitted,
+      TransactionRepeatableRead,
+      TransactionSerializable
+    )
+  }
+  case object TransactionNone extends IsolationLevel {
+    val name = "none"
+    val jdbc = TRANSACTION_NONE
+  }
+  case object TransactionReadUncommitted extends IsolationLevel {
+    val name = "read-uncommitted"
+    val jdbc = TRANSACTION_READ_UNCOMMITTED
+  }
+  case object TransactionReadCommitted extends IsolationLevel {
+    val name = "read-committed"
+    val jdbc = TRANSACTION_READ_COMMITTED
+  }
+  case object TransactionRepeatableRead extends IsolationLevel {
+    val name = "repeatable-read"
+    val jdbc = TRANSACTION_REPEATABLE_READ
+  }
+  case object TransactionSerializable extends IsolationLevel {
+    val name = "serializable"
+    val jdbc = TRANSACTION_SERIALIZABLE
+  }
 }

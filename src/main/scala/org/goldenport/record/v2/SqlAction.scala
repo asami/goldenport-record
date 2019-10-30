@@ -14,7 +14,8 @@ import org.goldenport.RAISE
  *  version Feb.  6, 2014
  *  version Jan. 27, 2015
  *  version May. 26, 2017
- * @version May. 29, 2019
+ *  version May. 29, 2019
+ * @version Oct. 17, 2019
  * @author  ASAMI, Tomoharu
  */
 trait SqlAction {
@@ -321,11 +322,12 @@ case class SqlActionCommands(commands: Seq[SqlActionCommand]) {
   def afterUpdate(source: ActionContext): ActionContext =
     commands./:(source)((z, x) => x.afterUpdate(z))
 
+  // legacy
   def afterUpdate(rs: Seq[ActionContext]): Seq[ActionContext] =
     rs.map(afterUpdate)
 
   def afterUpdates(p: ActionContextChunk): ActionContextChunk =
-    p.run(afterUpdate)
+    commands.foldLeft(p)((z, x) => x.afterUpdates(z))
 
   def beforeDelete(
     record: Record,
