@@ -18,7 +18,8 @@ import org.goldenport.record.v2._
  *  version Apr.  3, 2018
  *  version May. 31, 2018
  *  version Sep. 12, 2018
- * @version Oct. 16, 2018
+ *  version Oct. 16, 2018
+ * @version Sep. 13, 2019
  * @author  ASAMI, Tomoharu
  */
 sealed trait UnitOfWork[+A] {
@@ -112,13 +113,19 @@ object UnitOfWork {
   object store {
     def get(store: Store, id: Store.Id) = StoreOperation.get(store, id).asInstanceOf[UnitOfWorkFM[GetResult]]
 
+    def getSync(store: Store, id: Store.Id) = StoreOperation.getSync(store, id).asInstanceOf[UnitOfWorkFM[GetResult]]
+
     def getShare(store: Store, id: Store.Id) = StoreOperation.getShare(store, id).asInstanceOf[UnitOfWorkFM[GetResult]]
 
     def getExclusive(store: Store, id: Store.Id) = StoreOperation.getExclusive(store, id).asInstanceOf[UnitOfWorkFM[GetResult]]
 
     def gets(store: Store, ids: Seq[Store.Id]) = StoreOperation.gets(store, ids).asInstanceOf[UnitOfWorkFM[GetsResult]]
 
+    def getsSync(store: Store, ids: Seq[Store.Id]) = StoreOperation.getsSync(store, ids).asInstanceOf[UnitOfWorkFM[GetsResult]]
+
     def select(store: Store, query: Query) = StoreOperation.select(store, query).asInstanceOf[UnitOfWorkFM[SelectResult]]
+
+    def selectSync(store: Store, query: Query) = StoreOperation.selectSync(store, query).asInstanceOf[UnitOfWorkFM[SelectResult]]
 
     def selectShare(store: Store, query: Query) = StoreOperation.selectShare(store, query).asInstanceOf[UnitOfWorkFM[SelectResult]]
 

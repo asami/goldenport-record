@@ -51,7 +51,9 @@ import org.goldenport.record.v3.IRecord
  *  version Jan.  1, 2019
  *  version Feb. 12, 2019
  *  version Apr. 29, 2019
- * @version May.  1, 2019
+ *  version May.  1, 2019
+ *  version Aug. 20, 2019
+ * @version Oct.  1, 2019
  * @author  ASAMI, Tomoharu
  */
 case class Schema(
@@ -70,7 +72,8 @@ case class Schema(
 //  isCsvTitle: Option[Boolean] = None,
 //  comment: String = "",
 //  history: String = ""
-  desc: Description = Description.empty
+  desc: Description = Description.empty,
+  xml: XmlSchema = XmlSchema.default
 ) extends org.goldenport.table.ISchema {
   import scalaz.syntax.foldable._
   implicit object ValidationResultMonoid extends Monoid[ValidationResult] {
@@ -464,7 +467,7 @@ object Schema {
         val multiplicity = (json \ "multiplicity").asOpt[Multiplicity] getOrElse MOne
         val label = (json \ "label").asOpt[String]
         val i18nLabel = (json \ "i18nLabel").asOpt[I18NString]
-        val constraints = (json \ "constrains").as[List[Constraint]]
+        val constraints = (json \ "constrains").asOpt[List[Constraint]] getOrElse Nil
         val form = (json \ "form").asOpt[Form] getOrElse Form.empty
         JsSuccess(
           Column(name, datatype, multiplicity,
@@ -497,16 +500,16 @@ object Schema {
         val columns: Seq[Column] = (json \ "columns") match {
           case JsDefined(js) => js match {
             case JsArray(xs) => xs.map(_.as[Column])
-            case m => RAISE.noReachDefect // JsError(s"Unknown element in columns: $m")
+            case m => RAISE.noReachDefect(s"Unknown element in columns: $m") // JsError(s"Unknown element in columns: $m")
           }
           case m: JsUndefined => RAISE.noReachDefect // JsError(m.validationError)
         }
         val validators: Seq[Validator] = (json \ "validators") match {
           case JsDefined(js) => js match {
             case JsArray(xs) => xs.map(_.as[Validator])
-            case m => RAISE.noReachDefect // JsError(s"Unknown element in columns: $m")
+            case m => RAISE.noReachDefect(s"Unknown element in columns: $m") // JsError(s"Unknown element in columns: $m")
           }
-          case m: JsUndefined => RAISE.noReachDefect // JsError(m.validationError)
+          case m: JsUndefined => RAISE.noReachDefect(s"Unknown element in columns: $m") // JsError(s"Unknown element in columns: $m")
         }
         JsSuccess(Schema(columns, validators = validators))
       }

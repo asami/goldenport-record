@@ -1,6 +1,7 @@
 package org.goldenport.record.v2
 
 import scalaz._, Scalaz._
+import org.goldenport.record.util.AnyUtils
 
 /*
  * Derived from SqlSchema.
@@ -12,7 +13,8 @@ import scalaz._, Scalaz._
  *  version Jun. 24, 2013
  *  version Aug. 15, 2013
  *  version Sep. 10, 2014
- * @version Feb.  5, 2015
+ *  version Feb.  5, 2015
+ * @version May. 28, 2019
  * @author  ASAMI, Tomoharu
  */
 case class ActionContext(
@@ -76,6 +78,10 @@ case class ActionContext(
     properties.get(key)
   }
 
+  def getMainIdString: Option[String] = getMainIds.headOption.map(AnyUtils.toString)
+
+  def getMainIdLong: Option[Long] = getMainIds.headOption.map(AnyUtils.toLong)
+
   def getMainIds: Seq[Any] = {
     getProperty(ActionContext.KEY_MAIN_ID) match {
       case Some(s) => s
@@ -126,7 +132,10 @@ case class ActionContext(
     copy(outs = Map.empty ++ a)
   }
 
-  def withConnection[T](implicit body: java.sql.Connection => T): T = {
+  def withConnection(p: java.sql.Connection): ActionContext =
+    copy(connection = Some(p))
+
+  def run[T](body: java.sql.Connection => T): T = {
     connection match {
       case Some(s) => body(s)
       case None => throw new IllegalStateException("No connection")

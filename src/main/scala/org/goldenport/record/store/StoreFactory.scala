@@ -7,7 +7,8 @@ import org.goldenport.record.v3.sql.SqlContext
 
 /*
  * @since   Mar. 24, 2019
- * @version Apr. 15, 2019
+ *  version Apr. 15, 2019
+ * @version Oct.  5, 2019
  * @author  ASAMI, Tomoharu
  */
 class StoreFactory(val config: RichConfig, val sqlContext: SqlContext) {
@@ -35,9 +36,16 @@ class StoreFactory(val config: RichConfig, val sqlContext: SqlContext) {
   def getCollection(collection: Symbol): Option[Collection] = getCollection(SqlContext.KEY_DEFAULT, collection)
 
   def getCollection(store: Symbol, collection: Symbol): Option[Collection] =
-    getStore(store) collect {
-      case m: SqlStore => SqlStore.SqlCollection(m, collection)
-    }
+    getStore(store).flatMap(_.getCollection(collection))
+
+  def defineCollection(store: Option[Symbol], collection: Symbol, schema: Schema): Collection =
+    store.map(defineCollection(_, collection, schema)).getOrElse(defineCollection(collection, schema))
+
+  def defineCollection(collection: Symbol, schema: Schema): Collection = defineCollection(SqlContext.KEY_DEFAULT, collection, schema)
+
+  def defineCollection(store: Symbol, collection: Symbol, schema: Schema): Collection =
+    getStore(store).map(_.define(collection, schema)).
+      getOrElse(RAISE.invalidArgumentFault(s"Unknown store: ${store.name}"))
 }
 
 

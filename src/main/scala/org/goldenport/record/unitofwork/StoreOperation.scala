@@ -12,7 +12,8 @@ import org.goldenport.record.v2._
  *  version Mar. 28, 2018
  *  version Apr.  7, 2018
  *  version May. 31, 2018
- * @version Oct. 16, 2018
+ *  version Oct. 16, 2018
+ * @version Sep. 13, 2019
  * @author  ASAMI, Tomoharu
  */
 sealed trait StoreOperation[+A] extends ExtensionUnitOfWork[A] {
@@ -20,17 +21,23 @@ sealed trait StoreOperation[+A] extends ExtensionUnitOfWork[A] {
 
 case class Get(store: Store, id: Store.Id) extends StoreOperation[GetResult]
 
+case class GetSync(store: Store, id: Store.Id) extends StoreOperation[GetResult]
+
 case class GetShare(store: Store, id: Store.Id) extends StoreOperation[GetResult]
 
 case class GetExclusive(store: Store, id: Store.Id) extends StoreOperation[GetResult]
 
 case class Gets(store: Store, ids: Seq[Store.Id]) extends StoreOperation[GetsResult]
 
+case class GetsSync(store: Store, ids: Seq[Store.Id]) extends StoreOperation[GetsResult]
+
 case class GetsShare(store: Store, ids: Seq[Store.Id]) extends StoreOperation[GetsResult]
 
 case class GetsExclusive(store: Store, ids: Seq[Store.Id]) extends StoreOperation[GetsResult]
 
 case class Select(store: Store, query: Query) extends StoreOperation[SelectResult]
+
+case class SelectSync(store: Store, query: Query) extends StoreOperation[SelectResult]
 
 case class SelectShare(store: Store, query: Query) extends StoreOperation[SelectResult]
 
@@ -82,15 +89,21 @@ object StoreOperation {
 
   def get(store: Store, id: Store.Id) = Free.liftF(Get(store, id))
 
-  def getShare(store: Store, id: Store.Id) = Free.liftF(GetShare(store, id))
+  def getSync(store: Store, id: Store.Id) = Free.liftFC(GetSync(store, id))
+
+  def getShare(store: Store, id: Store.Id) = Free.liftFC(GetShare(store, id))
 
   def getExclusive(store: Store, id: Store.Id) = Free.liftF(GetExclusive(store, id))
 
   def gets(store: Store, ids: Seq[Store.Id]) = Free.liftF(Gets(store, ids))
 
-  def select(store: Store, query: Query) = Free.liftF(Select(store, query))
+  def getsSync(store: Store, ids: Seq[Store.Id]) = Free.liftFC(GetsSync(store, ids))
 
-  def selectShare(store: Store, query: Query) = Free.liftF(SelectShare(store, query))
+  def select(store: Store, query: Query) = Free.liftFC(Select(store, query))
+
+  def selectSync(store: Store, query: Query) = Free.liftFC(SelectSync(store, query))
+
+  def selectShare(store: Store, query: Query) = Free.liftFC(SelectShare(store, query))
 
   def selectExclusive(store: Store, query: Query) = Free.liftF(SelectExclusive(store, query))
 

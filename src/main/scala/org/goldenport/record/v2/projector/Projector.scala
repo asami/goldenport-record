@@ -23,7 +23,9 @@ import org.goldenport.values.PathName
  *  version May. 16, 2018
  *  version Jul. 28, 2018
  *  version Aug. 30, 2018
- * @version Oct. 16, 2018
+ *  version Sep.  3, 2018
+ *  version Oct. 16, 2018
+ * @version Jul. 11, 2019
  * @author  ASAMI, Tomoharu
  */
 case class Projector(
@@ -77,13 +79,20 @@ case class Projector(
         case None => Map(name -> x.values)
       }
     }
-    val b = {
+    val b: Map[String, List[Any]] = {
       val labelnamemap = schema.columns.flatMap(c =>
         c.label.map(_ -> c.name).toList ++ c.aliases.map(_ -> c.name)
       ).toMap
       a.toList.foldMap {
-        case (k, v) =>
-          labelnamemap.get(k).cata(s => Map(s -> v), Map(k -> v))
+        case (k, v) => labelnamemap.get(k).
+            map(s =>
+              if (k == s)
+                Map(k -> v)
+              else if (a.get(s).isDefined)
+                Map.empty[String, List[Any]] // assume already projected
+              else
+                Map(s -> v)
+            ).getOrElse(Map(k -> v))
       }
     }
     val bb: Map[String, List[Any]] = {

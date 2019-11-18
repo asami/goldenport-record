@@ -5,17 +5,28 @@ import org.goldenport.RAISE
 import org.goldenport.record.v2.Schema
 import org.goldenport.record.v3._
 import org.goldenport.record.v3.sql.{SqlContext, SqlBuilder}
+import org.goldenport.record.sql.SqlU
 
 /*
  * @since   Apr.  5, 2019
- * @version Apr. 16, 2019
+ *  version Apr. 16, 2019
+ *  version May.  9, 2019
+ *  version Jul. 15, 2019
+ * @version Oct.  7, 2019
  * @author  ASAMI, Tomoharu
  */
 class SqlStore(
   val name: Symbol,
   val sqlContext: SqlContext
 ) extends Store {
-  private val _collections = new mutable.HashMap[Symbol, Collection]
+  import SqlStore._
+
+  private var _collections: Map[Symbol, Collection] = Map.empty
+
+  private def _set_collection(key: Symbol, c: Collection): Collection = synchronized {
+    _collections = _collections + (key -> c)
+    c
+  }
 
   def getCollection(collection: Symbol): Option[Collection] =
     _collections.get(collection) orElse _make_collection(collection)
@@ -23,7 +34,7 @@ class SqlStore(
   private def _make_collection(collection: Symbol): Option[Collection] = synchronized {
     _collections.get(collection) orElse {
       if (sqlContext.isExists(collection))
-        Some(new SqlStore.SqlCollection(this, collection))
+        Some(new SqlCollection(this, collection))
       else
         None
     }
@@ -35,8 +46,8 @@ class SqlStore(
   def get(collection: Symbol, id: Id): Option[Record] =
     takeCollection(collection).get(id)
 
-  def query(collection: Symbol, q: Query): RecordSequence =
-    takeCollection(collection).query(q)
+  def select(collection: Symbol, q: Query): RecordSequence =
+    takeCollection(collection).select(q)
 
   def insert(collection: Symbol, rec: Record): Id =
     takeCollection(collection).insert(rec)
@@ -47,43 +58,65 @@ class SqlStore(
   def delete(collection: Symbol, id: Id): Unit =
     takeCollection(collection).delete(id)
 
-  def create(collection: Symbol, schema: Schema): Unit = {
+  def create(collection: Symbol, schema: Schema): Collection = {
     // if (getCollection(collection).isDefined)
     //   RAISE.illegalStateFault(s"Table '${collection.name}' already exits.")
     val builder = SqlBuilder.create(collection.name, schema)
     val sql = builder.createTable()
     sqlContext.execute(name, sql)
+    define(collection, schema)
   }
 
   def drop(collection: Symbol): Unit =
     takeCollection(collection).drop()
+
+  def define(collection: Symbol, schema: Schema): Collection = define(collection, None, schema)
+
+  def define(collection: Symbol, tablename: Option[String], schema: Schema): Collection = {
+    val c = new SqlSchemaCollection(this, collection, tablename, schema)
+    _set_collection(collection, c)
+  }
 }
 
 object SqlStore {
-  case class SqlCollection(
-    store: SqlStore,
-    name: Symbol,
-    tableName: Option[String] = None
-  ) extends Collection {
+  trait SqlCollectionBase extends Collection {
+    def store: SqlStore
+    def name: Symbol
+    def tableName: Option[String]
+    def getSchema: Option[Schema]
+
     protected val id_column = "id"
-    protected lazy val table_name = tableName getOrElse name.name
+    protected final def store_name = store.name
+    protected lazy val table_name = tableName orElse getSchema.flatMap(_.sql.tableName) getOrElse name.name
+
+    private lazy val _sql_builder = SqlBuilder(table_name, id_column, getSchema)
 
     def get(id: Id): Option[Record] = {
-      val sql = s"""SELECT * FROM ${table_name} WHERE ${id_column} = '$id'"""
-      store.sqlContext.queryHeadOption(name, sql)
+      val sql = _sql_builder.get(id)
+      store.sqlContext.selectHeadOption(store_name, sql)
     }
 
-    def query(q: Query): RecordSequence = {
-      val sql = s"""SELECT * FROM ${table_name} WHERE ${q.where}"""
-      store.sqlContext.querySequence(name, sql)
+    def select(q: Query): RecordSequence = {
+      // TODO SqlBuilder
+      val limit = 10
+      val sql = s"""SELECT * FROM ${table_name} WHERE ${q.where} LIMIT $limit"""
+      store.sqlContext.selectSequence(store_name, getSchema, sql)
     }
 
-    def insert(rec: Record): Id = {
+    def insert(rec: IRecord): Id = {
       val idoption = rec.get('id)
-      val columns = ???
-      val values = ???
-      val sql = s"""INSERT INTO ${table_name} $columns ($values)"""
-      store.sqlContext.mutate(name, sql)
+      // val columns = rec.fields.map(_.key.name).map(x => s"`$x`").mkString(", ")
+      // val values = rec.fields.map(_.value match {
+      //   case EmptyValue => "NULL"
+      //   case SingleValue(v) => v match {
+      //     case m: Record => RAISE.notImplementedYetDefect
+      //     case m => SqlU.literal(m)
+      //   }
+      //   case m: MultipleValue => RAISE.notImplementedYetDefect
+      // }).mkString(",")
+      val sql = _sql_builder.insert(rec)
+      // val sql = s"""INSERT INTO ${table_name} ($columns) ($values)"""
+      store.sqlContext.mutate(store_name, sql)
       val id = idoption.getOrElse(_fetch_insert_id)
       Id.create(id)
     }
@@ -93,36 +126,41 @@ object SqlStore {
     // http://www.mysqltutorial.org/mysql-last_insert_id.aspx
     private def _fetch_insert_id_mysql = {
       val sql = s"""SELECT LAST_INSERT_ID()"""
-      store.sqlContext.queryHeadOption(name, sql).getOrElse(-1)
+      store.sqlContext.selectHeadOption(store_name, sql).getOrElse(-1)
     }
 
-    def update(id: Id, rec: Record): Unit = {
-      val values = ???
-      val sql = s"""UPDATE ${table_name} SET $values WHERE id = '${id.string}'"""
-      store.sqlContext.mutate(name, sql)
+    def update(id: Id, rec: IRecord): Unit = {
+      val sql = _sql_builder.update(id.string, rec)
+      store.sqlContext.mutate(store_name, sql)
     }
 
     def delete(id: Id): Unit = {
+      // TODO SqlBuilder
       val sql = s"""DELETE FROM ${table_name} WHERE id = '${id.string}"""
-      store.sqlContext.mutate(name, sql)
+      store.sqlContext.mutate(store_name, sql)
     }
 
     def drop(): Unit = {
+      // TODO SqlBuilder
       val sql = s"""DROP TABLE ${table_name}"""
-      store.sqlContext.execute(name, sql)
+      store.sqlContext.execute(store_name, sql)
     }
   }
 
-  class SqlSchemaCollction(
+  class SqlCollection(
     val store: SqlStore,
     val name: Symbol,
+    val tableName: Option[String] = None
+  ) extends SqlCollectionBase {
+    def getSchema = None
+  }
+
+  class SqlSchemaCollection(
+    val store: SqlStore,
+    val name: Symbol,
+    val tableName: Option[String],
     val schema: Schema
-  ) extends Collection {
-    def get(id: Id): Option[Record] = RAISE.notImplementedYetDefect
-    def query(q: Query): RecordSequence = RAISE.notImplementedYetDefect
-    def insert(rec: Record): Id = RAISE.notImplementedYetDefect
-    def update(id: Id, rec: Record): Unit = RAISE.notImplementedYetDefect
-    def delete(id: Id): Unit = RAISE.notImplementedYetDefect
-    def drop(): Unit = RAISE.notImplementedYetDefect
+  ) extends SqlCollectionBase {
+    def getSchema = Some(schema)
   }
 }

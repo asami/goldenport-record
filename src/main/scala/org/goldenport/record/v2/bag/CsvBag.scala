@@ -16,6 +16,7 @@ import org.goldenport.record.v2._
 import org.goldenport.matrix._
 import org.goldenport.table.ITable
 import org.goldenport.Platform.codec.{UTF8, WINDOWS31J}
+import org.goldenport.io.ResourceHandle
 import org.goldenport.csv.CsvLineMaker
 import org.goldenport.bag._
 import org.goldenport.record.v2.util.CsvUtils
@@ -37,7 +38,8 @@ import RecordBag._
  *  version Sep.  2, 2017
  *  version Jan. 23, 2018
  *  version Jul. 18, 2018
- * @version Feb. 12, 2019
+ *  version Feb. 12, 2019
+ * @version Aug. 18, 2019
  * @author  ASAMI, Tomoharu
  */
 class CsvBag(
@@ -126,7 +128,7 @@ class CsvBag(
 
   override def dataVectorsR: Process[Task, Vector[Any]] = super.dataVectorsR // TODO performance
 
-  override def toTable: ITable = to_vector_table
+  // override def toTable: ITable = to_record_table
 
   def openWriter(): Writer = {
     val writer = bag.openWriter(codec)
@@ -607,6 +609,16 @@ object CsvBag {
     val bag = BufferFileBag.create(strategy.codec)
     for {
       in <- resource.managed(url.openStream())
+    } {
+      bag.write(in)
+    }
+    create(bag, strategy)
+  }
+
+  def loadResource(rh: ResourceHandle, strategy: Strategy = Strategy.default): CsvBag = {
+    val bag = BufferFileBag.create(strategy.codec)
+    for {
+      in <- resource.managed(rh.openInputStream())
     } {
       bag.write(in)
     }

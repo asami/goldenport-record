@@ -1,13 +1,20 @@
 package org.goldenport.record.v3.sql
 
+import java.util.{Date, TimeZone}
+import java.sql.Timestamp
+import org.joda.time._
 import org.goldenport.RAISE
 import org.goldenport.record.sql.SqlDatatype
+import org.goldenport.record.store
 import org.goldenport.record.v2.{Schema, Column, SqlColumn, DataType}
 import org.goldenport.record.v3._
+import org.goldenport.record.util.DateUtils
 
 /*
  * @since   Apr.  6, 2019
- * @version Apr. 16, 2019
+ *  version May.  9, 2019
+ *  version Jul. 15, 2019
+ * @version Oct.  9, 2019
  * @author  ASAMI, Tomoharu
  */
 class SqlBuilder( // MySQL
@@ -18,9 +25,12 @@ class SqlBuilder( // MySQL
   import SqlBuilder._
 
   protected def table_name = tableName
+  protected val table_name_literal = s"`$tableName`"
   protected def id_column = idColumn orElse schema.flatMap(_.columns.find(_.sql.isId).map(_.name)) getOrElse("id")
 
-  def createTable(): String = s"""CREATE TABLE $table_name ${createSchema}"""
+  protected def column_name_literal(p: String) = s"`$p`"
+
+  def createTable(): String = s"""CREATE TABLE $table_name_literal ${createSchema}"""
 
   def createSchema(): String = schema.map { s =>
     val columns = s.columns.filterNot(_.isDerived).map(_column)
@@ -159,36 +169,67 @@ class SqlBuilder( // MySQL
     }
   }
 
-  def dropTable(): String = s"""DROP TABLE $table_name"""
+  def dropTable(): String = s"""DROP TABLE $table_name_literal"""
+
+  // TODO derived attribute
+  private def _select_columns = schema.
+    map(_.columns.filterNot(_.sql.isDerived).
+      map(x => column_name_literal(x.sqlColumnName)).mkString(", ")).
+    getOrElse("*")
 
   def get(id: Any): String = {
-    s"""SELECT * FROM ${table_name} WHERE ${id_column} = ${literal(id)}"""
+    val idliteral = id match {
+      case m: store.Id => m.literal
+      case m => m
+    }
+    s"""SELECT ${_select_columns} FROM ${table_name_literal} WHERE ${id_column} = ${literal(idliteral)}"""
   }
 
   def query(q: String): String = {
-    s"""SELECT * FROM ${table_name} WHERE ${q}"""
+    s"""SELECT ${_select_columns} FROM ${table_name_literal} WHERE ${q}"""
   }
 
-  def insert(rec: Record): String = {
+  def insert(p: IRecord): String = {
+    val rec = p.toRecord
     val idoption = rec.get(id_column)
     val columns = insertColumns(schema, rec)
     val values = insertValues(schema, rec)
-    s"""INSERT INTO ${table_name} $columns ($values)"""
+    s"""INSERT INTO ${table_name_literal} $columns VALUES ($values)"""
   }
 
-  def update(id: Any, rec: Record): String = {
+  def inserts(rs: Seq[IRecord]): String = RAISE.notImplementedYetDefect
+
+  def update(id: Any, p: IRecord): String = {
+    val rec = p.toRecord
     val values = updateValues(schema, rec.removeField(id_column))
-    s"""UPDATE ${table_name} SET $values WHERE id = ${literal(id)}"""
+    s"""UPDATE ${table_name_literal} SET $values WHERE id = ${literal(id)}"""
   }
 
   def delete(id: Any): String = {
-    s"""DELETE FROM ${table_name} WHERE id = ${literal(id)}"""
+    s"""DELETE FROM ${table_name_literal} WHERE id = ${literal(id)}"""
    }
 
   def literal(p: Any): String = p match {
     case SingleValue(v) => literal(v)
     case m: MultipleValue => RAISE.notImplementedYetDefect
     case m: String => literalString(m)
+    case m: Boolean => m.toString
+    case m: Char => s"'$m'"
+    case m: Byte => m.toString
+    case m: Short => m.toString
+    case m: Int => m.toString
+    case m: Long => m.toString
+    case m: Float => m.toString
+    case m: Double => m.toString
+    case m: BigInt => m.toString
+    case m: BigDecimal => m.toString
+    case m: Timestamp => literalString(m.toString) // GMT
+    case m: Date => literalString(DateUtils.toIsoDateString(m)) // ISO Date/GMT
+    case m: DateTime => literalString(m.toString)
+    case m: LocalDate => literalString(m.toString)
+    case m: LocalDateTime => RAISE.notImplementedYetDefect
+    case m: store.Id => literalString(m.string)
+    case m => literalString(m)
   }
 
   def literalString(p: Any): String = "'" + escape(p.toString) + "'"
@@ -221,7 +262,7 @@ class SqlBuilder( // MySQL
     schema.columns./:(Z())(_+_).r
   }
 
-  def insertValues(rec: Record): String = rec.fields.map(_.value).map(literal).mkString("(", ", ", ")")
+  def insertValues(rec: Record): String = rec.fields.map(_.value).map(literal).mkString(", ")
 
   def updateValues(schema: Option[Schema], rec: Record): String =
     schema.map(updateValues(_, rec)).getOrElse(updateValues(rec))
@@ -237,11 +278,21 @@ class SqlBuilder( // MySQL
   }
 
   def updateValues(rec: Record): String = rec.fields.map(x =>
-    s"`${x.key.name}` = ${literal(x.value)}"
+//    s"`${x.key.name}` = ${literal(x.value)}" // XXX MySQL
+    s"${x.key.name} = ${literal(x.value)}"
   ).mkString(", ")
 }
 
 object SqlBuilder {
+  def apply(tablename: String): SqlBuilder =
+    new SqlBuilder(tablename, None, None)
+
+  def apply(tablename: String, idcolumn: String): SqlBuilder =
+    new SqlBuilder(tablename, Some(idcolumn), None)
+
+  def apply(tablename: String, idcolumn: String, schema: Option[Schema]): SqlBuilder =
+    new SqlBuilder(tablename, Some(idcolumn), schema)
+
   def create(tablename: String, schema: Schema): SqlBuilder = {
     new SqlBuilder(tablename, None, Some(schema))
   }

@@ -1,6 +1,7 @@
 package org.goldenport.record.v3
 
 import scalaz._, Scalaz._
+import scala.util.control.NonFatal
 import java.sql.Timestamp
 import play.api.libs.json._
 import org.goldenport.Strings
@@ -38,10 +39,20 @@ import org.goldenport.record.v2.{Record => Record2, RecordRecord}
  *  version Sep.  4, 2018
  *  version Oct. 30, 2018
  *  version Dec. 28, 2018
- * @version Jan. 21, 2019
+ *  version Jan. 21, 2019
+ *  version May.  9, 2019
+ *  version Jul. 31, 2019
+ *  version Aug. 23, 2019
+ * @version Oct.  7, 2019
  * @author  ASAMI, Tomoharu
  */
 sealed abstract class FieldValue {
+  override def toString() = try {
+    s"${getClass.getSimpleName}(${as_string})"
+  } catch {
+    case NonFatal(e) => s"""${getClass.getSimpleName}#toString(${getValue.map(_.getClass.getSimpleName).getOrElse("#Empty")}): $e"""
+  }
+
   protected lazy val as_string = getValue.map(AnyUtils.toString).getOrElse("")
 
   def getValue: Option[Any]
@@ -51,7 +62,10 @@ sealed abstract class FieldValue {
   def takeVector: Vector[Any]
   def asString: String = as_string
   def asInt: Int = getValue.map(AnyUtils.toInt).getOrElse(RAISE.invalidArgumentFault("empty"))
-  def asLong: Long = getValue.map(AnyUtils.toInt).getOrElse(RAISE.invalidArgumentFault("empty"))
+  def asLong: Long = getValue.map(AnyUtils.toLong).getOrElse(RAISE.invalidArgumentFault("empty"))
+  def asFloat: Float = getValue.map(AnyUtils.toFloat).getOrElse(RAISE.invalidArgumentFault("empty"))
+  def asDouble: Double = getValue.map(AnyUtils.toDouble).getOrElse(RAISE.invalidArgumentFault("empty"))
+  def asBigDecimal: BigDecimal = getValue.map(AnyUtils.toBigDecimal).getOrElse(RAISE.invalidArgumentFault("empty"))
   def asTimestamp: Timestamp = getValue.map(AnyUtils.toTimestamp).getOrElse(RAISE.invalidArgumentFault("empty"))
   def asRecord: Record
   def asRecordList: List[Record]
@@ -61,6 +75,7 @@ sealed abstract class FieldValue {
   def normalizeHttp: FieldValue
   def +(p: FieldValue): FieldValue
   def toMulti: MultipleValue
+  def mapContent(p: Any => Any): FieldValue
 }
 
 case class SingleValue(value: Any) extends FieldValue {
@@ -120,6 +135,16 @@ case class SingleValue(value: Any) extends FieldValue {
   }
   def +(p: FieldValue): FieldValue = MultipleValue(value +: p.takeVector)
   def toMulti: MultipleValue = MultipleValue(Vector(value))
+  def mapContent(p: Any => Any): FieldValue = copy(p(value))
+
+  def isSimpleData: Boolean = !isComplexData
+  def isComplexData: Boolean = value match {
+    case _: IRecord => true
+    case _: ITable => true
+    case _: Seq[_] => true
+    case _: Array[_] => true
+    case _ => false
+  }
 }
 
 case class MultipleValue(values: Seq[Any]) extends FieldValue {
@@ -161,6 +186,7 @@ case class MultipleValue(values: Seq[Any]) extends FieldValue {
   }
   def +(p: FieldValue): FieldValue = MultipleValue(values ++ p.takeVector)
   def toMulti = this
+  def mapContent(p: Any => Any): FieldValue = copy(values = values.map(p))
 }
 
 case object EmptyValue extends FieldValue {
@@ -177,6 +203,7 @@ case object EmptyValue extends FieldValue {
   def normalizeHttp: FieldValue = this
   def +(p: FieldValue): FieldValue = p
   def toMulti = MultipleValue(Vector.empty)
+  def mapContent(p: Any => Any): FieldValue = this
 }
 
 object FieldValue {

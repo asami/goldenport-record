@@ -2,6 +2,7 @@ package org.goldenport.record.v3
 
 import scalaz._, Scalaz._
 import java.sql.Timestamp
+import org.w3c.dom.{Element, Attr}
 import org.joda.time.DateTime
 import play.api.libs.json._
 import org.joda.time.DateTime
@@ -16,6 +17,8 @@ import org.goldenport.record.util.StringUtils
 import org.goldenport.util.VectorUtils
 import org.goldenport.record.v2.util.RecordUtils
 import org.goldenport.collection.{NonEmptyVector, VectorMap}
+import org.goldenport.xsv.Lxsv
+import org.goldenport.xml.dom.DomUtils
 import org.goldenport.values.PathName
 
 /*
@@ -55,36 +58,46 @@ import org.goldenport.values.PathName
  *  version Jan. 29, 2019
  *  version Feb. 28, 2019
  *  version Mar.  6, 2019
- * @version Apr. 29, 2019
+ *  version Apr. 29, 2019
+ *  version May.  9, 2019
+ *  version Jun. 15, 2019
+ *  version Jul. 30, 2019
+ *  version Aug. 22, 2019
+ *  version Sep. 30, 2019
+ * @version Oct. 16, 2019
  * @author  ASAMI, Tomoharu
  */
 case class Record(
   fields: Seq[Field],
   meta: Record.MetaData = Record.MetaData.empty,
   extra: Record.Extra = Record.Extra.empty
-) extends IRecord
-    with XmlPart with JsonPart with CsvPart with LtsvPart
+) extends IRecord with ElementNode with MapPart
+    with XmlPart with JsonPart with CsvPart with LtsvPart with LxsvPart
     with HttpPart with SqlPart
     with CompatibilityPart {
   def toRecord = this
   def toRecord2: Record2 = extra.v2.
     map(_.copy(fields.map(_.toField2).toList)).
     getOrElse(Record2(fields.map(_.toField2).toList))
+  def getSchema: Option[Schema] = meta.schema
 
-  override def toMap = toRecord2.toMap // XXX
+  override def toMap = this
 
-  def isEmpty: Boolean = fields.isEmpty
+  override def isEmpty: Boolean = fields.isEmpty
   def isDefined(key: Symbol): Boolean = fields.exists(_.key == key)
   def isDefined(key: String): Boolean = isDefined(Symbol(key))
 
   def nonDefined(key: Symbol): Boolean = !isDefined(key)
   def nonDefined(key: String): Boolean = !isDefined(key)
 
+  override def keys: List[String] = keyNames
+  lazy val keySymbols: List[Symbol] = fields.map(_.key).toList
   lazy val keyNames: List[String] = fields.map(_.name).toList
 
-  lazy val print: String = toLtsv.replace("\t", "  ")
-
-  def show: String = print
+  def print: String = toLxsv.print
+  def display: String = print // TODO
+  def show: String = print // TODO
+  def embed: String = display
 
   def get(key: String): Option[Any] = getField(key).flatMap(_.value.getValue)
 
@@ -152,9 +165,27 @@ case class Record(
 
   def asLong(key: Symbol): Long = {
     getLong(key) getOrElse {
-      throw new IllegalArgumentException(s"Missing int '$key.name'")
+      throw new IllegalArgumentException(s"Missing long '$key.name'")
     }
   }
+
+  def getFloat(key: Symbol): Option[Float] = getField(key).map(_.asFloat)
+  def getFloat(key: String): Option[Float] = getField(key).map(_.asFloat)
+
+  def asFloat(key: Symbol): Float =
+    getFloat(key) getOrElse {
+      throw new IllegalArgumentException(s"Missing float '$key.name'")
+    }
+  def asFloat(key: String): Float = asFloat(Symbol(key))
+
+  def getDouble(key: Symbol): Option[Double] = getField(key).map(_.asDouble)
+  def getDouble(key: String): Option[Double] = getField(key).map(_.asDouble)
+
+  def asDouble(key: Symbol): Double =
+    getDouble(key) getOrElse {
+      throw new IllegalArgumentException(s"Missing double '$key.name'")
+    }
+  def asDouble(key: String): Double = asDouble(Symbol(key))
 
   // def getTimestamp(key: Symbol): Option[Timestamp] = {
   //   getField(key).map(_.asTimestamp)
@@ -332,7 +363,17 @@ case class Record(
 
   def removeField(key: String): Record = copy(fields = fields.filterNot(_.key.name == key))
 
-  def complement(p: IRecord): IRecord = ???
+  def complement(p: IRecord): IRecord = RAISE.notImplementedYetDefect
+
+  def mapField(p: Field => Field): Record = copy(fields = fields.map(p))
+
+  def flatMapField(p: Field => Seq[Field]): Record = copy(fields = fields.flatMap(p))
+
+  def mapFieldValue(p: FieldValue => FieldValue): Record =
+    copy(fields = fields.map(_.mapValue(p)))
+
+  def mapValue(p: Any => Any): Record = 
+    copy(fields = fields.map(_.mapContent(p)))
 }
 
 object Record {
@@ -342,6 +383,9 @@ object Record {
     schema: Option[Schema]
   ) {
     def columns: Option[List[Field.MetaData]] = schema.map(_.columns.map(x => Field.MetaData(Some(x))).toList)
+    def prefix: Option[String] = schema.flatMap(_.xml.prefix)
+    def namespaceUri: Option[String] = schema.flatMap(_.xml.namespaceUri)
+    def localName: Option[String] = schema.flatMap(_.xml.localName)
   }
   object MetaData {
     val empty = MetaData(None)
@@ -390,11 +434,11 @@ object Record {
 
   def data(p: (String, Any), ps: (String, Any)*): Record = createDataSeq(p +: ps)
 
-// =======
-//   def apply(ps: Iterator[Field]): Record = Record(ps.toVector)
+  def apply(map: scala.collection.Map[Symbol, Any]): Record = apply(map.toVector)
 
-//   def data(data: (String, Any)*): Record = createDataSeq(data)
-// >>>>>>> origin/master
+  def apply(data: Seq[(Symbol, Any)]): Record = createSymbolAnySeq(data)
+
+  def data(data: (String, Any)*): Record = createDataSeq(data)
 
   def dataOption(data: (String, Option[Any])*): Record = {
     val xs = data.collect {
@@ -436,7 +480,7 @@ object Record {
       case m => m
     }
     def tofield(f: Field2) = {
-      val v = f.values match {
+      val v = f.values match { // unify Field#toFieldValue
         case Nil => EmptyValue
         case x :: Nil => x match {
           case ms: Seq[_] => MultipleValue(ms.map(tovalue))
@@ -470,22 +514,57 @@ object Record {
     ltsv.map(fromLtsv).getOrElse(Record.empty)
   }
 
-  // def fromException(e: Throwable): Record = {
-  //   Record(Vector.empty, exception = Some(e))
-  // }
+// <<<<<<< HEAD
+//   // def fromException(e: Throwable): Record = {
+//   //   Record(Vector.empty, exception = Some(e))
+//   // }
 
-  def fromJson(p: String): Record = create(Json.parse(p))
+//   def fromJson(p: String): Record = create(Json.parse(p))
+
+//   def fromXml(p: String): Record = RAISE.notImplementedYetDefect
+
+//   def create(p: JsLookupResult): Record = create(p.get)
+
+//   def create(p: JsValue): Record = p match {
+//     case null => Record.empty
+//     case JsNull => Record.empty
+//     case m: JsObject => create(m)
+//     case _: JsArray => throw new IllegalArgumentException(s"Array: $p")
+// =======
+  def create(lxsv: Lxsv): Record = apply(lxsv.valueMap)
+
+  def fromLxsv(lxsv: Option[String]): Record = lxsv.map(fromLxsv).getOrElse(Record.empty)
+
+  def fromLxsv(lxsv: String): Record = create(Lxsv.create(lxsv))
+
+  def fromJson(p: String): Either[RecordSequence, Record] = createRecordOrSequence(Json.parse(p))
 
   def fromXml(p: String): Record = RAISE.notImplementedYetDefect
 
-  def create(p: JsLookupResult): Record = create(p.get)
+  // def fromDom(p: org.w3c.dom.Node): Either[RecordSequence, Record] = create(p)
 
-  def create(p: JsValue): Record = p match {
-    case null => Record.empty
-    case JsNull => Record.empty
-    case m: JsObject => create(m)
-    case _: JsArray => throw new IllegalArgumentException(s"Array: $p")
+  def create(p: JsValue): Record = createRecordOrSequence(p) match {
+    case Left(rs) => RAISE.invalidArgumentFault("Record sequence, not record")
+    case Right(r) => r
+  }
+
+  def createRecordOrSequence(p: JsValue): Either[RecordSequence, Record] = p match {
+    case null => Right(Record.empty)
+    case JsNull => Right(Record.empty)
+    case m: JsUndefined => Right(Record.empty)
+    case m: JsObject => Right(create(m))
+    case m: JsArray => Left(createSequence(m))
     case _ => throw new IllegalArgumentException(s"Not object: $p")
+  }
+
+  def createSequence(p: JsArray): RecordSequence = {
+    val xs = p.value.map(_create_record)
+    RecordSequence(xs.toVector)
+  }
+
+  private def _create_record(p: JsValue): Record = createRecordOrSequence(p) match {
+    case Left(rs) => RAISE.notImplementedYetDefect
+    case Right(r) => r
   }
 
   def create(p: JsObject): Record = {
@@ -495,11 +574,110 @@ object Record {
     Record(xs.toVector)
   }
 
-  def buildSchema(p: IRecord): Schema = RecordUtils.buildSchema(p.toRecord.toRecord2)
-  def buildSchema(ps: Seq[IRecord]): Schema = {
-    val xs = ps.map(_.toRecord.toRecord2)
-    RecordUtils.buildSchema(xs)
+  def create(p: org.w3c.dom.Node): Record = createRecordOrSequence(p) match {
+    case Left(rs) => RAISE.invalidArgumentFault("Record sequence, not record")
+    case Right(r) => r
   }
+
+  def createRecordOrSequence(p: org.w3c.dom.Node): Either[RecordSequence, Record] = p match {
+    case m: org.w3c.dom.Document => createRecordOrSequence(m.getDocumentElement)
+    case m: org.w3c.dom.Element => _create_record_or_sequence(m)
+    case m => RAISE.notImplementedYetDefect(s"Not element: $m")
+  }
+
+  private def _create_record_or_sequence(p: org.w3c.dom.Element) = {
+    val xs = DomUtils.elementsIndexedSeq(p)
+    if (xs.isEmpty) {
+      Left(RecordSequence.empty)
+    } else {
+      if (_is_element_list(xs))
+        Left(_create_record_sequence(xs))
+      else
+        Right(_create_record(p, xs))
+    }
+  }
+
+  private def _is_element_list(xs: Seq[Element]): Boolean =
+    xs.map(DomUtils.localName).toSet.size == 1
+
+  private def _create_record(elem: Element): Record = {
+    val xs = DomUtils.elementsIndexedSeq(elem)
+    _create_record(elem, xs)
+  }
+
+  private def _create_record(elem: Element, children: IndexedSeq[Element]): Record = {
+    val attrs = DomUtils.attributes(elem)
+    val a = attrs.map(_to_field)
+    val b = children.map(_to_field)
+    Record(a ++ b)
+  }
+
+  private def _to_field(p: Attr): Field = {
+    val name = p.getName
+    val value = p.getValue
+    Field.create(name, value)
+  }
+
+  private def _to_field(p: Element): Field = {
+    val name = DomUtils.localName(p)
+    val children = DomUtils.childrenIndexedSeq(p)
+    val elements = DomUtils.elementsIndexedSeq(p)
+    val value = if (children.isEmpty)
+      EmptyValue
+    else if (elements.isEmpty)
+      _text_value(children)
+    else if (DomUtils.isElementTextMix(children))
+      _dom_value(children)
+    else if (_is_element_list(elements))
+      _list_value(elements)
+    else
+      _record_value(elements)
+    Field.create(name, value)
+  }
+
+  private def _text_value(ps: Seq[org.w3c.dom.Node]): SingleValue = {
+    val v = ps.map(_.getTextContent).mkString
+    SingleValue(v)
+  }
+
+  private def _dom_value(ps: Seq[org.w3c.dom.Node]): FieldValue =
+    ps.toList match {
+      case Nil => EmptyValue
+      case x :: Nil => SingleValue(x)
+      case x :: xs =>
+        val df = x.getOwnerDocument.createDocumentFragment()
+        df.appendChild(x)
+        for (a <- xs)
+          df.appendChild(a)
+        SingleValue(df)
+    }
+
+  private def _list_value(ps: Seq[Element]): MultipleValue = {
+    val vs = ps.map(_create_record)
+    MultipleValue(vs)
+  }
+
+  private def _record_value(ps: Seq[Element]): SingleValue =
+    RAISE.notImplementedYetDefect
+
+  private def _create_record_sequence(ps: IndexedSeq[Element]): RecordSequence =
+    RecordSequence(ps.map(_create_record).toVector)
+
+  def create(schema: Schema, data: Seq[Any]): Record = {
+    val xs = schema.columns.toVector.zip(data).map {
+      case (c, d) => Field.create(c, d)
+    }
+    Record(xs)
+  }
+
+  def makeSchema(p: Record, ps: Record*): Schema = IRecord.makeSchema(p +: ps)
+  def makeSchema(ps: Seq[Record]): Schema = IRecord.makeSchema(ps)
+
+  // def buildSchema(p: IRecord): Schema = RecordUtils.buildSchema(p.toRecord.toRecord2)
+  // def buildSchema(ps: Seq[IRecord]): Schema = {
+  //   val xs = ps.map(_.toRecord.toRecord2)
+  //   RecordUtils.buildSchema(xs)
+  // }
 
   /*
    * Normalize multiplicity, nesting

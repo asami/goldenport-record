@@ -1,5 +1,6 @@
 package org.goldenport.record.v3
 
+import scala.util.control.NonFatal
 import java.sql.Timestamp
 import java.util.Locale
 import org.joda.time.DateTime
@@ -41,7 +42,12 @@ import org.goldenport.record.util.AnyUtils
  *  version Oct. 30, 2018
  *  version Dec. 29, 2018
  *  version Jan.  7, 2019
- * @version Mar. 23, 2019
+ *  version Mar. 23, 2019
+ *  version May.  9, 2019
+ *  version Jul.  7, 2019
+ *  version Aug. 23, 2019
+ *  version Sep. 30, 2019
+ * @version Oct.  7, 2019
  * @author  ASAMI, Tomoharu
  */
 case class Field(
@@ -50,18 +56,19 @@ case class Field(
   meta: Field.MetaData = Field.MetaData.empty // ,
 //  validation: ValidationResult = Valid
 ) {
-  // def isValid: Boolean = validation == Valid
-  // def isValidOrWarning: Boolean = validation match {
-  //   case Valid => true
-  //   case _: Warning => true
-  //   case _ => false
-  // }
-  // def isInvalid: Boolean = validation.isInstanceOf[Invalid]
+  override def toString() = try {
+    s"Field($key: ${value.asString})"
+  } catch {
+    case NonFatal(e) => s"Field#toString($key, ): $e"
+  }
+
   def name: String = key.name
   def asString: String = value.asString
   def asStringList: List[String] = RAISE.unsupportedOperationFault
   def asInt: Int = value.asInt
   def asLong: Long = value.asLong
+  def asFloat: Float = value.asFloat
+  def asDouble: Double = value.asDouble
   def asTimestamp: Timestamp = value.asTimestamp
   def asRecord: Record = value.asRecord
   def asRecordList: List[Record] = value.asRecordList
@@ -72,6 +79,12 @@ case class Field(
   // def timestamp: Timestamp = value.timestamp
   // def datetime: DateTime = value.datetime
   // def withKey(name: String): Field = copy(key = Symbol(name))
+
+  def withValue(p: FieldValue): Field = copy(value = p)
+
+  def mapValue(p: FieldValue => FieldValue): Field = copy(value = p(value))
+
+  def mapContent(p: Any => Any): Field = copy(value = value.mapContent(p))
 
   def keyValue: Option[(Symbol, Any)] = {
     val data = value.getValue
@@ -92,11 +105,15 @@ case class Field(
 
   def getJsonField: Option[(String, JsValue)] = value.getJson.map(x => name -> x)
 
-  def isAttribute = value match {
-    case EmptyValue => true
-    case _: SingleValue => true
-    case _: MultipleValue => false
-  }
+  def isAttributeOption = meta.column.flatMap(_.xml.isAttribute)
+
+  def isAttribute = isAttributeOption.getOrElse(
+    value match {
+      case EmptyValue => true
+      case m: SingleValue => m.isSimpleData
+      case _: MultipleValue => false
+    }
+  )
 
   def toField2: Field2 = value match {
     case EmptyValue => Field2(key, Nil)
@@ -122,7 +139,7 @@ case class Field(
 
 object Field {
   case class MetaData(
-    column: Option[Column]
+    column: Option[Column] = None
   ) {
     def name = column.map(_.name)
     def datatype = column.map(_.datatype)
@@ -134,14 +151,20 @@ object Field {
     def form = column.map(_.form) // HTML FORM
   }
   object MetaData {
-    val empty = MetaData(None)
+    val empty = MetaData()
+
+    def apply(p: Column): MetaData = MetaData(Some(p))
   }
 
   def apply(kv: (String, FieldValue)): Field = apply(kv._1, kv._2)
 
   def apply(key: String, value: FieldValue): Field = Field(Symbol(key), value)
 
+  def apply(c: Column, value: FieldValue): Field = Field(c.key, value, MetaData(c))
+
   def create(key: String, value: Any): Field = create(Symbol(key), value)
+
+  def create(key: String, value: Any, column: Column): Field = create(Symbol(key), value, column)
 
   def create(key: Symbol, value: Any): Field = {
     value match {
@@ -153,6 +176,10 @@ object Field {
     }
   }
 
+  def create(key: Symbol, value: Any, column: Column): Field = {
+    create(key, value).copy(meta = MetaData(column))
+  }
+
   def create(data: (Symbol, Any)): Field = {
     create(data._1, data._2)
   }
@@ -162,4 +189,28 @@ object Field {
   }
 
   def create(key: String, p: JsValue): Field = Field(Symbol(key), FieldValue.create(p))
+
+  def create(c: Column, p: Any): Field = {
+    import org.goldenport.record.v2.{MOne, MZeroOne, MOneMore, MZeroMore, MRange, MRanges}
+    val v = c.multiplicity match {
+      case MOne => _single_value(c, p)
+      case MZeroOne => _single_value(c, p)
+      case MOneMore => _multiple_value(c, p)
+      case MZeroMore => _multiple_value(c, p)
+      case m: MRange => _multiple_value(c, p)
+      case m: MRanges => _multiple_value(c, p)
+    }
+    Field(c, v)
+  }
+
+  private def _single_value(c: Column, p: Any) = SingleValue(c.datatype.toInstance(p))
+
+  private def _multiple_value(c: Column, p: Any): MultipleValue = p match {
+    case m: Array[_] => MultipleValue(m.map(c.datatype.toInstance(_)))
+    case m: Iterable[_] => MultipleValue(m.toVector.map(c.datatype.toInstance(_)))
+    case m: Iterator[_] => MultipleValue(m.toVector.map(c.datatype.toInstance(_)))
+    case m => MultipleValue(Vector(c.datatype.toInstance(m)))
+  }
+
+  def createEmpty(name: String): Field = Field(name, EmptyValue)
 }
