@@ -17,7 +17,8 @@ import org.goldenport.record.util.AnyUtils
  *  version Jul. 29, 2019
  *  version Aug. 21, 2019
  *  version Sep. 19, 2019
- * @version Oct. 16, 2019
+ *  version Oct. 16, 2019
+ * @version Nov. 28, 2019
  * @author  ASAMI, Tomoharu
  */
 case class Table(
@@ -35,10 +36,13 @@ case class Table(
   def matrix: IMatrix[Any] = VectorRowColumnMatrix(records.map(_.fields.map(_make_value).toVector))
   override def toString() = print
 
-  def print = show
+  def print = {
+    val tv = TableVisualizer()
+    tv.plainText(this)
+  }
   def display = s"Table[${width}x${height}]"
   def show = {
-    val tv = TableVisualizer()
+    val tv = TableVisualizer(isEmbed = true)
     tv.plainText(this)
   }
   def embed: String = display
@@ -107,6 +111,10 @@ case class Table(
   private def _make_value(p: Field): Any = schema.getColumn(p.key).
     map(c => p.value.getValue.map(c.datatype.toInstance).getOrElse(Table.Empty)).
     getOrElse(p.value.getValue.getOrElse(Table.Empty))
+
+  def headOption: Option[Record] = records.headOption
+  def tail: Table = if (records.isEmpty) this else copy(records = records.tail)
+  def getRow(i: Int): Option[Record] = records.lift(i)
 }
 
 object Table {
@@ -139,8 +147,18 @@ object Table {
     def height = matrix.height
   }
 
-  case class Cell(content: Any, width: Option[Int] = None) {
+  case class Cell(
+    content: Any,
+    width: Option[Int] = None,
+    height: Option[Int] = None
+  ) {
     def text: String = AnyUtils.toString(content)
+    def print(width: Option[Int]): String = width.map(print).getOrElse(print)
+    def print(width: Int): String = AnyUtils.toString(content) // TODO
+    def print: String = AnyUtils.toPrint(content) // TODO
+    def embed(width: Option[Int]): String = width.map(embed).getOrElse(embed)
+    def embed(width: Int): String = AnyUtils.toString(content) // TODO
+    def embed: String = AnyUtils.toEmbed(content) // TODO
   }
   object Cell {
     val empty = Cell(Empty)

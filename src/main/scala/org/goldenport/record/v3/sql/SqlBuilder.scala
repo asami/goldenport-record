@@ -1,5 +1,6 @@
 package org.goldenport.record.v3.sql
 
+import scalaz._, Scalaz._
 import java.util.{Date, TimeZone}
 import java.sql.Timestamp
 import org.joda.time._
@@ -8,27 +9,30 @@ import org.goldenport.record.sql.SqlDatatype
 import org.goldenport.record.store
 import org.goldenport.record.v2.{Schema, Column, SqlColumn, DataType}
 import org.goldenport.record.v3._
+import org.goldenport.record.command.ValueCommand
 import org.goldenport.record.util.DateUtils
 
 /*
  * @since   Apr.  6, 2019
  *  version May.  9, 2019
  *  version Jul. 15, 2019
- * @version Oct.  9, 2019
+ *  version Oct.  9, 2019
+ * @version Nov. 27, 2019
  * @author  ASAMI, Tomoharu
  */
-class SqlBuilder( // MySQL
+class SqlBuilder(
   tableName: String,
   idColumn: Option[String],
-  schema: Option[Schema]
+  schema: Option[Schema],
+  sqlContext: SqlContext // Database variation point.
 ) {
   import SqlBuilder._
 
   protected def table_name = tableName
-  protected val table_name_literal = s"`$tableName`"
+  protected val table_name_literal = sqlContext.syntax.tableNameLiteral(tableName)
   protected def id_column = idColumn orElse schema.flatMap(_.columns.find(_.sql.isId).map(_.name)) getOrElse("id")
 
-  protected def column_name_literal(p: String) = s"`$p`"
+  protected def column_name_literal(p: String) = sqlContext.syntax.columnNameLiteral(p)
 
   def createTable(): String = s"""CREATE TABLE $table_name_literal ${createSchema}"""
 
@@ -41,7 +45,7 @@ class SqlBuilder( // MySQL
   private def _column(c: Column): String = {
     val sqlcolumn = c.sql
     Vector(
-      Some(s"${c.name} ${_datatype(c, sqlcolumn)}"),
+      Some(s"${column_name_literal(c.name)} ${_datatype(c, sqlcolumn)}"),
       _multiplicity(c),
       _id(c, sqlcolumn),
       _auto(c, sqlcolumn),
@@ -207,11 +211,12 @@ class SqlBuilder( // MySQL
 
   def delete(id: Any): String = {
     s"""DELETE FROM ${table_name_literal} WHERE id = ${literal(id)}"""
-   }
+  }
 
   def literal(p: Any): String = p match {
     case SingleValue(v) => literal(v)
     case m: MultipleValue => RAISE.notImplementedYetDefect
+    case m: ValueCommand => m.getSqlLiteralForSet getOrElse RAISE.noReachDefect
     case m: String => literalString(m)
     case m: Boolean => m.toString
     case m: Char => s"'$m'"
@@ -237,15 +242,10 @@ class SqlBuilder( // MySQL
   def insertColumns(schema: Option[Schema], rec: Record): String =
     schema.map(insertColumns(_, rec)).getOrElse(insertColumns(rec))
 
-  def insertColumns(schema: Schema, rec: Record): String = {
-    case class Z(xs: Vector[String] = Vector.empty) {
-      def r = ???
-      def +(rhs: Column) = {
-        ???
-      }
-    }
-    schema.columns./:(Z())(_+_).r
-  }
+  def insertColumns(schema: Schema, rec: Record): String =
+    schema.columns.flatMap(x =>
+      rec.isDefined(x.name) option column_name_literal(x.sqlColumnName)
+    ).mkString("(", ", ", ")")
 
   def insertColumns(rec: Record): String = rec.fields.map(_.key.name).mkString("(", ", ",")")
 
@@ -254,12 +254,19 @@ class SqlBuilder( // MySQL
 
   def insertValues(schema: Schema, rec: Record): String = {
     case class Z(xs: Vector[String] = Vector.empty) {
-      def r = ???
-      def +(rhs: Column) = {
-        ???
-      }
+      def r = xs.mkString(", ")
+      def +(rhs: Column) =
+        rec.getField(rhs.name).
+          map(x => copy(xs = xs :+ _value(rhs.datatype, x))).
+          getOrElse(this)
     }
     schema.columns./:(Z())(_+_).r
+  }
+
+  private def _value(datatype: DataType, p: Field): String = p.value match {
+    case SingleValue(v) => literal(datatype.toInstance(v))
+    case MultipleValue(v) => RAISE.notImplementedYetDefect
+    case EmptyValue => "NULL"
   }
 
   def insertValues(rec: Record): String = rec.fields.map(_.value).map(literal).mkString(", ")
@@ -269,32 +276,41 @@ class SqlBuilder( // MySQL
 
   def updateValues(schema: Schema, rec: Record): String = {
     case class Z(xs: Vector[String] = Vector.empty) {
-      def r = ???
-      def +(rhs: Column) = {
-        ???
-      }
+      def r = xs.mkString(", ")
+      def +(rhs: Column) =
+        rec.getField(rhs.name).
+          map(x => copy(xs = xs :+ _update_value(rhs, x))).
+          getOrElse(this)
     }
     schema.columns./:(Z())(_+_).r
   }
 
+  private def _update_value(c: Column, p: Field): String = {
+    val v = p.value match {
+      case SingleValue(v) => literal(c.datatype.toInstance(v))
+      case MultipleValue(v) => RAISE.notImplementedYetDefect
+      case EmptyValue => "NULL"
+    }
+    s"${column_name_literal(c.name)} = $v"
+  }
+
   def updateValues(rec: Record): String = rec.fields.map(x =>
-//    s"`${x.key.name}` = ${literal(x.value)}" // XXX MySQL
-    s"${x.key.name} = ${literal(x.value)}"
+    s"${column_name_literal(x.key.name)} = ${literal(x.value)}"
   ).mkString(", ")
 }
 
 object SqlBuilder {
   def apply(tablename: String): SqlBuilder =
-    new SqlBuilder(tablename, None, None)
+    new SqlBuilder(tablename, None, None, SqlContext.empty)
 
   def apply(tablename: String, idcolumn: String): SqlBuilder =
-    new SqlBuilder(tablename, Some(idcolumn), None)
+    new SqlBuilder(tablename, Some(idcolumn), None, SqlContext.empty)
 
   def apply(tablename: String, idcolumn: String, schema: Option[Schema]): SqlBuilder =
-    new SqlBuilder(tablename, Some(idcolumn), schema)
+    new SqlBuilder(tablename, Some(idcolumn), schema, SqlContext.empty)
 
   def create(tablename: String, schema: Schema): SqlBuilder = {
-    new SqlBuilder(tablename, None, Some(schema))
+    new SqlBuilder(tablename, None, Some(schema), SqlContext.empty)
   }
 
   def escape(s: String): String = 

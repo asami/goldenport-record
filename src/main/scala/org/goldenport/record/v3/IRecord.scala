@@ -19,11 +19,13 @@ import org.goldenport.record.util.AnyUtils
  *  version Feb. 28, 2019
  *  version Apr. 29, 2019
  *  version Jul. 29, 2019
- * @version Aug. 22, 2019
+ *  version Aug. 22, 2019
+ * @version Nov. 29, 2019
  * @author  ASAMI, Tomoharu
  */
 trait IRecord extends org.goldenport.record.IRecord
     with org.w3c.dom.Element with DomPart {
+  def parent: Option[IRecord] = None
   def toRecord: Record
   def toMap: Map[String, Any] = toRecord.toMap // XXX
   def getSchema: Option[Schema]
@@ -141,7 +143,7 @@ object IRecord {
     }
 
   private def _to_column(f: Field): Column = {
-    val datatype = DataType.guessSeq(f.value.takeVector)
+    val datatype = DataType.guessSeq(f.value.asVector)
     val multiplicity = f.value match {
       case EmptyValue => MZeroOne
       case m: SingleValue => MZeroOne

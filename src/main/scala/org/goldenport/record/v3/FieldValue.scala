@@ -42,7 +42,8 @@ import org.goldenport.record.v2.{Record => Record2, RecordRecord}
  *  version May.  9, 2019
  *  version Jul. 31, 2019
  *  version Aug. 23, 2019
- * @version Oct.  7, 2019
+ *  version Oct.  7, 2019
+ * @version Nov. 29, 2019
  * @author  ASAMI, Tomoharu
  */
 sealed abstract class FieldValue {
@@ -57,8 +58,8 @@ sealed abstract class FieldValue {
   def getValue: Option[Any]
   def getList: Option[List[Any]]
   def getVector: Option[Vector[Any]]
-  def takeList: List[Any]
-  def takeVector: Vector[Any]
+  def asList: List[Any]
+  def asVector: Vector[Any]
   def asString: String = as_string
   def asInt: Int = getValue.map(AnyUtils.toInt).getOrElse(RAISE.invalidArgumentFault("empty"))
   def asLong: Long = getValue.map(AnyUtils.toLong).getOrElse(RAISE.invalidArgumentFault("empty"))
@@ -81,8 +82,8 @@ case class SingleValue(value: Any) extends FieldValue {
   def getValue = Some(value)
   def getList = Some(List(value))
   def getVector = Some(Vector(value))
-  def takeList = List(value)
-  def takeVector = Vector(value)
+  def asList = List(value)
+  def asVector = Vector(value)
   // override def asTimestamp = value match {
   //   case x: Timestamp => x
   //   case l: Long => new Timestamp(l)
@@ -132,7 +133,7 @@ case class SingleValue(value: Any) extends FieldValue {
         }
     case _ => this
   }
-  def +(p: FieldValue): FieldValue = MultipleValue(value +: p.takeVector)
+  def +(p: FieldValue): FieldValue = MultipleValue(value +: p.asVector)
   def toMulti: MultipleValue = MultipleValue(Vector(value))
   def mapContent(p: Any => Any): FieldValue = copy(p(value))
 
@@ -150,10 +151,10 @@ case class MultipleValue(values: Seq[Any]) extends FieldValue {
   protected lazy val as_string_sequence = values.map(AnyUtils.toString).mkString(",")
 
   def getValue = Some(values)
-  def getList = Some(takeList)
-  def getVector = Some(takeVector)
-  def takeList = values.toList
-  def takeVector = values.toVector
+  def getList = Some(asList)
+  def getVector = Some(asVector)
+  def asList = values.toList
+  def asVector = values.toVector
   override def asString: String = as_string_sequence
   def asRecord = RAISE.notImplementedYetDefect
   def asRecordList = values.toList.map {
@@ -183,7 +184,7 @@ case class MultipleValue(values: Seq[Any]) extends FieldValue {
       case xs => MultipleValue(xs)
     }
   }
-  def +(p: FieldValue): FieldValue = MultipleValue(values ++ p.takeVector)
+  def +(p: FieldValue): FieldValue = MultipleValue(values ++ p.asVector)
   def toMulti = this
   def mapContent(p: Any => Any): FieldValue = copy(values = values.map(p))
 }
@@ -192,8 +193,8 @@ case object EmptyValue extends FieldValue {
   def getValue = None
   def getList = None
   def getVector = None
-  def takeList = Nil
-  def takeVector = Vector.empty
+  def asList = Nil
+  def asVector = Vector.empty
   def asRecord: Record = Record.empty
   def asRecordList: List[Record] = Nil
   def asRecordVector: Vector[Record] = Vector.empty

@@ -9,6 +9,7 @@ import play.api.libs.json.JsValue
 import com.asamioffice.goldenport.io.UURL
 import org.goldenport.record.v2.Record
 import org.goldenport.record.v2.util.RecordUtils
+import org.goldenport.extension.Showable
 import org.goldenport.util.{AnyUtils => LibAnyUtils}
 
 /*
@@ -21,7 +22,8 @@ import org.goldenport.util.{AnyUtils => LibAnyUtils}
  *  version May. 25, 2017
  *  version Nov. 13, 2017
  *  version Jun. 27, 2018
- * @version Jul. 18, 2018
+ *  version Jul. 18, 2018
+ * @version Nov. 27, 2019
  * @author  ASAMI, Tomoharu
  */
 object AnyUtils {
@@ -33,8 +35,24 @@ object AnyUtils {
       case m: Array[_] => m.map(toString(_)).mkString(",")
       case m: Record => RecordUtils.toJsonString(m)
       case m: JsValue => m.toString
-      case _ => x.toString
+      case _ => LibAnyUtils.toString(x)
     }
+  }
+  def toPrint(x: Any): String = x match {
+    case m: Showable => m.print
+    case m => toString(m)
+  }
+  def toDisplay(x: Any): String = x match {
+    case m: Showable => m.display
+    case m => toString(m)
+  }
+  def toShow(x: Any): String = x match {
+    case m: Showable => m.show
+    case m => toString(m)
+  }
+  def toEmbed(x: Any): String = x match {
+    case m: Showable => m.embed
+    case m => toString(m)
   }
   def toBoolean(x: Any): Boolean = {
     x match {
@@ -47,72 +65,14 @@ object AnyUtils {
       }
     }
   }
-  def toByte(x: Any): Byte = {
-    x match {
-      case v: Byte => v
-      case v => v.toString.toByte
-    }
-  }
-  def toShort(x: Any): Short = {
-    x match {
-      case v: Byte => v
-      case v: Short => v
-      case v => v.toString.toShort
-    }
-  }
-  def toInt(x: Any): Int = {
-    x match {
-      case v: Byte => v
-      case v: Short => v
-      case v: Int => v
-      case v => v.toString.toInt
-    }
-  }
-  def toLong(x: Any): Long = {
-    x match {
-      case v: Byte => v
-      case v: Short => v
-      case v: Int => v
-      case v: Long => v
-      case v => v.toString.toLong
-    }
-  }
-  def toFloat(x: Any): Float = {
-    x match {
-      case v: Float => v
-      case v => v.toString.toFloat
-    }
-  }
-  def toDouble(x: Any): Double = {
-    x match {
-      case v: Float => v
-      case v: Double => v
-      case v => v.toString.toDouble
-    }
-  }
-  def toBigInt(x: Any): BigInt = {
-    x match {
-      case v: Byte => BigInt(v)
-      case v: Short => BigInt(v)
-      case v: Int => BigInt(v)
-      case v: Long => BigInt(v)
-      case v: BigInt => v
-      case v => BigInt(v.toString)
-    }
-  }
-  def toBigDecimal(x: Any): BigDecimal = {
-    x match {
-      case v: Byte => BigDecimal(v)
-      case v: Short => BigDecimal(v)
-      case v: Int => BigDecimal(v)
-      case v: Long => BigDecimal(v)
-      case v: Float => BigDecimal(v)
-      case v: Double => BigDecimal(v)
-      case v: BigInt => BigDecimal(v)
-      case v: BigDecimal => v
-      case v => BigDecimal(v.toString)
-    }
-  }
+  def toByte(x: Any): Byte = LibAnyUtils.toByte(x)
+  def toShort(x: Any): Short = LibAnyUtils.toShort(x)
+  def toInt(x: Any): Int = LibAnyUtils.toInt(x)
+  def toLong(x: Any): Long = LibAnyUtils.toLong(x)
+  def toFloat(x: Any): Float = LibAnyUtils.toFloat(x)
+  def toDouble(x: Any): Double = LibAnyUtils.toDouble(x)
+  def toBigInt(x: Any): BigInt = LibAnyUtils.toBigInt(x)
+  def toBigDecimal(x: Any): BigDecimal = LibAnyUtils.toBigDecimal(x)
   def toTimestamp(x: Any): Timestamp = {
     x match {
       case v: Timestamp => v

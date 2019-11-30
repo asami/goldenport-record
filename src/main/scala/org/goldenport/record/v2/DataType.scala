@@ -39,7 +39,8 @@ import org.goldenport.record.util.{
  *  version Jan. 21, 2018
  *  version Jan. 10, 2019
  *  version Jul. 31, 2019
- * @version Aug. 16, 2019
+ *  version Aug. 16, 2019
+ * @version Nov.  4, 2019
  * @author  ASAMI, Tomoharu
  */
 sealed trait DataType {
@@ -242,7 +243,7 @@ object DataType {
   }
 
   def to(p: String): DataType = get(p) getOrElse {
-    throw new NoSuchElementException(s"Unavailable datatype: $p")
+    throw RAISE.syntaxErrorFault(s"Unavailable datatype: $p")
   }
 
   def guessSeq(ps: Seq[Any]): DataType =  {

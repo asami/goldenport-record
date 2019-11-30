@@ -10,7 +10,8 @@ import org.goldenport.value._
  * @since   Jan.  5, 2019
  *  version Jul. 14, 2019
  *  version Aug. 23, 2019
- * @version Sep. 30, 2019
+ *  version Sep. 30, 2019
+ * @version Nov. 29, 2019
  * @author  ASAMI, Tomoharu
  */
 sealed trait DomNode extends Node with DomNodeImpl {
@@ -79,6 +80,10 @@ sealed trait FieldDomNode extends DomNode {
   }
 
   // Node
+  override def getParentNode(): Node = parent
+
+  override def getPrefix(): String = prefix.getOrElse(null)
+
   override def getNodeValue(): String = field.value.asString
 
   override def getNextSibling(): Node = {

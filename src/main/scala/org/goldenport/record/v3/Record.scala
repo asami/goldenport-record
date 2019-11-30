@@ -54,13 +54,15 @@ import org.goldenport.values.PathName
  *  version Jul. 30, 2019
  *  version Aug. 22, 2019
  *  version Sep. 30, 2019
- * @version Oct. 16, 2019
+ *  version Oct. 16, 2019
+ * @version Nov. 29, 2019
  * @author  ASAMI, Tomoharu
  */
 case class Record(
   fields: Seq[Field],
   meta: Record.MetaData = Record.MetaData.empty,
-  extra: Record.Extra = Record.Extra.empty
+  extra: Record.Extra = Record.Extra.empty,
+  override val parent: Option[Record] = None
 ) extends IRecord with ElementNode with MapPart
     with XmlPart with JsonPart with CsvPart with LtsvPart with LxsvPart
     with HttpPart with SqlPart
@@ -121,6 +123,9 @@ case class Record(
   override def getString(key: String): Option[String] = {
     getString(Symbol(key))
   }
+
+  def getStringCaseInsensitive(keys: NonEmptyVector[String]): Option[String] =
+    fields.find(x => keys.exists(x.name.equalsIgnoreCase)).map(_.asString)
 
   def asString(key: Symbol): String = {
     getString(key) getOrElse {
