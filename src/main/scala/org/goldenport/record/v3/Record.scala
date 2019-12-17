@@ -429,16 +429,11 @@ object Record {
     apply(a)
   }
 
-  def apply(ps: Seq[(Symbol, Any)]): Record =
-    Record(ps.map(Field.create).toVector)
-
-  def data(p: (String, Any), ps: (String, Any)*): Record = createDataSeq(p +: ps)
-
   def apply(map: scala.collection.Map[Symbol, Any]): Record = apply(map.toVector)
 
   def apply(data: Seq[(Symbol, Any)]): Record = createSymbolAnySeq(data)
 
-  def data(data: (String, Any)*): Record = createDataSeq(data)
+  def data(p: (String, Any), ps: (String, Any)*): Record = createDataSeq(p +: ps)
 
   def dataOption(data: (String, Option[Any])*): Record = {
     val xs = data.collect {
@@ -551,7 +546,6 @@ object Record {
   def createRecordOrSequence(p: JsValue): Either[RecordSequence, Record] = p match {
     case null => Right(Record.empty)
     case JsNull => Right(Record.empty)
-    case m: JsUndefined => Right(Record.empty)
     case m: JsObject => Right(create(m))
     case m: JsArray => Left(createSequence(m))
     case _ => throw new IllegalArgumentException(s"Not object: $p")

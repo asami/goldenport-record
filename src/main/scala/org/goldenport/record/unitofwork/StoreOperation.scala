@@ -89,21 +89,21 @@ object StoreOperation {
 
   def get(store: Store, id: Store.Id) = Free.liftF(Get(store, id))
 
-  def getSync(store: Store, id: Store.Id) = Free.liftFC(GetSync(store, id))
+  def getSync(store: Store, id: Store.Id) = Free.liftF(GetSync(store, id))
 
-  def getShare(store: Store, id: Store.Id) = Free.liftFC(GetShare(store, id))
+  def getShare(store: Store, id: Store.Id) = Free.liftF(GetShare(store, id))
 
   def getExclusive(store: Store, id: Store.Id) = Free.liftF(GetExclusive(store, id))
 
   def gets(store: Store, ids: Seq[Store.Id]) = Free.liftF(Gets(store, ids))
 
-  def getsSync(store: Store, ids: Seq[Store.Id]) = Free.liftFC(GetsSync(store, ids))
+  def getsSync(store: Store, ids: Seq[Store.Id]) = Free.liftF(GetsSync(store, ids))
 
-  def select(store: Store, query: Query) = Free.liftFC(Select(store, query))
+  def select(store: Store, query: Query) = Free.liftF(Select(store, query))
 
-  def selectSync(store: Store, query: Query) = Free.liftFC(SelectSync(store, query))
+  def selectSync(store: Store, query: Query) = Free.liftF(SelectSync(store, query))
 
-  def selectShare(store: Store, query: Query) = Free.liftFC(SelectShare(store, query))
+  def selectShare(store: Store, query: Query) = Free.liftF(SelectShare(store, query))
 
   def selectExclusive(store: Store, query: Query) = Free.liftF(SelectExclusive(store, query))
 

@@ -7,7 +7,7 @@ import org.goldenport.record.v2.{DataTypeFailure}
 
 /*
  * @since   Jun. 20, 2015
- * @version Jun. 21, 2015
+ * @version Nov. 18, 2019
  * @author  ASAMI, Tomoharu
  */
 object `package` {
@@ -17,7 +17,7 @@ object `package` {
   implicit class V2DataTypeWrapper(val datatype: v2.DataType) extends AnyVal {
     def toInstanceV3(v: Any): Any = {
       datatype match {
-        case v2.XDateTime => XDateTime.toInstance(v)
+        case v2.XDateTime => v2.XDateTime.toInstance(v)
         case _ => datatype.toInstance(v)
       }
     }
