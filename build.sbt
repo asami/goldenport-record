@@ -2,7 +2,7 @@ organization := "org.goldenport"
 
 name := "goldenport-record"
 
-version := "2.1.3-SNAPSHOT"
+version := "2.1.3"
 
 scalaVersion := "2.12.7"
 
@@ -18,13 +18,15 @@ incOptions := incOptions.value.withNameHashing(true)
 
 resolvers += "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases"
 
-resolvers += "Asami Maven Repository" at "http://www.asamioffice.com/maven"
+resolvers += "GitHub releases" at "https://raw.github.com/asami/maven-repository/2019/releases"
+
+// resolvers += "Asami Maven Repository" at "http://www.asamioffice.com/maven"
 
 libraryDependencies += "org.goldenport" %% "goldenport-atom" % "2.1.0"
 
 libraryDependencies += "org.smartdox" %% "smartdox" % "2.1.1"
 
-libraryDependencies += "org.goldenport" %% "goldenport-scala-lib" % "2.1.2"
+libraryDependencies += "org.goldenport" %% "goldenport-scala-lib" % "2.1.3"
 
 libraryDependencies += "com.typesafe.play" %% "play-json" % "2.6.10" % "provided" exclude("org.scala-stm", "scala-stm_2.10.0")
 
@@ -36,6 +38,12 @@ libraryDependencies += "org.scalaj" %% "scalaj-http" % "2.4.1" % "compile"
 
 libraryDependencies += "com.zaxxer" % "HikariCP-java7" % "2.4.13" % "compile"
 
+libraryDependencies += "org.apache.poi" % "poi" % "3.12" % "compile"
+
+libraryDependencies += "org.apache.poi" % "poi-ooxml" % "3.12" % "compile"
+
+libraryDependencies += "org.jfree" % "jfreechart" % "1.5.0" % "compile"
+
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.5" % "test"
 
 libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.14.0" % "test"
@@ -46,4 +54,12 @@ libraryDependencies += "junit" % "junit" % "4.12" % "test"
 libraryDependencies += "com.googlecode.json-simple" % "json-simple" % "1.1"
 
 //
-publishTo := Some(Resolver.file("asamioffice", file("target/maven-repository")))
+// publishTo := Some(Resolver.file("asamioffice", file("target/maven-repository")))
+
+val mavenrepo = settingKey[String]("mavenrepo")
+
+mavenrepo := sys.env.getOrElse("PUBLISH_MAVEN_REPO", default = "target/maven-repository")
+
+publishTo <<= mavenrepo { v: String =>
+  Some(Resolver.file("file", file(v)))
+}
