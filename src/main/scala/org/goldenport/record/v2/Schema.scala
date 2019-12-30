@@ -9,6 +9,7 @@ import com.asamioffice.goldenport.text.UString
 import org.goldenport.exception.RAISE
 import org.goldenport.i18n.I18NString
 import org.goldenport.collection.NonEmptyVector
+import org.goldenport.extension.Showable
 import org.goldenport.util.AnyUtils
 import org.goldenport.record.command.ValueCommand
 import org.goldenport.record.v2.projector.{Projector, ProjectorContext}
@@ -52,7 +53,8 @@ import org.goldenport.record.v3.IRecord
  *  version Apr. 29, 2019
  *  version May.  1, 2019
  *  version Aug. 20, 2019
- * @version Oct.  1, 2019
+ *  version Oct.  1, 2019
+ * @version Dec. 30, 2019
  * @author  ASAMI, Tomoharu
  */
 case class Schema(
@@ -73,7 +75,7 @@ case class Schema(
 //  history: String = ""
   desc: Description = Description.empty,
   xml: XmlSchema = XmlSchema.default
-) extends org.goldenport.table.ISchema {
+) extends org.goldenport.table.ISchema with Showable {
   import scalaz.syntax.foldable._
   implicit object ValidationResultMonoid extends Monoid[ValidationResult] {
     def append(f1: ValidationResult, f2: => ValidationResult) = f1 + f2
@@ -84,6 +86,30 @@ case class Schema(
     s"""Schema(${columns.map(_.showlong).mkString(";")})"""
   else
     s"""Schema(${columns.map(_.show).mkString(";")})"""
+
+  def display = toString // TODO
+  def embed = toString // TODO
+  def print = toString // TODO
+
+  def show = {
+    val s = Schema(
+      Vector(
+        Column("name"),
+        Column("datatype"),
+        Column("multiplicity")
+      )
+    )
+    val xs: Seq[IRecord] = columns.map(c =>
+      org.goldenport.record.v3.Record.data(
+        "name" -> c.name,
+        "datatype" -> c.datatype.name,
+        "multiplicity" -> c.multiplicity.mark
+      )
+    )
+    val t = org.goldenport.record.v3.Table.create(s, xs)
+    val v = org.goldenport.record.v3.TableVisualizer.thick
+    v.plainText(t)
+  }
 
   final def keys: List[String] = columns.map(_.name).toList
 

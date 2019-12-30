@@ -4,6 +4,8 @@ import org.w3c.dom._
 import play.api.libs.json._
 import org.goldenport.exception.RAISE
 import org.goldenport.matrix.{IMatrix, VectorRowColumnMatrixBase, VectorRowColumnMatrix}
+import org.goldenport.xsv.{Xsv, Lxsv}
+import org.goldenport.parser.LogicalToken
 import org.goldenport.values.NumberRange
 import org.goldenport.record.v2.{Schema, Column}
 import org.goldenport.record.util.AnyUtils
@@ -18,7 +20,8 @@ import org.goldenport.record.util.AnyUtils
  *  version Aug. 21, 2019
  *  version Sep. 19, 2019
  *  version Oct. 16, 2019
- * @version Nov. 28, 2019
+ *  version Nov. 28, 2019
+ * @version Dec.  8, 2019
  * @author  ASAMI, Tomoharu
  */
 case class Table(
@@ -215,16 +218,20 @@ object Table {
       create(schema, Vector(r))
   }
 
+  def create(schema: Schema, p: RecordSequence): Table = create(schema, p.irecords)
+
   def create(schema: Schema, ps: Seq[IRecord]): Table = {
     val head = _create_head(schema)
     Table(ps.map(_.toRecord).toVector, MetaData(schema), Some(head))
   }
 
   def create(schema: Option[Schema], ps: Seq[IRecord]): Table =
-    schema.map(create(_, ps)).getOrElse(create(IRecord.makeSchema(ps), ps))
+    schema.map(create(_, ps)).getOrElse(create(ps))
 
   def create(schema: Option[Schema], ps: RecordSequence): Table =
     create(schema orElse ps.schema, ps.irecords)
+
+  def create(ps: Seq[IRecord]): Table = create(IRecord.makeSchema(ps), ps)
 
   def create(ps: RecordSequence): Table = create(ps.schema, ps.irecords)
 
@@ -236,6 +243,55 @@ object Table {
   }
 
   private def _to_cell(p: Column): Cell = Cell(p.name)
+
+  def create(p: Xsv): Table = {
+    val xs = p.rowIterator.toVector
+    xs.headOption.map(x => _create(x, xs.tail)).getOrElse(Table.empty)
+  }
+
+  private def _create(head: Vector[LogicalToken], tail: Vector[Vector[LogicalToken]]): Table = {
+    val names = head.map(_.raw)
+    val columns = names.map(Column(_))
+    val schema = Schema(columns)
+    case class Z(
+      records: Vector[Record] = Vector.empty
+    ) {
+      def r: Vector[Record] = records
+
+      def +(rhs: Vector[LogicalToken]) = {
+        val ns = _make_names(rhs)
+        val xs = rhs.zip(ns).map {
+          case (v, k) => k -> v.raw
+        }
+        copy(records :+ Record.create(xs))
+      }
+
+      private def _make_names(p: Vector[LogicalToken]) =
+        if (p.length <= names.length)
+          names
+        else
+          names ++ (1 to (p.length - names.length)).map(_make_name)
+
+      private def _make_name(p: Int) = {
+        @annotation.tailrec
+        def go(count: Int): String = {
+          val s = s"${Vector.fill(count)('_')}$p"
+          if (names.contains(s))
+            go(count + 1)
+          else
+            s
+        }
+        go(1)
+      }
+    }
+    val rs = tail./:(Z())(_+_).r
+    create(schema, rs)
+  }
+
+  def create(ps: Vector[Lxsv]): Table = {
+    val rs = ps.map(Record.create)
+    create(rs)
+  }
 
   def createHtml(p: Node): Table = createHtmlOption(p).getOrElse(RAISE.invalidArgumentFault("No table content"))
 
