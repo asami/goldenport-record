@@ -21,7 +21,8 @@ import QueryExpression.Context
  *  version Jul. 31, 2019
  *  version Aug. 16, 2019
  *  version Oct. 15, 2019
- * @version Nov. 29, 2019
+ *  version Nov. 29, 2019
+ * @version Jan. 11, 2020
  * @author  ASAMI, Tomoharu
  */
 sealed trait QueryExpression {
@@ -53,8 +54,36 @@ sealed trait QueryExpression {
   protected final def map_powertype_value(pt: PowertypeClass, v: Any): Either[Throwable, Any] =
     map_powertype_instance(pt, v).right.map(_.value)
 
-  protected final def map_powertype_values(pt: PowertypeClass, vs: Seq[Any]): Seq[Either[Throwable, Any]] =
-    vs.map(map_powertype_value(pt, _))
+  protected final def map_powertype_value_eager(pt: PowertypeClass, v: Any): Either[Throwable, Seq[Any]] =
+    v match {
+      case m: String => map_powertype_values(pt, Strings.totokens(m, ","))
+      case m => map_powertype_values(pt, Vector(m))
+    }
+
+  protected final def map_powertype_values_eager(pt: PowertypeClass, vs: Seq[Any]): Either[Throwable, Seq[Any]] = {
+    val xs = vs.flatMap {
+      case m: String => Strings.totokens(m, ",")
+      case m => Vector(m)
+    }
+    map_powertype_values(pt, xs)
+  }
+
+  protected final def map_powertype_values(pt: PowertypeClass, vs: Seq[Any]): Either[Throwable, Seq[Any]] = {
+    val a = vs.map(map_powertype_value(pt, _))
+    case class Z(e: Option[Throwable] = None, xs: Vector[Any] = Vector.empty) {
+      def r = e.map(Left(_)).getOrElse(Right(xs))
+
+      def +(rhs: Either[Throwable, Any]) =
+        if (e.isDefined)
+          this
+        else
+          rhs match {
+            case Right(x) => copy(xs = xs :+ x)
+            case Left(e) => copy(e = Some(e))
+          }
+    }
+    a./:(Z())(_+_).r
+  }
 
   protected final def map_powertype_instance(pt: PowertypeClass, v: Any): Either[Throwable, Powertype] = {
     val r = v match {
@@ -161,7 +190,7 @@ case class EqualQuery(value: Any) extends QueryExpression {
   def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
 
   override def mapPowertypeOrException(pt: PowertypeClass) = {
-    map_powertype_value(pt, value).right.map(x => copy(x))
+    map_powertype_value_eager(pt, value).right.map(x => copy(x))
   }
 }
 object EqualQuery extends QueryExpressionClass {
@@ -187,7 +216,7 @@ case class NotEqualQuery(value: Any) extends QueryExpression {
   def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
 
   override def mapPowertypeOrException(pt: PowertypeClass) = {
-    map_powertype_value(pt, value).right.map(x => copy(x))
+    map_powertype_value_eager(pt, value).right.map(x => copy(x))
   }
 }
 object NotEqualQuery extends QueryExpressionClass {
@@ -207,10 +236,8 @@ case class EnumQuery(values: List[Any]) extends QueryExpression {
     s"""${column.name} IN (${to_literal_list(column, values)})"""
   def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
 
-  override def mapPowertypeOrException(pt: PowertypeClass) = {
-    // map_powertype_values(pt, values).map(_.right.map(x => copy(x)))
-    RAISE.notImplementedYetDefect
-  }
+  override def mapPowertypeOrException(pt: PowertypeClass) =
+    map_powertype_values(pt, values).right.map(xs => copy(xs.toList))
 }
 object EnumQuery extends QueryExpressionClass {
   val name = "enum"
@@ -240,10 +267,8 @@ case class EnumOrNullQuery(values: List[Any]) extends QueryExpression {
     s"""(${column.name} IN (${to_literal_list(column, values)}) OR ${column.name} IS NULL)"""
   def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
 
-  override def mapPowertypeOrException(pt: PowertypeClass) = {
-    // map_powertype_values(pt, values).map(_.right.map(x => copy(x)))
-    RAISE.notImplementedYetDefect
-  }
+  override def mapPowertypeOrException(pt: PowertypeClass) =
+    map_powertype_values(pt, values).right.map(xs => copy(xs.toList))
 }
 object EnumOrNullQuery extends QueryExpressionClass {
   val name = "enum-or-null"
@@ -595,6 +620,7 @@ object QueryExpression {
     EqualQuery,
     NotEqualQuery,
     EnumQuery,
+    EnumOrNullQuery,
     GreaterQuery,
     GreaterEqualQuery,
     LesserQuery,
@@ -634,6 +660,30 @@ object QueryExpression {
       val v = expressions.toStream.flatMap(_.createOption(x, adargs.tail, fv)).headOption
       v.map(p.update(path, _))
     }.getOrElse(RAISE.invalidArgumentFault(s"Invalid query: ${p.key.name}"))
+
+  def activate(pt: PowertypeClass, p: Field2)(implicit ctx: Context): Field2 = {
+    val key = ParameterKey.parse(p.key)
+    key.adornment.collect {
+      case ADORNMENT_QUERY => _expression(pt, p, key.path, key.adornmentArguments)
+    }.getOrElse {
+      val fv = _to_field_value(pt, p.toFieldValue)
+      p.setFieldValue(fv)
+    }
+  }
+
+  private def _expression(pt: PowertypeClass, p: Field2, path: String, adargs: List[String])(implicit ctx: Context): Field2 = 
+    adargs.headOption.flatMap { x =>
+      val fv = _to_field_value(pt, p.toFieldValue)
+      val v = expressions.toStream.flatMap(_.createOption(x, adargs.tail, fv)).headOption
+      v.map(p.update(path, _))
+    }.getOrElse(RAISE.invalidArgumentFault(s"Invalid query: ${p.key.name}"))
+
+  private def _to_field_value(pt: PowertypeClass, p: FieldValue): FieldValue =
+    pt.toValues(p.asListEager).toList match {
+      case Nil => EmptyValue
+      case x :: Nil => SingleValue(x)
+      case xs => MultipleValue(xs)
+    }
 
   def parse(p: Field3)(implicit ctx: Context): (ParameterKey, QueryExpression) = {
     val key = ParameterKey.parse(p.key)
