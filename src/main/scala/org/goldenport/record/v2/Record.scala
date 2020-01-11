@@ -60,7 +60,8 @@ import org.goldenport.util.{TimestampUtils, DateUtils}
  *  version Feb. 10, 2019
  *  version Apr. 11, 2019
  *  version May. 10, 2019
- * @version Jul. 31, 2019
+ *  version Jul. 31, 2019
+ * @version Jan. 11, 2020
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -1336,6 +1337,12 @@ case class Field(key: Symbol, values: List[Any]) {
       case _ => SingleValue(x)
     }
     case xs => MultipleValue(xs)
+  }
+
+  def setFieldValue(p: FieldValue): Field = p match {
+    case EmptyValue => copy(values = Nil)
+    case SingleValue(v) => copy(values = List(v))
+    case MultipleValue(vs) => copy(values = List(vs))
   }
 }
 

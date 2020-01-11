@@ -4,7 +4,9 @@ import scala.util.control.NonFatal
 import scala.math.BigInt
 import scala.math.BigDecimal
 import java.util.Locale
+import org.goldenport.RAISE
 import org.goldenport.i18n.I18NString
+import org.goldenport.util.StringUtils
 
 /*
  * @since   Aug. 12, 2015
@@ -12,7 +14,8 @@ import org.goldenport.i18n.I18NString
  *  version Oct. 25, 2015
  *  version Nov. 23, 2015
  *  version Dec.  9, 2015
- * @version Nov. 12, 2017
+ *  version Nov. 12, 2017
+ * @version Jan. 11, 2020
  * @author  ASAMI, Tomoharu
  */
 trait Powertype {
@@ -43,6 +46,8 @@ trait Powertype {
 trait PowertypeClass {
   type T <: Powertype
 
+  def name: String = StringUtils.className(this)
+
   def elements: Seq[T]
 
   def default = elements.head
@@ -67,6 +72,17 @@ trait PowertypeClass {
   def getLabel(v: String): Option[String] = get(v).map(_.label)
   def getValue(v: Int): Option[Int] = get(v).map(_.value)
   def getValue(v: String): Option[Int] = get(v).map(_.value)
+
+  def toValue(v: Any): Int = Option(v).flatMap {
+    case m: Int => getValue(m)
+    case m: Number => getValue(m.intValue)
+    case m: String => getValue(m)
+    case m => getValue(m.toString)
+  }.getOrElse {
+    RAISE.invalidArgumentFault(s"Unknown powertype($name): $v")
+  }
+
+  def toValues(vs: Seq[Any]): Seq[Int] = vs.map(toValue)
 
   def getsByMarkAndRemainder(s: String): (Seq[T], Option[String]) = {
     case class Z(

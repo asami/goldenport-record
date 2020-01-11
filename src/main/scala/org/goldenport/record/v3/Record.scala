@@ -55,7 +55,8 @@ import org.goldenport.values.PathName
  *  version Aug. 22, 2019
  *  version Sep. 30, 2019
  *  version Oct. 16, 2019
- * @version Nov. 29, 2019
+ *  version Nov. 29, 2019
+ * @version Jan.  9, 2020
  * @author  ASAMI, Tomoharu
  */
 case class Record(
@@ -140,7 +141,7 @@ case class Record(
     throw new IllegalArgumentException(s"Missing int '$key.name'")
   }
 
-  def getLong(key: Symbol): Option[Long] = {
+  override def getLong(key: Symbol): Option[Long] = {
     getField(key).map(_.asLong)
   }
 
@@ -150,8 +151,8 @@ case class Record(
     }
   }
 
-  def getFloat(key: Symbol): Option[Float] = getField(key).map(_.asFloat)
-  def getFloat(key: String): Option[Float] = getField(key).map(_.asFloat)
+  override def getFloat(key: Symbol): Option[Float] = getField(key).map(_.asFloat)
+  override def getFloat(key: String): Option[Float] = getField(key).map(_.asFloat)
 
   def asFloat(key: Symbol): Float =
     getFloat(key) getOrElse {
@@ -159,8 +160,8 @@ case class Record(
     }
   def asFloat(key: String): Float = asFloat(Symbol(key))
 
-  def getDouble(key: Symbol): Option[Double] = getField(key).map(_.asDouble)
-  def getDouble(key: String): Option[Double] = getField(key).map(_.asDouble)
+  override def getDouble(key: Symbol): Option[Double] = getField(key).map(_.asDouble)
+  override def getDouble(key: String): Option[Double] = getField(key).map(_.asDouble)
 
   def asDouble(key: Symbol): Double =
     getDouble(key) getOrElse {

@@ -12,7 +12,8 @@ import org.goldenport.record.v2.{Schema, XmlSchema, Column}
  *  version Jun. 23, 2019
  *  version Jul. 26, 2019
  *  version Aug. 23, 2019
- * @version Sep. 16, 2019
+ *  version Sep. 16, 2019
+ * @version Jan. 11, 2020
  * @author  ASAMI, Tomoharu
  */
 trait ITable extends org.goldenport.table.ITable {
@@ -26,6 +27,9 @@ trait ITable extends org.goldenport.table.ITable {
   def height: Int = data.height
   def toRecordList: List[Record]
   def toRecordVector: Vector[Record]
+  def project(): ITable = RAISE.notImplementedYetDefect
+  def filter(): ITable = RAISE.notImplementedYetDefect
+  def select(): ITable = RAISE.notImplementedYetDefect
 }
 
 object ITable {

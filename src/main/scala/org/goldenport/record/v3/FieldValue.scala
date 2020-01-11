@@ -43,7 +43,8 @@ import org.goldenport.record.v2.{Record => Record2, RecordRecord}
  *  version Jul. 31, 2019
  *  version Aug. 23, 2019
  *  version Oct.  7, 2019
- * @version Nov. 29, 2019
+ *  version Nov. 29, 2019
+ * @version Jan. 11, 2020
  * @author  ASAMI, Tomoharu
  */
 sealed abstract class FieldValue {
@@ -59,6 +60,7 @@ sealed abstract class FieldValue {
   def getList: Option[List[Any]]
   def getVector: Option[Vector[Any]]
   def asList: List[Any]
+  def asListEager: List[Any] = asList.flatMap(x => Strings.totokens(AnyUtils.toString(x), ","))
   def asVector: Vector[Any]
   def asString: String = as_string
   def asInt: Int = getValue.map(AnyUtils.toInt).getOrElse(RAISE.invalidArgumentFault("empty"))

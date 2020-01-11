@@ -20,7 +20,8 @@ import org.goldenport.record.util.AnyUtils
  *  version Apr. 29, 2019
  *  version Jul. 29, 2019
  *  version Aug. 22, 2019
- * @version Nov. 29, 2019
+ *  version Nov. 29, 2019
+ * @version Jan.  9, 2020
  * @author  ASAMI, Tomoharu
  */
 trait IRecord extends org.goldenport.record.IRecord
@@ -48,8 +49,20 @@ trait IRecord extends org.goldenport.record.IRecord
   def getStringList(key: String): Option[List[String]] = getList(key).map(_.map(AnyUtils.toString))
   def takeStringList(key: Symbol): List[String] = takeList(key).map(AnyUtils.toString)
   def takeStringList(key: String): List[String] = takeList(key).map(AnyUtils.toString)
+  def getBoolean(key: Symbol): Option[Boolean] = get(key).map(AnyUtils.toBoolean)
+  def getBoolean(key: String): Option[Boolean] = get(key).map(AnyUtils.toBoolean)
+  def getByte(key: Symbol): Option[Byte] = get(key).map(AnyUtils.toByte)
+  def getByte(key: String): Option[Byte] = get(key).map(AnyUtils.toByte)
+  def getShort(key: Symbol): Option[Short] = get(key).map(AnyUtils.toShort)
+  def getShort(key: String): Option[Short] = get(key).map(AnyUtils.toShort)
   def getInt(key: Symbol): Option[Int] = get(key).map(AnyUtils.toInt)
   def getInt(key: String): Option[Int] = get(key).map(AnyUtils.toInt)
+  def getLong(key: Symbol): Option[Long] = get(key).map(AnyUtils.toLong)
+  def getLong(key: String): Option[Long] = get(key).map(AnyUtils.toLong)
+  def getFloat(key: Symbol): Option[Float] = get(key).map(AnyUtils.toFloat)
+  def getFloat(key: String): Option[Float] = get(key).map(AnyUtils.toFloat)
+  def getDouble(key: Symbol): Option[Double] = get(key).map(AnyUtils.toDouble)
+  def getDouble(key: String): Option[Double] = get(key).map(AnyUtils.toDouble)
   def getTimestamp(key: Symbol): Option[Timestamp] = get(key).map(AnyUtils.toTimestamp)
   def getTimestamp(key: String): Option[Timestamp] = get(key).map(AnyUtils.toTimestamp)
   def getDate(key: Symbol): Option[Date] = get(key).map(AnyUtils.toDate)
