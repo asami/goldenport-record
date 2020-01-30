@@ -10,6 +10,7 @@ import org.goldenport.bag._
 import org.goldenport.values.FileName
 import org.goldenport.matrix._
 import org.goldenport.table.ITable
+import org.goldenport.util.{StringUtils, AnyUtils => LAnyUtils}
 import org.goldenport.record.v2._
 import org.goldenport.record.v2.projector.Projector
 import org.goldenport.record.v3.{ITable => ITable3, Table => Table3, Record => Record3, RecordSequence}
@@ -22,7 +23,8 @@ import org.goldenport.record.util.AnyUtils
  *  version Sep. 22, 2016
  *  version Aug. 30, 2017
  *  version Feb. 12, 2019
- * @version Aug.  3, 2019
+ *  version Aug.  3, 2019
+ * @version Jan. 30, 2020
  * @author  ASAMI, Tomoharu
  */
 trait RecordBag extends Bag {
@@ -93,10 +95,10 @@ trait RecordBag extends Bag {
   }
 
   private def _is_header(rec: Record, index: Int): Boolean =
-    index == 0 && rec.fields.exists(x => _is_header_column(x.getString))
+    index == 0 && rec.fields.exists(x => _is_matrix_header_column(x.getOne))
 
-  private def _is_header_column(p: Option[String]) =
-    p.fold(false)(x => Try(x.toDouble).toOption.isEmpty)
+  // private def _is_header_column(p: Option[String]) =
+  //   p.fold(false)(x => Try(x.toDouble).toOption.isEmpty) // XXX number (rational, complex)
 
   def dataRecordsR(schema: Schema): Process[Task, \/[ValidationResult, Record]] = {
     dataRecordsR.map(Projector(schema).apply)
@@ -109,23 +111,74 @@ trait RecordBag extends Bag {
 
   def rowVectorDoubleIterator: Iterator[Vector[Double]] = toMatrixDouble.rowIterator
   def columnVectorDoubleIterator: Iterator[Vector[Double]] = toMatrixDouble.columnIterator
-  def toMatrixDouble: IMatrix[Double] = {
-    val schema = getSchema getOrElse RAISE.unsupportedOperationFault("No schema")
-    def tovector(rec: Record): Vector[Double] = {
-      schema.columns./:(Vector.empty[Double])((z, x) =>
-        z :+ (rec.getDouble(x.name) getOrElse 0.0)
-      )
-    }
-    VectorRowColumnMatrix(dataRecords.toVector.map(tovector))
+
+  def toMatrixString: IMatrix[String] = toMatrix(AnyUtils.toString, "")
+  def toMatrixDouble: IMatrix[Double] = toMatrix(AnyUtils.toDouble, 0.0)
+  // def toMatrixDouble: IMatrix[Double] = {
+  //   val schema = getSchema getOrElse RAISE.unsupportedOperationFault("No schema")
+  //   def tovector(rec: Record): Vector[Double] = {
+  //     schema.columns./:(Vector.empty[Double])((z, x) =>
+  //       z :+ (rec.getDouble(x.name) getOrElse 0.0)
+  //     )
+  //   }
+  //   VectorRowColumnMatrix(dataRecords.toVector.map(tovector))
+  // }
+
+  def toMatrix[T](f: Any => T, empty: T): IMatrix[T] = {
+    val xs = dataVectors.map(_.map(f))
+    VectorRowColumnMatrix(xs.toVector)
   }
 
-  def dataVectorsR: Process[Task, Vector[Any]] = {
+  def toMatrixByField[T](f: Field => T, empty: T): IMatrix[T] = {
+    val g = getSchema.
+      map(schema => _to_vector(schema, f, empty) _).
+      getOrElse(_to_vector(f, empty) _)
+    VectorRowColumnMatrix(dataRecords.toVector.map(g))
+  }
+
+  private def _to_vector[T](schema: Schema, f: Field => T, empty: T)(rec: Record): Vector[T] = {
+    schema.columns./:(Vector.empty[T])((z, x) =>
+      z :+ (rec.getField(x.name).map(f).getOrElse(empty)))
+  }
+
+  private def _to_vector[T](f: Field => T, empty: T)(rec: Record): Vector[T] = rec.fields.map(f).toVector
+
+  // def dataVectorsR: Process[Task, Vector[Any]] = {
+  //   val schema = getSchema getOrElse RAISE.unsupportedOperationFault("No schema")
+  //   dataRecordsR.map(rec =>
+  //     schema.columns.toVector./:(Vector.empty[Any])((z, x) =>
+  //       z :+ (rec.getOne(x.name) getOrElse "")
+  //     )
+  //   )
+  // }
+
+  def vectorsR: Process[Task, Vector[Any]] = {
     val schema = getSchema getOrElse RAISE.unsupportedOperationFault("No schema")
-    dataRecordsR.map(rec =>
+    recordsR.map(rec =>
       schema.columns.toVector./:(Vector.empty[Any])((z, x) =>
         z :+ (rec.getOne(x.name) getOrElse "")
       )
     )
+  }
+
+  def dataVectorsR: Process[Task, Vector[Any]] =
+    if (headerPolicy.physical)
+      vectorsR.drop(1)
+    else if (headerPolicy.autoMatrixHeader)
+      vectorsR.zipWithIndex.collect(_auto_matrix_header_for_vector)
+    else
+      vectorsR
+
+  private def _auto_matrix_header_for_vector: PartialFunction[(Vector[Any], Int), Vector[Any]] = {
+    case (rec, index) if !_is_matrix_header(rec, index) => rec
+  }
+
+  private def _is_matrix_header(rec: Vector[Any], index: Int): Boolean =
+    index == 0 && rec.exists(_is_matrix_header_column)
+
+  private def _is_matrix_header_column(p: Any): Boolean = p match {
+    case m: String => !StringUtils.isNumberWide(m)
+    case m => !LAnyUtils.isNumber(m)
   }
 
   def dataVectors: IndexedSeq[Vector[Any]] = dataVectorsR.runLog.run
@@ -217,6 +270,8 @@ object RecordBag {
       schema getOrElse this.schema,
       eliminateEmptyColumn getOrElse this.eliminateEmptyColumn
     )
+
+    def withSchema(p: Schema) = copy(schema = SpecificSchema(p))
   }
 
   object Strategy {
@@ -278,7 +333,7 @@ object RecordBag {
   val naturalHeader = HeaderPolicy(true, true, false, false)
   val virtualHeader = HeaderPolicy(true, false, false, false)
   val complementPhysicalHeader = HeaderPolicy(true, true, true, false)
-  val matrixHeader = naturalHeader.copy(autoMatrixHeader = true)
+  val matrixHeader = HeaderPolicy(false, false, false, true)
 
   abstract class Appender {
     def append(rec: Record): Unit

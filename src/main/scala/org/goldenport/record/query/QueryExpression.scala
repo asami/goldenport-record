@@ -22,7 +22,7 @@ import QueryExpression.Context
  *  version Aug. 16, 2019
  *  version Oct. 15, 2019
  *  version Nov. 29, 2019
- * @version Jan. 11, 2020
+ * @version Jan. 26, 2020
  * @author  ASAMI, Tomoharu
  */
 sealed trait QueryExpression {
@@ -712,6 +712,12 @@ object QueryExpression {
       case SingleValue(v) => EqualQuery(v)
       case MultipleValue(vs) => EqualQuery(vs)
     }
+  }
+
+  def createEqualOption(ps: Seq[Any]): Option[QueryExpression] = ps.toList match {
+    case Nil => None
+    case x :: Nil => Some(EqualQuery(x))
+    case xs => Some(EnumQuery(xs))
   }
 
   // def parse(schema: Schema, s: String): Option[QueryExpression] = {

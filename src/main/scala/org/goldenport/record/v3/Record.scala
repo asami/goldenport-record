@@ -56,7 +56,7 @@ import org.goldenport.values.PathName
  *  version Sep. 30, 2019
  *  version Oct. 16, 2019
  *  version Nov. 29, 2019
- * @version Jan.  9, 2020
+ * @version Jan. 28, 2020
  * @author  ASAMI, Tomoharu
  */
 case class Record(
@@ -241,6 +241,12 @@ case class Record(
 
   def mapValue(p: Any => Any): Record = 
     copy(fields = fields.map(_.mapContent(p)))
+
+  def select(names: Seq[String]): Record = Record(
+    names./:(Vector.empty[Field])((z, x) => fields.find(_.name == x).map(a => z :+ a).getOrElse(RAISE.noSuchElementFault(x))),
+    meta.select(names),
+    extra.select(names)
+  )
 }
 
 object Record {
@@ -253,6 +259,10 @@ object Record {
     def prefix: Option[String] = schema.flatMap(_.xml.prefix)
     def namespaceUri: Option[String] = schema.flatMap(_.xml.namespaceUri)
     def localName: Option[String] = schema.flatMap(_.xml.localName)
+
+    def select(names: Seq[String]): MetaData = MetaData(
+      schema.map(_.select(names))
+    )
   }
   object MetaData {
     val empty = MetaData(None)
@@ -263,6 +273,10 @@ object Record {
   ) {
     def isV2: Boolean = v2.isDefined
     def isV2InputFile: Boolean = v2.map(_.inputFiles.nonEmpty).getOrElse(false)
+
+    def select(names: Seq[String]): Extra = Extra(
+      v2.map(_.select(names))
+    )
   }
   object Extra {
     val empty = Extra(None)
@@ -477,6 +491,13 @@ object Record {
   def create(schema: Schema, data: Seq[Any]): Record = {
     val xs = schema.columns.toVector.zip(data).map {
       case (c, d) => Field.create(c, d)
+    }
+    Record(xs)
+  }
+
+  def make(data: Seq[Any]): Record = {
+    val xs = data.zipWithIndex.map {
+      case (x, i) => Field.create(s"_${i}", x)
     }
     Record(xs)
   }

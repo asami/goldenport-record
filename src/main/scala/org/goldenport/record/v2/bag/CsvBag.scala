@@ -5,7 +5,7 @@ import scalaz.stream._
 import scalaz.stream.process1.lift
 import scalaz.concurrent.Task
 import scalax.io._
-import java.io.{Writer, InputStream}
+import java.io.{Writer, InputStream, File}
 import java.sql.ResultSet
 import java.nio.charset.Charset
 import au.com.bytecode.opencsv.CSVWriter
@@ -39,7 +39,8 @@ import RecordBag._
  *  version Jan. 23, 2018
  *  version Jul. 18, 2018
  *  version Feb. 12, 2019
- * @version Aug. 18, 2019
+ *  version Aug. 18, 2019
+ * @version Jan. 28, 2020
  * @author  ASAMI, Tomoharu
  */
 class CsvBag(
@@ -121,12 +122,12 @@ class CsvBag(
   def isEmpty = bag.isEmpty
   def nonEmpty = bag.nonEmpty
 
-  override def toMatrixDouble: IMatrix[Double] = {
-    val a = vectorsR.map(_.map(_.toDouble)).runLog.run
-    VectorRowColumnMatrix(a.toVector)
-  }
+  // override def toMatrixDouble: IMatrix[Double] = {
+  //   val a = vectorsR.map(_.map(_.toDouble)).runLog.run
+  //   VectorRowColumnMatrix(a.toVector)
+  // }
 
-  override def dataVectorsR: Process[Task, Vector[Any]] = super.dataVectorsR // TODO performance
+  // override def dataVectorsR: Process[Task, Vector[Any]] = super.dataVectorsR
 
   // override def toTable: ITable = to_record_table
 
@@ -246,7 +247,7 @@ class CsvBag(
 
   // Single-line
   // TODO Multi-line
-  def vectorsR: Process[Task, Vector[String]] = {
+  override def vectorsR: Process[Task, Vector[String]] = {
     linesR.map(CsvUtils.parseLine)
   }
 
@@ -266,11 +267,15 @@ class CsvBag(
     vectorsR.map(CsvUtils.makeMap(schema, _))
   }
 
-  def recordsR: Process[Task, Record] =
-    if (strategy.eliminateEmptyColumn)
-      optionVectorsR.map(CsvUtils.makeRecordFlatten(schema, _))
-    else
-      optionVectorsR.map(CsvUtils.makeRecordNullable(schema, _))
+  def recordsR: Process[Task, Record] = getSchema.
+    map(s =>
+      if (strategy.eliminateEmptyColumn)
+        optionVectorsR.map(CsvUtils.makeRecordFlatten(s, _))
+      else
+        optionVectorsR.map(CsvUtils.makeRecordNullable(s, _))
+    ).getOrElse(
+      optionVectorsR.map(CsvUtils.makeRecord(_))
+    )
 
   def mapW: Sink[Task, Map[String, String]] = {
     require (!isNoSchema, "mapW requires a schema")
@@ -353,6 +358,15 @@ class CsvBag(
     bag.linesR(codec).runFoldMap(x => 1).run
   }
 
+  def save(file: File): Unit = {
+    val out = FileBag.create(file)
+    for {
+      x <- resource.managed(out)
+    } yield {
+      bag.copyTo(x.chunkW)
+    }
+  }
+
   class AppenderImpl(writer: Writer) extends Appender {
     val out = new CSVWriter(writer, CSVWriter.DEFAULT_SEPARATOR, CSVWriter.DEFAULT_QUOTE_CHARACTER, lineEnd)
 
@@ -418,6 +432,8 @@ object CsvBag {
       lineEnd getOrElse this.lineEnd,
       isForceDoubleQuote getOrElse this.isForceDoubleQuote
     )
+
+    def withSchema(p: Schema) = copy(recordBagStrategy = recordBagStrategy.withSchema(p))
   }
   object Strategy {
     val default = Strategy(
@@ -484,6 +500,8 @@ object CsvBag {
     val strategy = Strategy.legacy(rstrategy, name, dqp)
     new CsvBag(b, strategy)
   }
+
+  def create(file: File, strategy: Strategy): CsvBag = create(FileBag.create(file), strategy)
 
   // def create(
   //   bag: ChunkBag,

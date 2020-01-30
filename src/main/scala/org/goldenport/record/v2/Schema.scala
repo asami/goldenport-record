@@ -54,7 +54,8 @@ import org.goldenport.record.v3.IRecord
  *  version May.  1, 2019
  *  version Aug. 20, 2019
  *  version Oct.  1, 2019
- * @version Dec. 30, 2019
+ *  version Dec. 30, 2019
+ * @version Jan. 12, 2020
  * @author  ASAMI, Tomoharu
  */
 case class Schema(
@@ -176,6 +177,13 @@ case class Schema(
   }
 
   val gridColumns = columns.filter(_.visibility.grid).filter(_.isSingle)
+
+  final def select(names: Seq[String]): Schema = {
+    val xs = names./:(Vector.empty[Column])((z, x) => columns.find(_.name == x).
+      map(a => z :+ a).
+      getOrElse(RAISE.noSuchElementFault(x)))
+    copy(columns = xs)
+  }
 
   def adjustInsert(r: Record): Record = {
 //    log_trace("Schema#adjustInsert before = " + r)

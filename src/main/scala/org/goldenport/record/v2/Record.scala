@@ -61,7 +61,7 @@ import org.goldenport.util.{TimestampUtils, DateUtils}
  *  version Apr. 11, 2019
  *  version May. 10, 2019
  *  version Jul. 31, 2019
- * @version Jan. 11, 2020
+ * @version Jan. 28, 2020
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -1149,6 +1149,13 @@ case class Record(
       })
   }
 
+  def select(names: Seq[String]): Record = {
+    val xs = names./:(Vector.empty[Field])((z, x) => fields.find(_.key.name == x).
+      map(a => z :+ a).
+      getOrElse(RAISE.noSuchElementFault(x)))
+    copy(fields = xs.toList)
+  }
+
   def toMap: Map[String, Any] = {
     Map.empty ++ normalizedFields.flatMap(f => f.effectiveValue.map(v => f.key.name -> v))
   }
@@ -1413,6 +1420,13 @@ object Record {
   @deprecated("Use createApp instead.", "0.2.22")
   def createSingle(data: Seq[(String, Any)]): Record = {
     Record(data.map(Field.createSingle).toList)
+  }
+
+  def make(data: Seq[Any]): Record = {
+    val xs = data.zipWithIndex.map {
+      case (x, i) => Field.create(s"_${i}", x)
+    }
+    Record(xs.toList)
   }
 
   def data(data: (String, Any)*): Record = {

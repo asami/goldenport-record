@@ -2,12 +2,14 @@ package org.goldenport.record.v3
 
 import org.w3c.dom._
 import play.api.libs.json._
-import org.goldenport.exception.RAISE
-import org.goldenport.matrix.{IMatrix, VectorRowColumnMatrixBase, VectorRowColumnMatrix}
+import org.goldenport.RAISE
+import org.goldenport.Strings
+import org.goldenport.matrix.{IMatrix, VectorRowColumnMatrixBase, VectorRowColumnMatrix, VectorColumnRowMatrix}
 import org.goldenport.xsv.{Xsv, Lxsv}
 import org.goldenport.parser.LogicalToken
 import org.goldenport.values.NumberRange
-import org.goldenport.record.v2.{Schema, Column}
+import org.goldenport.util.{StringUtils, AnyUtils => LAnyUtils}
+import org.goldenport.record.v2.{Schema, Column, XString, XDouble}
 import org.goldenport.record.util.AnyUtils
 
 /*
@@ -21,7 +23,8 @@ import org.goldenport.record.util.AnyUtils
  *  version Sep. 19, 2019
  *  version Oct. 16, 2019
  *  version Nov. 28, 2019
- * @version Dec.  8, 2019
+ *  version Dec.  8, 2019
+ * @version Jan. 30, 2020
  * @author  ASAMI, Tomoharu
  */
 case class Table(
@@ -37,7 +40,37 @@ case class Table(
   override lazy val width = meta.getWidth getOrElse data.width
   override def height = records.length
   def matrix: IMatrix[Any] = VectorRowColumnMatrix(records.map(_.fields.map(_make_value).toVector))
+  def matrixDouble: IMatrix[Double] = VectorRowColumnMatrix(records.map(_.fields.map(_make_double).toVector))
+  def matrixDoubleDistilled: IMatrix[Double] = VectorRowColumnMatrix(
+    toRecordVector.map(_matrix_row(_matrix_columns, _))
+  )
   override def toString() = print
+
+  private def _matrix_columns =
+    if (data.columns.exists(_.datatype.isNumber)) {
+      data.columns
+    } else {
+      val a = data.columns.zip(matrix.columnVector)
+      a.map {
+        case (c, xs) => if (_guess_number(xs)) c.withDatatype(XDouble) else c
+      }
+    }
+
+  private def _guess_number(p: Vector[Any]) = p.forall(LAnyUtils.guessNumberOrEmpty)
+
+  private def _matrix_row(columns: Seq[Column], rec: Record): Vector[Double] = {
+    case class Z(r: Vector[Double] = Vector.empty) {
+      def +(rhs: Column) = {
+        if (rhs.datatype.isNumber)
+          copy(r = r :+ _value(rhs))
+        else
+          this
+      }
+
+      private def _value(rhs: Column) = rec.getDouble(rhs.name).getOrElse(0.0)
+    }
+    columns./:(Z())(_+_).r
+  }
 
   def print = {
     val tv = TableVisualizer()
@@ -115,9 +148,35 @@ case class Table(
     map(c => p.value.getValue.map(c.datatype.toInstance).getOrElse(Table.Empty)).
     getOrElse(p.value.getValue.getOrElse(Table.Empty))
 
+  private def _make_double(p: Field): Double = p.value.getValue.map {
+    case "" => 0.0
+    case m => AnyUtils.toDouble(m)
+  }.getOrElse(0.0)
+
   def headOption: Option[Record] = records.headOption
   def tail: Table = if (records.isEmpty) this else copy(records = records.tail)
-  def getRow(i: Int): Option[Record] = records.lift(i)
+  def getRow(y: Int): Option[Record] = records.lift(y)
+  def getColumn(x: Int): Option[Vector[Any]] = data.getColumn(x).map(_.map(_.content))
+  def getColumn(x: String): Option[Vector[Any]] = data.getColumn(x).map(_.map(_.content))
+  def row(y: Int): Record = records(y)
+  def column(x: Int): Vector[Any] = data.column(x).map(_.content)
+  def column(x: String): Vector[Any] = data.column(x).map(_.content)
+  def get(x: Int, y: Int): Option[Any] = data.get(x, y).map(_.content)
+  def get(x: String, y: Int): Option[Any] = data.get(x, y).map(_.content)
+  def at(x: Int, y: Int): Any = data.at(x, y).content
+  def at(x: String, y: Int): Any = data.at(x, y).content
+
+  def filter(p: Record => Boolean): Table = copy(records = records.filter(p))
+
+  def select(names: Seq[String]): Table = {
+    val is = data.selectIndex(names)
+    Table(
+      records.map(_.select(names)),
+      meta.select(names),
+      head.map(_.select(is)),
+      foot.map(_.select(is))
+    )
+  }
 }
 
 object Table {
@@ -135,6 +194,12 @@ object Table {
 
     def getKey(i: Int): Option[Symbol] = schema.
       flatMap(_.columns.lift(i).map(x => Symbol(x.name)))
+
+    def select(names: Seq[String]): MetaData = {
+      MetaData(
+        schema.map(_.select(names))
+      )
+    }
   }
   object MetaData {
     val empty = MetaData(None)
@@ -148,6 +213,50 @@ object Table {
   ) {
     def width = columns.length
     def height = matrix.height
+    def getColumn(x: Int): Option[Vector[Cell]] =
+      if (width >= x)
+        None
+      else
+        Some(column(x))
+    def getColumn(x: String): Option[Vector[Cell]] =
+      getIndex(x).map(column)
+    def column(x: Int): Vector[Cell] = matrix.columnVector(x)
+    def column(x: String): Vector[Cell] = matrix.columnVector(index(x))
+    def get(x: Int, y: Int): Option[Cell] = matrix.get(x, y)
+    def get(x: String, y: Int): Option[Cell] = getIndex(x).flatMap(get(_, y))
+    def at(x: Int, y: Int): Cell = matrix(x, y)
+    def at(x: String, y: Int): Cell = matrix(index(x), y)
+
+    def getIndex(p: String): Option[Int] =
+      columns.zipWithIndex.find(_._1.name == p).map(_._2)
+    def index(p: String): Int = getIndex(p).getOrElse(RAISE.noSuchElementFault(p))
+
+    // def selectIndex(names: Set[String]): Option[Seq[(String, Int)]] =
+    //   schema.map(_.columns.zipWithIndex./:(Vector.empty[Int])((z, x) =>
+    //     if (names.contains(x._1.name))
+    //       z :+ (x._1.name, x._2)
+    //     else
+    //       z
+    //   ))
+
+    def selectIndex(names: Seq[String]): Seq[Int] = {
+      case class Z(r: Vector[Int] = Vector.empty) {
+        private val _xs = columns.map(_.name).zipWithIndex.toMap
+
+        def +(rhs: String) = _xs.get(rhs).
+          map(x => copy(r = r :+ x)).
+          getOrElse(RAISE.noSuchElementFault(rhs))
+      }
+      names./:(Z())(_+_).r
+    }
+
+    def select(names: Seq[String]): Data = {
+      val is = selectIndex(names)
+      Data(
+        is./:(Vector.empty[Column])((z, x) => z :+ columns(x)),
+        DataMatrix.create(matrix.select(is))
+      )
+    }
   }
 
   case class Cell(
@@ -182,10 +291,16 @@ object Table {
     def create(pss: Seq[Seq[Cell]]): DataMatrix = DataMatrix(
       pss.toVector.map(_.toVector)
     )
+
+    def create(p: IMatrix[Cell]): DataMatrix = DataMatrix(p.rowIterator.toVector)
   }
 
   case class Head(names: List[Cell]) {
     def matrix: IMatrix[Cell] = DataMatrix.create(Vector(names))
+
+    def select(is: Seq[Int]) = Head(
+      is./:(Vector.empty[Cell])((z, x) => z :+ names(x)).toList
+    )
   }
   object Head {
     def apply(name: String, names: String*): Head = create(name +: names)
@@ -195,6 +310,10 @@ object Table {
 
   case class Foot(data: List[Cell]) {
     def matrix: IMatrix[Cell] = DataMatrix.create(Vector(data))
+
+    def select(is: Seq[Int]) = Foot(
+      is./:(Vector.empty[Cell])((z, x) => z :+ data(x)).toList
+    )
   }
 
   def apply(head: Table.Head, data: Seq[Record]): Table =
@@ -291,6 +410,79 @@ object Table {
   def create(ps: Vector[Lxsv]): Table = {
     val rs = ps.map(Record.create)
     create(rs)
+  }
+
+  def createDouble(p: IMatrix[Double]): Table = {
+    val cs = for (i <- 1 to p.width) yield Column(s"$i", XDouble)
+    val schema = Schema(cs)
+    create(schema, p.asInstanceOf[IMatrix[Any]])
+  }
+
+  def createStringAutoNumber(p: IMatrix[String]): Table = createAutoNumber(p.asInstanceOf[IMatrix[Any]])
+
+  def createAutoNumber(p: IMatrix[Any]): Table = createAuto(x => x.forall(x => !_is_numberable(x)), p)
+
+  def createAuto(headerp: Vector[Any] => Boolean,  p: IMatrix[Any]): Table =
+    p.headOption.map(x =>
+      if (headerp(x))
+        createAuto(x.map(AnyUtils.toString), p.tail)
+      else
+        createAuto(p)
+    ).getOrElse(Table.empty)
+
+  def createAuto(names: Seq[String], p: IMatrix[Any]): Table = {
+    val matrix = if (true) _distill_numberable_matrix(p) else p
+    case class Z(
+      ns: Vector[Column] = Vector.empty,
+      xs: Vector[Vector[Any]] = Vector.empty
+    ) {
+      def r = create(Schema(ns), VectorColumnRowMatrix(xs))
+
+      def +(rhs: Int) = {
+        if (_is_numberable_column(matrix, rhs))
+          copy(ns = ns :+ _column(rhs), xs = xs :+ p.columnVector(rhs))
+        else
+          this
+      }
+
+      private def _name(p: Int): String = names.lift(p).getOrElse(s"${p + 1}")
+
+      private def _column(p: Int): Column = Column(_name(p), XDouble)
+    }
+    (0 until matrix.width)./:(Z())(_+_).r
+  }
+
+  private def _distill_numberable_matrix(p: IMatrix[Any]): IMatrix[Any] =
+    VectorRowColumnMatrix(p.rowIterator.filter(_.forall(_is_numberable)).toVector)
+
+  private def _is_numberable_column(p: IMatrix[Any], x: Int): Boolean =
+    (0 until p.height).map(y => _is_numberable(p(x, y))).forall(identity)
+
+  private def _is_numberable(p: Any) = p match {
+    case m: String => _is_numberable_string(m)
+    case m => LAnyUtils.isNumber(m)
+  }
+
+  private def _is_numberable_string(p: String) = Strings.blankp(p) || StringUtils.isNumberWide(p)
+
+  def createAuto(p: IMatrix[Any]): Table = {
+    val cs = for (i <- 1 to p.width) yield {
+      val datatype = XString // TODO
+      Column(s"$i", datatype)
+    }
+    val schema = Schema(cs)
+    create(schema, p)
+  }
+
+  def create(schema: Schema, p: IMatrix[Any]): Table = {
+    val head = _create_head(schema)
+    val rs = for (x <- p.rowIterator.toVector) yield {
+      val xs = schema.columns.zip(x).map {
+        case (c, v) => c.name -> v
+      }
+      Record.create(xs)
+    }
+    Table(rs, MetaData(schema), Some(head), None)
   }
 
   def createHtml(p: Node): Table = createHtmlOption(p).getOrElse(RAISE.invalidArgumentFault("No table content"))
