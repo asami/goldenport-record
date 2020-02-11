@@ -47,7 +47,8 @@ import org.goldenport.record.util.AnyUtils
  *  version Jul.  7, 2019
  *  version Aug. 23, 2019
  *  version Sep. 30, 2019
- * @version Oct.  7, 2019
+ *  version Oct.  7, 2019
+ * @version Nov. 29, 2019
  * @author  ASAMI, Tomoharu
  */
 case class Field(
@@ -63,6 +64,7 @@ case class Field(
   }
 
   def name: String = key.name
+  def getValue: Option[Any] = value.getValue // Object or Seq
   def asString: String = value.asString
   def asStringList: List[String] = RAISE.unsupportedOperationFault
   def asInt: Int = value.asInt

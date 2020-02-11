@@ -18,7 +18,9 @@ incOptions := incOptions.value.withNameHashing(true)
 
 resolvers += "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases"
 
-resolvers += "GitHub releases" at "https://raw.github.com/asami/maven-repository/2019/releases"
+resolvers += "GitHab releases" at "https://raw.github.com/asami/maven-repository/2020/releases"
+
+resolvers += "Asami Maven Repository" at "http://www.asamioffice.com/maven"
 
 // resolvers += "Asami Maven Repository" at "http://www.asamioffice.com/maven"
 
@@ -30,9 +32,9 @@ libraryDependencies += "org.goldenport" %% "goldenport-scala-lib" % "2.1.3"
 
 libraryDependencies += "com.typesafe.play" %% "play-json" % "2.6.10" % "provided" exclude("org.scala-stm", "scala-stm_2.10.0")
 
-libraryDependencies += "org.goldenport" %% "goldenport-scala-lib" % "2.1.1"
-
 libraryDependencies += "net.sf.opencsv" % "opencsv" % "2.3" % "compile"
+
+libraryDependencies += "commons-jxpath" % "commons-jxpath" % "1.3" % "compile"
 
 libraryDependencies += "org.scalaj" %% "scalaj-http" % "2.4.1" % "compile"
 

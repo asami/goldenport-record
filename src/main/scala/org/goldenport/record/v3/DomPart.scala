@@ -9,7 +9,8 @@ import org.goldenport.collection.VectorMap
  *  version Sep. 20, 2018
  *  version Jan.  6, 2019
  *  version Aug. 23, 2019
- * @version Sep. 30, 2019
+ *  version Sep. 30, 2019
+ * @version Nov. 29, 2019
  * @author  ASAMI, Tomoharu
  */
 trait DomPart extends DomNodeImpl with ElementNodeImpl { self: IRecord =>
@@ -63,10 +64,14 @@ trait DomPart extends DomNodeImpl with ElementNodeImpl { self: IRecord =>
     case m: ValueNode => m
   }
 
+  lazy val document: RecordDocument = parent.map(_.document).getOrElse(RecordDocument())
+
   /*
    * Accessor
    */
   // def getSchemaTypeInfo(): TypeInfo = RAISE.notImplementedYetDefect
+
+  override def getParentNode(): Node = document
 
   override def getTagName(): String = getSchema.flatMap(_.xml.tagName).getOrElse(IRecord.DEFAULT_TAG_NAME)
   override def getLocalName(): String = getSchema.flatMap(_.xml.localName).getOrElse(IRecord.DEFAULT_TAG_NAME)
@@ -208,7 +213,7 @@ object DomPart {
     def setNamedItemNS(node: Node): Node = RAISE.unsupportedOperationFault
   }
 
-  import org.goldenport.xml.dom.ImmutableNodeImpl
+  import org.goldenport.xml.dom.{ImmutableNodeImpl, ImmutableNodeStub}
 
   // unused
   case class RecordAttr(name: String, value: String) extends Attr with ImmutableNodeImpl {
@@ -297,5 +302,45 @@ object DomPart {
     // mutable
     def replaceWholeText(data: String): Text = RAISE.unsupportedOperationFault
     def splitText(pos: Int): Text = RAISE.unsupportedOperationFault
+  }
+
+  case class RecordDocument() extends Document with ImmutableNodeImpl with ImmutableNodeStub {
+    def getNodeType(): Short = Node.DOCUMENT_NODE
+
+    // Node
+    override def getParentNode() = null
+
+    // Document
+    def adoptNode(x$1: Node): Node = RAISE.unsupportedOperationFault(this, "RecordDocument")
+    def createAttribute(x$1: String): Attr = RAISE.unsupportedOperationFault(this, "RecordDocument")
+    def createAttributeNS(x$1: String,x$2: String): Attr = RAISE.unsupportedOperationFault(this, "RecordDocument")
+    def createCDATASection(x$1: String): CDATASection = RAISE.unsupportedOperationFault(this, "RecordDocument")
+    def createComment(x$1: String): Comment = RAISE.unsupportedOperationFault(this, "RecordDocument")
+    def createDocumentFragment(): DocumentFragment = RAISE.unsupportedOperationFault(this, "RecordDocument")
+    def createElement(x$1: String): Element = RAISE.unsupportedOperationFault(this, "RecordDocument")
+    def createElementNS(x$1: String,x$2: String): Element = RAISE.unsupportedOperationFault(this, "RecordDocument")
+    def createEntityReference(x$1: String): EntityReference = RAISE.unsupportedOperationFault(this, "RecordDocument")
+    def createProcessingInstruction(x$1: String,x$2: String): ProcessingInstruction = RAISE.unsupportedOperationFault(this, "RecordDocument")
+    def createTextNode(x$1: String): Text = RAISE.unsupportedOperationFault(this, "RecordDocument")
+    def getDoctype(): DocumentType = RAISE.unsupportedOperationFault(this, "RecordDocument")
+    def getDocumentElement(): Element = RAISE.unsupportedOperationFault(this, "RecordDocument")
+    def getDocumentURI(): String = RAISE.unsupportedOperationFault(this, "RecordDocument")
+    def getDomConfig(): DOMConfiguration = RAISE.unsupportedOperationFault(this, "RecordDocument")
+    def getElementById(x$1: String): Element = RAISE.unsupportedOperationFault(this, "RecordDocument")
+    def getElementsByTagName(x$1: String): NodeList = RAISE.unsupportedOperationFault(this, "RecordDocument")
+    def getElementsByTagNameNS(x$1: String,x$2: String): NodeList = RAISE.unsupportedOperationFault(this, "RecordDocument")
+    def getImplementation(): DOMImplementation = RAISE.unsupportedOperationFault(this, "RecordDocument")
+    def getInputEncoding(): String = RAISE.unsupportedOperationFault(this, "RecordDocument")
+    def getStrictErrorChecking(): Boolean = RAISE.unsupportedOperationFault(this, "RecordDocument")
+    def getXmlEncoding(): String = RAISE.unsupportedOperationFault(this, "RecordDocument")
+    def getXmlStandalone(): Boolean = RAISE.unsupportedOperationFault(this, "RecordDocument")
+    def getXmlVersion(): String = RAISE.unsupportedOperationFault(this, "RecordDocument")
+    def importNode(x$1: Node,x$2: Boolean): Node = RAISE.unsupportedOperationFault(this, "RecordDocument")
+    def normalizeDocument(): Unit = RAISE.unsupportedOperationFault(this, "RecordDocument")
+    def renameNode(x$1: Node,x$2: String,x$3: String): Node = RAISE.unsupportedOperationFault(this, "RecordDocument")
+    def setDocumentURI(x$1: String): Unit = RAISE.unsupportedOperationFault(this, "RecordDocument")
+    def setStrictErrorChecking(x$1: Boolean): Unit = RAISE.unsupportedOperationFault(this, "RecordDocument")
+    def setXmlStandalone(x$1: Boolean): Unit = RAISE.unsupportedOperationFault(this, "RecordDocument")
+    def setXmlVersion(x$1: String): Unit = RAISE.unsupportedOperationFault(this, "RecordDocument")
   }
 }

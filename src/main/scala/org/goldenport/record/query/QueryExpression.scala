@@ -8,6 +8,7 @@ import org.goldenport.record.v2.{Record => Record2, Field => Field2}
 import org.goldenport.record.v2.{PowertypeClass, Powertype}
 import org.goldenport.record.v3.{Record => Record3, Field => Field3}
 import org.goldenport.record.v3.{FieldValue, EmptyValue, SingleValue, MultipleValue}
+import org.goldenport.record.v3.sql.SqlContext
 import org.goldenport.record.command.ExtensionValueCommand
 import org.goldenport.record.sql.SqlU
 import org.goldenport.record.util.{DateUtils, AnyUtils}
@@ -19,11 +20,21 @@ import QueryExpression.Context
  *  version Jan. 10, 2019
  *  version Jul. 31, 2019
  *  version Aug. 16, 2019
- * @version Oct. 15, 2019
+ *  version Oct. 15, 2019
+ *  version Nov. 29, 2019
+ * @version Jan. 26, 2020
  * @author  ASAMI, Tomoharu
  */
 sealed trait QueryExpression {
-  def expression(column: String): String
+  def expression(column: String): String // XXX legacy?
+  def where(schema: Schema, columnname: String)(implicit ctx: SqlContext): String =
+    schema.getColumn(columnname).map(where(_)).getOrElse {
+      if (ctx.isWhereUndefinedColumn)
+        expression(columnname)
+      else
+        RAISE.syntaxErrorFault(s"Missing column '${columnname}' in the schema.")
+    }
+  def where(column: Column)(implicit ctx: SqlContext): String = expression(column.name)
   def isAccept(p: Any): Boolean
 
   def mapPowertypeOrException(pt: PowertypeClass): Either[Throwable, QueryExpression] = Right(this)
@@ -34,13 +45,45 @@ sealed trait QueryExpression {
 
   protected final def to_literal(dt: DataType, d: Any): String = SqlU.literal(dt, d)
 
-  protected final def to_literal_list(ps: Seq[Any]) = ps.map(to_literal).mkString(", ")
+  protected final def to_literal_list(ps: Seq[Any]): String = ps.map(to_literal).mkString(", ")
+
+  protected final def to_literal_list(c: Column, ps: Seq[Any]): String = to_literal_list(c.datatype, ps)
+
+  protected final def to_literal_list(dt: DataType, ps: Seq[Any]): String = ps.map(to_literal(dt, _)).mkString(", ")
 
   protected final def map_powertype_value(pt: PowertypeClass, v: Any): Either[Throwable, Any] =
     map_powertype_instance(pt, v).right.map(_.value)
 
-  protected final def map_powertype_values(pt: PowertypeClass, vs: Seq[Any]): Seq[Either[Throwable, Any]] =
-    vs.map(map_powertype_value(pt, _))
+  protected final def map_powertype_value_eager(pt: PowertypeClass, v: Any): Either[Throwable, Seq[Any]] =
+    v match {
+      case m: String => map_powertype_values(pt, Strings.totokens(m, ","))
+      case m => map_powertype_values(pt, Vector(m))
+    }
+
+  protected final def map_powertype_values_eager(pt: PowertypeClass, vs: Seq[Any]): Either[Throwable, Seq[Any]] = {
+    val xs = vs.flatMap {
+      case m: String => Strings.totokens(m, ",")
+      case m => Vector(m)
+    }
+    map_powertype_values(pt, xs)
+  }
+
+  protected final def map_powertype_values(pt: PowertypeClass, vs: Seq[Any]): Either[Throwable, Seq[Any]] = {
+    val a = vs.map(map_powertype_value(pt, _))
+    case class Z(e: Option[Throwable] = None, xs: Vector[Any] = Vector.empty) {
+      def r = e.map(Left(_)).getOrElse(Right(xs))
+
+      def +(rhs: Either[Throwable, Any]) =
+        if (e.isDefined)
+          this
+        else
+          rhs match {
+            case Right(x) => copy(xs = xs :+ x)
+            case Left(e) => copy(e = Some(e))
+          }
+    }
+    a./:(Z())(_+_).r
+  }
 
   protected final def map_powertype_instance(pt: PowertypeClass, v: Any): Either[Throwable, Powertype] = {
     val r = v match {
@@ -140,10 +183,14 @@ case class EqualQuery(value: Any) extends QueryExpression {
     case m: Seq[_] => s"""${column} IN (${to_literal_list(m)})"""
     case _ => s"${column} = ${to_literal(value)}"
   }
+  override def where(column: Column)(implicit ctx: SqlContext): String = value match {
+    case m: Seq[_] => s"""${column.name} IN (${to_literal_list(column, m)})"""
+    case _ => s"${column.name} = ${to_literal(column, value)}"
+  }
   def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
 
   override def mapPowertypeOrException(pt: PowertypeClass) = {
-    map_powertype_value(pt, value).right.map(x => copy(x))
+    map_powertype_value_eager(pt, value).right.map(x => copy(x))
   }
 }
 object EqualQuery extends QueryExpressionClass {
@@ -162,10 +209,14 @@ case class NotEqualQuery(value: Any) extends QueryExpression {
     case m: Seq[_] => s"""${column} NOT IN (${to_literal_list(m)})"""
     case m => s"${column} <> ${to_literal(value)}"
   }
+  override def where(column: Column)(implicit ctx: SqlContext): String = value match {
+    case m: Seq[_] => s"""${column.name} NOT IN (${to_literal_list(column, m)})"""
+    case _ => s"${column.name} <> ${to_literal(column, value)}"
+  }
   def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
 
   override def mapPowertypeOrException(pt: PowertypeClass) = {
-    map_powertype_value(pt, value).right.map(x => copy(x))
+    map_powertype_value_eager(pt, value).right.map(x => copy(x))
   }
 }
 object NotEqualQuery extends QueryExpressionClass {
@@ -180,16 +231,13 @@ object NotEqualQuery extends QueryExpressionClass {
 }
 
 case class EnumQuery(values: List[Any]) extends QueryExpression {
-  def expression(column: String) = values match {
-    case m: Seq[_] => s"""${column} IN (${to_literal_list(m)})"""
-    case m => s"${column} <> ${to_literal_list(values)}"
-  }
+  def expression(column: String) = s"""${column} IN (${to_literal_list(values)})"""
+  override def where(column: Column)(implicit ctx: SqlContext): String =
+    s"""${column.name} IN (${to_literal_list(column, values)})"""
   def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
 
-  override def mapPowertypeOrException(pt: PowertypeClass) = {
-    // map_powertype_values(pt, values).map(_.right.map(x => copy(x)))
-    RAISE.notImplementedYetDefect
-  }
+  override def mapPowertypeOrException(pt: PowertypeClass) =
+    map_powertype_values(pt, values).right.map(xs => copy(xs.toList))
 }
 object EnumQuery extends QueryExpressionClass {
   val name = "enum"
@@ -204,7 +252,7 @@ object EnumQuery extends QueryExpressionClass {
   private def _create_comma(v: FieldValue): QueryExpression = _create(",", v)
 
   private def _create(delimiter: String, v: FieldValue): QueryExpression = {
-    val r = v.takeList.flatMap {
+    val r = v.asList.flatMap {
       case m: String => Strings.totokens(m, delimiter)
       case m => List(m)
     }
@@ -213,16 +261,14 @@ object EnumQuery extends QueryExpressionClass {
 }
 
 case class EnumOrNullQuery(values: List[Any]) extends QueryExpression {
-  def expression(column: String) = values match {
-    case m: Seq[_] => s"""(${column} IN (${to_literal_list(m)}) OR ${column} IS NULL)"""
-    case m => s"(${column} <> ${to_literal_list(values)} OR ${column} IS NULL)"
-  }
+  def expression(column: String) =
+    s"""(${column} IN (${to_literal_list(values)}) OR ${column} IS NULL)"""
+  override def where(column: Column)(implicit ctx: SqlContext): String = 
+    s"""(${column.name} IN (${to_literal_list(column, values)}) OR ${column.name} IS NULL)"""
   def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
 
-  override def mapPowertypeOrException(pt: PowertypeClass) = {
-    // map_powertype_values(pt, values).map(_.right.map(x => copy(x)))
-    RAISE.notImplementedYetDefect
-  }
+  override def mapPowertypeOrException(pt: PowertypeClass) =
+    map_powertype_values(pt, values).right.map(xs => copy(xs.toList))
 }
 object EnumOrNullQuery extends QueryExpressionClass {
   val name = "enum-or-null"
@@ -237,7 +283,7 @@ object EnumOrNullQuery extends QueryExpressionClass {
   private def _create_comma(v: FieldValue): QueryExpression = _create(",", v)
 
   private def _create(delimiter: String, v: FieldValue): QueryExpression = {
-    val r = v.takeList.flatMap {
+    val r = v.asList.flatMap {
       case m: String => Strings.totokens(m, delimiter)
       case m => List(m)
     }
@@ -247,6 +293,8 @@ object EnumOrNullQuery extends QueryExpressionClass {
 
 case class GreaterQuery(value: Any) extends QueryExpression {
   def expression(column: String) = s"${column} > ${to_literal(value)}"
+  override def where(column: Column)(implicit ctx: SqlContext): String = 
+    s"${column.name} > ${to_literal(column, value)}"
   def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
 
   override def mapPowertypeOrException(pt: PowertypeClass) = {
@@ -261,6 +309,8 @@ object GreaterQuery extends QueryExpressionClass {
 
 case class GreaterEqualQuery(value: Any) extends QueryExpression {
   def expression(column: String) = s"${column} >= ${to_literal(value)}"
+  override def where(column: Column)(implicit ctx: SqlContext): String = 
+    s"${column.name} >= ${to_literal(column, value)}"
   def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
 
   override def mapPowertypeOrException(pt: PowertypeClass) = {
@@ -275,6 +325,8 @@ object GreaterEqualQuery extends QueryExpressionClass {
 
 case class LesserQuery(value: Any) extends QueryExpression {
   def expression(column: String) = s"${column} < ${to_literal(value)}"
+  override def where(column: Column)(implicit ctx: SqlContext): String = 
+    s"${column.name} < ${to_literal(column, value)}"
   def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
 
   override def mapPowertypeOrException(pt: PowertypeClass) = {
@@ -289,6 +341,8 @@ object LesserQuery extends QueryExpressionClass {
 
 case class LesserEqualQuery(value: Any) extends QueryExpression {
   def expression(column: String) = s"${column} <= ${to_literal(value)}"
+  override def where(column: Column)(implicit ctx: SqlContext): String = 
+    s"${column.name} <= ${to_literal(column, value)}"
   def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
 
   override def mapPowertypeOrException(pt: PowertypeClass) = {
@@ -313,7 +367,17 @@ case class RangeQuery(start: Option[Any], end: Option[Any], low: Boolean, high: 
     }
     Vector(l, r).flatten.mkString(" AND ")
   }
-  
+  override def where(column: Column)(implicit ctx: SqlContext): String = {
+    val l = start.map { x =>
+      val operator = if (low) "<=" else "<"
+      s"(${to_literal(column, start)} $operator ${column.name}"
+    }
+    val r = end.map { x =>
+      val operator = if (high) "<=" else "<"
+      s"(${column.name} $operator ${to_literal(column, start)}"
+    }
+    Vector(l, r).flatten.mkString(" AND ")
+  }
   def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
 
   override def mapPowertypeOrException(pt: PowertypeClass) = {
@@ -333,6 +397,8 @@ object RangeQuery extends QueryExpressionClass {
 
 case class RangeInclusiveQuery(start: Any, end: Any) extends QueryExpression {
   def expression(column: String) = s"(${to_literal(start)} <= ${column} AND ${column} <= ${to_literal(end)})"
+  override def where(column: Column)(implicit ctx: SqlContext): String =
+    s"(${to_literal(column, start)} <= ${column.name} AND ${column.name} <= ${to_literal(column, end)})"
   def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
 
   override def mapPowertypeOrException(pt: PowertypeClass) = {
@@ -352,6 +418,8 @@ object RangeInclusiveQuery extends QueryExpressionClass {
 
 case class RangeExclusiveQuery(start: Any, end: Any) extends QueryExpression {
   def expression(column: String) = s"(${to_literal(start)} < ${column} AND ${column} < ${to_literal(end)})"
+  override def where(column: Column)(implicit ctx: SqlContext): String =
+    s"(${to_literal(column, start)} < ${column.name} AND ${column.name} < ${to_literal(column, end)})"
   def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
 
   override def mapPowertypeOrException(pt: PowertypeClass) = {
@@ -371,6 +439,8 @@ object RangeExclusiveQuery extends QueryExpressionClass {
 
 case class RangeInclusiveExclusiveQuery(start: Any, end: Any) extends QueryExpression {
   def expression(column: String) = s"(${to_literal(start)} <= ${column} AND ${column} < ${to_literal(end)})"
+  override def where(column: Column)(implicit ctx: SqlContext): String =
+    s"(${to_literal(column, start)} <= ${column.name} AND ${column.name} < ${to_literal(column, end)})"
   def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
 
   override def mapPowertypeOrException(pt: PowertypeClass) = {
@@ -390,6 +460,8 @@ object RangeInclusiveExclusiveQuery extends QueryExpressionClass {
 
 case class RangeExclusiveInclusiveQuery(start: Any, end: Any) extends QueryExpression {
   def expression(column: String) = s"(${to_literal(start)} < ${column} AND ${column} <= ${to_literal(end)})"
+  override def where(column: Column)(implicit ctx: SqlContext): String =
+    s"(${to_literal(column, start)} < ${column.name} AND ${column.name} <= ${to_literal(column, end)})"
   def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
 
   override def mapPowertypeOrException(pt: PowertypeClass) = {
@@ -409,6 +481,8 @@ object RangeExclusiveInclusiveQuery extends QueryExpressionClass {
 
 case class DateTimePeriodQuery(period: DateTimePeriod) extends QueryExpression {
   def expression(column: String) = s"$column ${period.toSqlBetweenDateTime}"
+  override def where(column: Column)(implicit ctx: SqlContext): String = 
+    s"${column.name} ${period.toSqlBetweenDateTime}"
   def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
 }
 object DateTimePeriodQuery extends QueryExpressionClass {
@@ -435,6 +509,8 @@ object DateTimePeriodQuery extends QueryExpressionClass {
 
 case class LikeQuery(value: Any) extends QueryExpression {
   def expression(column: String) = s"${column} LIKE ${to_literal(value)}"
+  override def where(column: Column)(implicit ctx: SqlContext): String = 
+    s"${column.name} LIKE ${to_literal(column, value)}"
   def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
 }
 object LikeQuery extends QueryExpressionClass {
@@ -445,6 +521,8 @@ object LikeQuery extends QueryExpressionClass {
 
 case class RegexQuery(value: Any) extends QueryExpression {
   def expression(column: String) = s"${column} REGEXP ${to_literal(value)}"
+  override def where(column: Column)(implicit ctx: SqlContext): String = 
+    s"${column.name} REGEXP ${to_literal(column, value)}"
   def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
 }
 object RegexQuery extends QueryExpressionClass {
@@ -455,6 +533,8 @@ object RegexQuery extends QueryExpressionClass {
 
 case class FirstMatchQuery(value: Any) extends QueryExpression {
   def expression(column: String) = s"""${column} LIKE ${to_literal(value + "%")}"""
+  override def where(column: Column)(implicit ctx: SqlContext): String = 
+    s"""${column.name} LIKE ${to_literal(column, value + "%")}"""
   def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
 }
 object FirstMatchQuery extends QueryExpressionClass {
@@ -465,6 +545,8 @@ object FirstMatchQuery extends QueryExpressionClass {
 
 case class LastMatchQuery(value: Any) extends QueryExpression {
   def expression(column: String) = s"""${column} LIKE ${to_literal("%" + value)}"""
+  override def where(column: Column)(implicit ctx: SqlContext): String =
+    s"""${column.name} LIKE ${to_literal(column, "%" + value)}"""
   def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
 }
 object LastMatchQuery extends QueryExpressionClass {
@@ -475,6 +557,8 @@ object LastMatchQuery extends QueryExpressionClass {
 
 case class FirstLastMatchQuery(value: Any) extends QueryExpression {
   def expression(column: String) = s"""${column} LIKE ${to_literal("%" + value + "%")}"""
+  override def where(column: Column)(implicit ctx: SqlContext): String = 
+    s"""${column.name} LIKE ${to_literal(column, "%" + value + "%")}"""
   def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
 }
 object FirstLastMatchQuery extends QueryExpressionClass {
@@ -487,6 +571,8 @@ case object IsNullQuery extends QueryExpression with QueryExpressionClass {
   val name = "is-null"
 
   def expression(column: String) = s"${column} IS NULL"
+  override def where(column: Column)(implicit ctx: SqlContext): String = 
+    s"${column.name} IS NULL"
   def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
 
   def create(params: List[String], v: FieldValue)(implicit ctx: Context): QueryExpression = this
@@ -496,6 +582,8 @@ case object IsNotNullQuery extends QueryExpression with QueryExpressionClass {
   val name = "is-not-null"
 
   def expression(column: String) = s"${column} IS NOT NULL"
+  override def where(column: Column)(implicit ctx: SqlContext): String = 
+    s"${column.name} IS NOT NULL"
   def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
 
   def create(params: List[String], v: FieldValue)(implicit ctx: Context): QueryExpression = this
@@ -519,6 +607,11 @@ object QueryExpression {
     datetime: DateTime,
     timezoneJoda: DateTimeZone
   )
+  object Context {
+    val default = Context(new DateTime())
+
+    def apply(p: DateTime): Context = Context(p, p.getZone)
+  }
 
   val expressions: Vector[QueryExpressionClass] = Vector(
     AllQuery,
@@ -527,6 +620,7 @@ object QueryExpression {
     EqualQuery,
     NotEqualQuery,
     EnumQuery,
+    EnumOrNullQuery,
     GreaterQuery,
     GreaterEqualQuery,
     LesserQuery,
@@ -566,6 +660,65 @@ object QueryExpression {
       val v = expressions.toStream.flatMap(_.createOption(x, adargs.tail, fv)).headOption
       v.map(p.update(path, _))
     }.getOrElse(RAISE.invalidArgumentFault(s"Invalid query: ${p.key.name}"))
+
+  def activate(pt: PowertypeClass, p: Field2)(implicit ctx: Context): Field2 = {
+    val key = ParameterKey.parse(p.key)
+    key.adornment.collect {
+      case ADORNMENT_QUERY => _expression(pt, p, key.path, key.adornmentArguments)
+    }.getOrElse {
+      val fv = _to_field_value(pt, p.toFieldValue)
+      p.setFieldValue(fv)
+    }
+  }
+
+  private def _expression(pt: PowertypeClass, p: Field2, path: String, adargs: List[String])(implicit ctx: Context): Field2 = 
+    adargs.headOption.flatMap { x =>
+      val fv = _to_field_value(pt, p.toFieldValue)
+      val v = expressions.toStream.flatMap(_.createOption(x, adargs.tail, fv)).headOption
+      v.map(p.update(path, _))
+    }.getOrElse(RAISE.invalidArgumentFault(s"Invalid query: ${p.key.name}"))
+
+  private def _to_field_value(pt: PowertypeClass, p: FieldValue): FieldValue =
+    pt.toValues(p.asListEager).toList match {
+      case Nil => EmptyValue
+      case x :: Nil => SingleValue(x)
+      case xs => MultipleValue(xs)
+    }
+
+  def parse(p: Field3)(implicit ctx: Context): (ParameterKey, QueryExpression) = {
+    val key = ParameterKey.parse(p.key)
+    val expr = key.adornment.collect {
+      case ADORNMENT_QUERY => _record_to_expression(p, key.path, key.adornmentArguments)
+    }.getOrElse(_record_to_expression(p))
+    (key, expr)
+  }
+
+  private def _record_to_expression(
+    p: Field3,
+    path: String,
+    adargs: List[String]
+  )(implicit ctx: Context): QueryExpression = {
+    adargs.headOption.flatMap { x =>
+      val fv = p.value
+      expressions.toStream.flatMap(_.createOption(x, adargs.tail, fv)).headOption
+    }.getOrElse(RAISE.invalidArgumentFault(s"Invalid query: ${p.key.name}"))
+  }
+
+  private def _record_to_expression(
+    p: Field3
+  )(implicit ctx: Context): QueryExpression = {
+    p.value match {
+      case EmptyValue => NoneQuery
+      case SingleValue(v) => EqualQuery(v)
+      case MultipleValue(vs) => EqualQuery(vs)
+    }
+  }
+
+  def createEqualOption(ps: Seq[Any]): Option[QueryExpression] = ps.toList match {
+    case Nil => None
+    case x :: Nil => Some(EqualQuery(x))
+    case xs => Some(EnumQuery(xs))
+  }
 
   // def parse(schema: Schema, s: String): Option[QueryExpression] = {
   //   schema.columns.find(_.name === s).map(parse(_, s))

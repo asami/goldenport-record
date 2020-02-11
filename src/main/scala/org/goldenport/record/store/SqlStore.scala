@@ -12,7 +12,8 @@ import org.goldenport.record.sql.SqlU
  *  version Apr. 16, 2019
  *  version May.  9, 2019
  *  version Jul. 15, 2019
- * @version Oct.  7, 2019
+ *  version Oct.  7, 2019
+ * @version Nov. 27, 2019
  * @author  ASAMI, Tomoharu
  */
 class SqlStore(
@@ -85,6 +86,7 @@ object SqlStore {
     def tableName: Option[String]
     def getSchema: Option[Schema]
 
+    implicit private val _sql_context = store.sqlContext
     protected val id_column = "id"
     protected final def store_name = store.name
     protected lazy val table_name = tableName orElse getSchema.flatMap(_.sql.tableName) getOrElse name.name
@@ -99,7 +101,7 @@ object SqlStore {
     def select(q: Query): RecordSequence = {
       // TODO SqlBuilder
       val limit = 10
-      val sql = s"""SELECT * FROM ${table_name} WHERE ${q.where} LIMIT $limit"""
+      val sql = s"""SELECT * FROM ${table_name} WHERE ${q.where(getSchema)} LIMIT $limit"""
       store.sqlContext.selectSequence(store_name, getSchema, sql)
     }
 
@@ -138,6 +140,12 @@ object SqlStore {
       // TODO SqlBuilder
       val sql = s"""DELETE FROM ${table_name} WHERE id = '${id.string}"""
       store.sqlContext.mutate(store_name, sql)
+    }
+
+    def create(): Unit = {
+      val schema = getSchema getOrElse RAISE.illegalStateFault(s"Store '${store_name}' does not have a schema.")
+      val sql = _sql_builder.createTable()
+      store.sqlContext.execute(store_name, sql)
     }
 
     def drop(): Unit = {

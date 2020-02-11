@@ -12,7 +12,8 @@ import org.goldenport.record.v2.{Schema, XmlSchema, Column}
  *  version Jun. 23, 2019
  *  version Jul. 26, 2019
  *  version Aug. 23, 2019
- * @version Sep. 16, 2019
+ *  version Sep. 16, 2019
+ * @version Jan. 26, 2020
  * @author  ASAMI, Tomoharu
  */
 trait ITable extends org.goldenport.table.ITable {
@@ -26,6 +27,9 @@ trait ITable extends org.goldenport.table.ITable {
   def height: Int = data.height
   def toRecordList: List[Record]
   def toRecordVector: Vector[Record]
+  def toVectorVector: Vector[Vector[Any]] = data.matrix.rowVector.map(_.map(_.content))
+  def filter(f: Record => Boolean): ITable
+  def select(names: Seq[String]): ITable
 }
 
 object ITable {

@@ -39,7 +39,9 @@ import org.goldenport.record.util.{
  *  version Jan. 21, 2018
  *  version Jan. 10, 2019
  *  version Jul. 31, 2019
- * @version Aug. 16, 2019
+ *  version Aug. 16, 2019
+ *  version Nov.  4, 2019
+ * @version Jan.  9, 2020
  * @author  ASAMI, Tomoharu
  */
 sealed trait DataType {
@@ -59,6 +61,7 @@ sealed trait DataType {
     }
   }
   def isValue: Boolean = true
+  def isNumber: Boolean = false
   def isReference: Boolean = !isValue
   def isSqlString: Boolean = true
   def getXmlDatatypeName: Option[String] = None
@@ -242,7 +245,7 @@ object DataType {
   }
 
   def to(p: String): DataType = get(p) getOrElse {
-    throw new NoSuchElementException(s"Unavailable datatype: $p")
+    throw RAISE.syntaxErrorFault(s"Unavailable datatype: $p")
   }
 
   def guessSeq(ps: Seq[Any]): DataType =  {
@@ -444,6 +447,7 @@ case object XBoolean extends DataType {
     }
   }
   def label = "Bool値"
+  override def isNumber: Boolean = true
   override def isSqlString = false
   override def getXmlDatatypeName = Some("boolean")
   override def getHtmlInputTypeName = Some("checkbox")
@@ -478,6 +482,7 @@ case object XByte extends DataType {
     }
   }
   def label = "整数値(-128~127)"
+  override def isNumber: Boolean = true
   override def isSqlString = false
   override def getXmlDatatypeName = Some("byte")
   override def getHtmlInputTypeName = Some("number")
@@ -513,6 +518,7 @@ case object XShort extends DataType {
     }
   }
   def label = "整数値(-32768~32767)"
+  override def isNumber: Boolean = true
   override def isSqlString = false
   override def getXmlDatatypeName = Some("short")
   override def getHtmlInputTypeName = Some("number")
@@ -551,6 +557,7 @@ case object XInt extends DataType {
   override def toDouble(s: String) = s.parseInt.map(_.toDouble)
   override def toDecimal(s: String) = s.parseInt.map(_.toDouble)
   def label = "整数値(-2^31~2^31、約20億)"
+  override def isNumber: Boolean = true
   override def isSqlString = false
   override def getXmlDatatypeName = Some("int")
   override def getHtmlInputTypeName = Some("number")
@@ -589,6 +596,7 @@ case object XLong extends DataType {
   }
   override def toDouble(s: String) = s.parseLong.map(_.toDouble)
   def label = "整数値(-2^63~2^63)"
+  override def isNumber: Boolean = true
   override def isSqlString = false
   override def getXmlDatatypeName = Some("long")
   override def getHtmlInputTypeName = Some("number")
@@ -626,6 +634,7 @@ case object XFloat extends DataType {
   }
   override def toDouble(s: String) = s.parseFloat.map(_.toDouble)
   def label = "浮動小数点値"
+  override def isNumber: Boolean = true
   override def isSqlString = false
   override def getXmlDatatypeName = Some("float")
   override def getHtmlInputTypeName = Some("number")
@@ -663,6 +672,7 @@ case object XFloat1 extends DataType {
   }
   override def toDouble(s: String) = s.parseFloat.map(_.toDouble)
   def label = "浮動小数点値"
+  override def isNumber: Boolean = true
   override def isSqlString = false
   override def getXmlDatatypeName = Some("float")
   override def getHtmlInputTypeName = Some("number")
@@ -697,6 +707,7 @@ case object XDouble extends DataType {
   }
   override def toDouble(s: String) = s.parseDouble
   def label = "浮動小数点値"
+  override def isNumber: Boolean = true
   override def isSqlString = false
   override def getXmlDatatypeName = Some("double")
   override def getHtmlInputTypeName = Some("number")
@@ -735,6 +746,7 @@ case object XInteger extends DataType {
     }
   }
   def label = "整数値"
+  override def isNumber: Boolean = true
   override def isSqlString = false
   override def getXmlDatatypeName = Some("integer")
   override def getHtmlInputTypeName = Some("number")
@@ -779,6 +791,7 @@ case object XDecimal extends DataType {
     }
   }
   def label = "数値"
+  override def isNumber: Boolean = true
   override def isSqlString = false
   override def getXmlDatatypeName = Some("decimal")
   override def getHtmlInputTypeName = Some("number")
@@ -1126,6 +1139,7 @@ case object XMoney extends DataType {
 
   def validate(d: Any): ValidationResult = Valid // TODO
   def label = "金額"
+  override def isNumber: Boolean = true
   override def isSqlString = false
   override def getXmlDatatypeName = Some("decimal")
   override def getHtmlInputTypeName = Some("number")
@@ -1138,6 +1152,7 @@ case object XPercent extends DataType {
   def validate(d: Any): ValidationResult = Valid // TODO
   override def toDouble(s: String) = s.parseDouble
   def label = "パーセント"
+  override def isNumber: Boolean = true
   override def isSqlString = false
   override def getXmlDatatypeName = Some("float")
   override def getHtmlInputTypeName = Some("number")
@@ -1462,7 +1477,7 @@ case object XRecordInstance extends DataType {
   }
 
   def validate(d: Any): ValidationResult = Valid // TODO
-  def label = "レコード値"
+  def label = "レコード"
   override def isSqlString = false // typical case
   override def isValue = true
   override def isReference = false

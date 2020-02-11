@@ -21,7 +21,8 @@ import com.asamioffice.goldenport.text.UString
  *  version Sep. 22, 2016
  *  version Aug. 30, 2017
  *  version Jul. 18, 2018
- * @version Nov.  7, 2018
+ *  version Nov.  7, 2018
+ * @version Jan. 28, 2020
  * @author  ASAMI, Tomoharu
  */
 object CsvUtils {
@@ -281,6 +282,11 @@ object CsvUtils {
   def makeRecordNullable(schema: Schema, fields: Seq[Option[String]]): Record = {
     Record.create(makeTupleVectorNullable(schema, fields))
   }
+
+  def makeRecord(fields: Seq[Option[String]]): Record = Record.make(fields.map {
+    case Some(s) => s
+    case None => ""
+  })
 
   def toCsvValues(
     vs: Seq[Any],
