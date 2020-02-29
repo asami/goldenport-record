@@ -2,7 +2,7 @@ organization := "org.goldenport"
 
 name := "goldenport-record"
 
-version := "1.3.19"
+version := "1.3.20"
 
 scalaVersion := "2.10.3"
 // crossScalaVersions := Seq("2.9.2", "2.9.1")
@@ -21,13 +21,15 @@ resolvers += "GitHab releases" at "https://raw.github.com/asami/maven-repository
 
 resolvers += "Asami Maven Repository" at "http://www.asamioffice.com/maven"
 
+resolvers += "Local Maven Repository" at "file://"+Path.userHome.absolutePath+"/.m2/repository"
+
 // libraryDependencies += "org.scalaz" %% "scalaz-core" % "7.0.6"
 
 libraryDependencies += "org.goldenport" %% "goldenport-atom" % "1.0.1"
 
 // libraryDependencies += "org.goldenport" % "goldenport-java-lib" % "0.1.2"
 
-libraryDependencies += "org.goldenport" %% "goldenport-scala-lib" % "1.2.55"
+libraryDependencies += "org.goldenport" %% "goldenport-scala-lib" % "1.2.56"
 
 // libraryDependencies += "org.smartdox" %% "smartdox" % "1.2.2"
 
