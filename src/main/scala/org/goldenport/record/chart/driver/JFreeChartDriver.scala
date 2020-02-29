@@ -34,7 +34,8 @@ import org.goldenport.record.chart._
  * @since   Mar. 16, 2019
  *  version Mar. 18, 2019
  *  version Aug.  4, 2019
- * @version Sep. 19, 2019
+ *  version Sep. 19, 2019
+ * @version Feb. 25, 2020
  * @author  ASAMI, Tomoharu
  */
 class JFreeChartDriver() extends ChartDriver {
@@ -164,8 +165,16 @@ object JFreeChartDriver {
     def xLabelOrNull: String = xLabelOption orElse chart.flatMap(_.xLabel) getOrElse null
     def yLabelOrNull: String = yLabelOption orElse chart.flatMap(_.yLabel) getOrElse null.asInstanceOf[String]
     def zLabelOrNull: String = zLabelOption orElse chart.flatMap(_.zLabel) getOrElse null.asInstanceOf[String]
-    def domainAxisOrNull: ValueAxis = new NumberAxis(xLabelOrNull)
-    def rangeAxisOrNull: ValueAxis = new NumberAxis(yLabelOrNull)
+    def domainAxisOrNull: ValueAxis = {
+      val r = new NumberAxis(xLabelOrNull)
+      r.setAutoRangeIncludesZero(false)
+      r
+    }
+    def rangeAxisOrNull: ValueAxis = {
+      val r = new NumberAxis(yLabelOrNull)
+      r.setAutoRangeIncludesZero(false)
+      r
+    }
     def useLegend: Boolean = useLegendOption orElse chart.map(_.useLegend) getOrElse false
     def useTooltip: Boolean = useTooltipOption orElse chart.map(_.useTooltip) getOrElse false
     def useLabel: Boolean = useLabelOption orElse chart.map(_.useLabel) getOrElse false

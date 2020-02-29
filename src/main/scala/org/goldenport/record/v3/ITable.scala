@@ -4,6 +4,7 @@ import org.w3c.dom._
 import org.goldenport.exception.RAISE
 import org.goldenport.matrix.IMatrix
 import org.goldenport.record.v2.{Schema, XmlSchema, Column}
+import org.goldenport.values.{NumberRange, EnumRange}
 
 /*
  * @since   Sep.  2, 2018
@@ -13,7 +14,8 @@ import org.goldenport.record.v2.{Schema, XmlSchema, Column}
  *  version Jul. 26, 2019
  *  version Aug. 23, 2019
  *  version Sep. 16, 2019
- * @version Jan. 26, 2020
+ *  version Jan. 26, 2020
+ * @version Feb. 28, 2020
  * @author  ASAMI, Tomoharu
  */
 trait ITable extends org.goldenport.table.ITable {
@@ -30,6 +32,7 @@ trait ITable extends org.goldenport.table.ITable {
   def toVectorVector: Vector[Vector[Any]] = data.matrix.rowVector.map(_.map(_.content))
   def filter(f: Record => Boolean): ITable
   def select(names: Seq[String]): ITable
+  def select(p: NumberRange): ITable
 }
 
 object ITable {

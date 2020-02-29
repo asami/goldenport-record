@@ -40,7 +40,8 @@ import RecordBag._
  *  version Jul. 18, 2018
  *  version Feb. 12, 2019
  *  version Aug. 18, 2019
- * @version Jan. 28, 2020
+ *  version Jan. 28, 2020
+ * @version Feb. 24, 2020
  * @author  ASAMI, Tomoharu
  */
 class CsvBag(
@@ -558,6 +559,11 @@ object CsvBag {
 
   def create(schema: Schema): CsvBag = {
     create(RecordBag.Strategy.UTF8, schema) // Use UTF-8 instead of WINDOWS31J as default
+  }
+
+  def createFromString(s: String, strategy: CsvBag.Strategy): CsvBag = {
+    val bag = StringBag.create(s)
+    create(bag, strategy)
   }
 
   // def create(schema: Schema, header: HeaderPolicy): CsvBag = {

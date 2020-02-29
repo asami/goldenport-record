@@ -24,7 +24,8 @@ import org.goldenport.record.util.AnyUtils
  *  version Oct. 16, 2019
  *  version Nov. 28, 2019
  *  version Dec.  8, 2019
- * @version Jan. 30, 2020
+ *  version Jan. 30, 2020
+ * @version Feb. 28, 2020
  * @author  ASAMI, Tomoharu
  */
 case class Table(
@@ -170,6 +171,17 @@ case class Table(
 
   def select(names: Seq[String]): Table = {
     val is = data.selectIndex(names)
+    Table(
+      records.map(_.select(names)),
+      meta.select(names),
+      head.map(_.select(is)),
+      foot.map(_.select(is))
+    )
+  }
+
+  def select(range: NumberRange): Table = {
+    val is = range.indexes
+    val names = is./:(Vector.empty[String])((z, x) => z :+ schema.columns(x).name)
     Table(
       records.map(_.select(names)),
       meta.select(names),

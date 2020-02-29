@@ -34,7 +34,8 @@ import org.goldenport.record.v2.projector.ProjectorContext
  *  version Jan.  9, 2019
  *  version Jul.  7, 2019
  *  version Aug. 23, 2019
- * @version Oct.  9, 2019
+ *  version Oct.  9, 2019
+ * @version Feb. 25, 2020
  * @author  ASAMI, Tomoharu
  */
 case class Column(
@@ -148,6 +149,9 @@ case class Column(
 
   def label(locale: Locale): String =
     i18nLabel.flatMap(_.get(locale)) orElse label getOrElse UString.capitalize(name)
+
+  def labelI18NString: I18NString =
+    i18nLabel orElse label.map(I18NString(_)) getOrElse I18NString(UString.capitalize(name))
 
   def isRequired: Boolean = multiplicity == MOne || multiplicity == MOneMore
 
