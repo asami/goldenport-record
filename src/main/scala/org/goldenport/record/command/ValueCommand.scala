@@ -1,6 +1,7 @@
 package org.goldenport.record.command
 
 import scalaz._, Scalaz._
+import org.goldenport.RAISE
 import org.goldenport.Strings
 import org.goldenport.record.v2._
 import org.goldenport.record.util.AnyUtils
@@ -8,7 +9,8 @@ import org.goldenport.record.util.AnyUtils
 /*
  * @since   Sep.  8, 2016
  *  version Feb. 24, 2019
- * @version Oct.  5, 2019
+ *  version Oct.  5, 2019
+ * @version Mar. 28, 2020
  * @author  ASAMI, Tomoharu
  */
 sealed trait ValueCommand {
@@ -32,6 +34,41 @@ object ValueCommand {
 
   def NotExistCommand[T]: CommandOrValue[T] = -\/(NotExist)
 
+  def parse(mode: UpdateMode, p: Record): Record = p.transform(_parse(mode, _))
+
+  private def _parse(mode: UpdateMode, p: Field): List[Field] = {
+    def result(r: Any) = List(p.update(List(r)))
+    p.effectiveValue match {
+      case Some(s) =>
+        val isempty = s match {
+          case Nil => true
+          case m: Seq[_] if m.isEmpty => true
+          case "" => true
+          case _ => false
+        }
+        if (isempty) // XXX in case of collection
+          mode.emptyStringMode match {
+            case UpdateMode.StringEmptyMode => result(s)
+            case UpdateMode.VoidEmptyMode => Nil
+            case UpdateMode.NullEmptyMode => result(NullValue)
+          }
+          else
+           s match {
+              case ContentCommand(v) => result(v)
+              case OverwriteCommand(v) => result(v)
+              case m: NullCommand[_] => result(NullValue)
+              case m: UnchangeCommand[_] => Nil
+              case m => result(m)
+            }
+      case None =>  // The field has Nil value.
+        mode.emptyValueMode match {
+          case UpdateMode.StringEmptyMode => result("")
+          case UpdateMode.VoidEmptyMode => Nil
+          case UpdateMode.NullEmptyMode => result(NullValue)
+        }
+    }
+  }
+
   implicit class CommandOrValueWrapper[T](val self: CommandOrValue[T]) extends AnyVal {
     def mapWithNull[A](f: T => A)(nullf: => A): Option[A] =
       ValueCommand.this.mapWithNull(self)(f)(nullf)
@@ -42,9 +79,9 @@ object ValueCommand {
       case -\/(l) => l match {
         case NotExist => None
         case NullValue => Some(nullf)
-        case m: StringValue => None
-        case m: NumberValue => None
-        case m: ExtensionValueCommand => None
+        case m: StringValue => RAISE.unsupportedOperationFault // TODO
+        case m: NumberValue => RAISE.unsupportedOperationFault // TODO
+        case m: ExtensionValueCommand => RAISE.unsupportedOperationFault // TODO
       }
       case \/-(r) => Some(f(r))
     }

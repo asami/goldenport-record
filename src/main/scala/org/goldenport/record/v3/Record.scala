@@ -56,7 +56,8 @@ import org.goldenport.values.PathName
  *  version Sep. 30, 2019
  *  version Oct. 16, 2019
  *  version Nov. 29, 2019
- * @version Jan. 28, 2020
+ *  version Jan. 28, 2020
+ * @version Mar. 23, 2020
  * @author  ASAMI, Tomoharu
  */
 case class Record(
@@ -230,7 +231,18 @@ case class Record(
 
   def removeField(key: String): Record = copy(fields = fields.filterNot(_.key.name == key))
 
-  def complement(p: IRecord): IRecord = RAISE.notImplementedYetDefect
+  def complement(p: IRecord): Record = {
+    case class Z(xs: Vector[Field] = fields.toVector) {
+      def r = Record(xs)
+
+      def +(rhs: Field) =
+        if (isDefined(rhs.key))
+          this
+        else
+          copy(xs = xs :+ rhs)
+    }
+    p.fields./:(Z())(_+_).r
+  }
 
   def mapField(p: Field => Field): Record = copy(fields = fields.map(p))
 

@@ -35,7 +35,8 @@ import org.goldenport.record.v2.projector.ProjectorContext
  *  version Jul.  7, 2019
  *  version Aug. 23, 2019
  *  version Oct.  9, 2019
- * @version Feb. 25, 2020
+ *  version Feb. 25, 2020
+ * @version Mar. 30, 2020
  * @author  ASAMI, Tomoharu
  */
 case class Column(
@@ -144,8 +145,10 @@ case class Column(
 
   def isAcceptColumnName(p: String): Boolean = nameCandidates.contains(p)
 
-  lazy val nameCandidates: Vector[String] =
-    Vector(name) ++ aliases ++ label.toVector
+  lazy val nameCandidates: Vector[String] = {
+    val a = Vector(name) ++ aliases ++ label.toVector ++ i18nLabel.map(_.values).getOrElse(Nil)
+    a.distinct
+  }
 
   def label(locale: Locale): String =
     i18nLabel.flatMap(_.get(locale)) orElse label getOrElse UString.capitalize(name)

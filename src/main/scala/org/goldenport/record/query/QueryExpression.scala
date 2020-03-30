@@ -9,7 +9,6 @@ import org.goldenport.record.v2.{PowertypeClass, Powertype}
 import org.goldenport.record.v3.{Record => Record3, Field => Field3}
 import org.goldenport.record.v3.{FieldValue, EmptyValue, SingleValue, MultipleValue}
 import org.goldenport.record.v3.sql.SqlContext
-import org.goldenport.record.command.ExtensionValueCommand
 import org.goldenport.record.sql.SqlU
 import org.goldenport.record.util.{DateUtils, AnyUtils}
 import org.goldenport.values.{DateTimePeriod, ParameterKey}
@@ -22,7 +21,8 @@ import QueryExpression.Context
  *  version Aug. 16, 2019
  *  version Oct. 15, 2019
  *  version Nov. 29, 2019
- * @version Jan. 26, 2020
+ *  version Jan. 26, 2020
+ * @version Mar. 28, 2020
  * @author  ASAMI, Tomoharu
  */
 sealed trait QueryExpression {
