@@ -17,7 +17,8 @@ import org.goldenport.record.util.DateUtils
  *  version May.  9, 2019
  *  version Jul. 15, 2019
  *  version Oct.  9, 2019
- * @version Nov. 27, 2019
+ *  version Nov. 27, 2019
+ * @version Mar. 29, 2020
  * @author  ASAMI, Tomoharu
  */
 class SqlBuilder(
@@ -244,8 +245,14 @@ class SqlBuilder(
 
   def insertColumns(schema: Schema, rec: Record): String =
     schema.columns.flatMap(x =>
-      rec.isDefined(x.name) option column_name_literal(x.sqlColumnName)
+      _is_match(x, rec) option column_name_literal(x.sqlColumnName)
     ).mkString("(", ", ", ")")
+
+  private def _is_match(c: Column, rec: Record) = {
+    val names = rec.fields.map(_.key.name)
+    names.contains(c.name) || c.label.map(names.contains).getOrElse(false) ||
+    c.i18nLabel.map(_.containsKey(names)).getOrElse(false)
+  }
 
   def insertColumns(rec: Record): String = rec.fields.map(_.key.name).mkString("(", ", ",")")
 
@@ -256,11 +263,19 @@ class SqlBuilder(
     case class Z(xs: Vector[String] = Vector.empty) {
       def r = xs.mkString(", ")
       def +(rhs: Column) =
-        rec.getField(rhs.name).
+        _get_field(rhs, rec).
           map(x => copy(xs = xs :+ _value(rhs.datatype, x))).
           getOrElse(this)
     }
     schema.columns./:(Z())(_+_).r
+  }
+
+  private def _get_field(c: Column, rec: Record): Option[Field] = rec.fields.find(_is_match(c, _))
+
+  private def _is_match(c: Column, f: Field) = {
+    val name = f.key.name
+    c.name == name || c.label.map(_ == name).getOrElse(false) ||
+    c.i18nLabel.map(_.containsKey(name)).getOrElse(false)
   }
 
   private def _value(datatype: DataType, p: Field): String = p.value match {

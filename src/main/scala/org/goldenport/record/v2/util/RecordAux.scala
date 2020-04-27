@@ -5,7 +5,7 @@ import org.goldenport.Strings
 import org.goldenport.json.JsonUtils
 import org.goldenport.util.{StringUtils, AnyUtils}
 import org.goldenport.record.v2._
-import org.goldenport.record.command.NullValue
+import org.goldenport.record.command.{NullValue => CNullValue, NotExist => CNotExist}
 
 /*
  * @since   Aug.  5, 2014
@@ -23,7 +23,8 @@ import org.goldenport.record.command.NullValue
  *  version Oct. 18, 2016
  *  version Jul. 11, 2017
  *  version Aug. 30, 2017
- * @version Sep.  2, 2017
+ *  version Sep.  2, 2017
+ * @version Mar. 26, 2020
  * @author  ASAMI, Tomoharu
  */
 object RecordAux {
@@ -275,7 +276,10 @@ object RecordAux {
       case null => true
       case Nil => true
       case x :: Nil => x match {
+        case NotExist => true
         case NullValue => true
+        case CNotExist => true
+        case CNullValue => true
         case m: Seq[_] => false
         case m: String if m.trim.isEmpty => !isStringProperty(schema, field.key)
         case _ => false

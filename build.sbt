@@ -2,7 +2,7 @@ organization := "org.goldenport"
 
 name := "goldenport-record"
 
-version := "2.1.4"
+version := "2.1.5"
 
 scalaVersion := "2.12.7"
 
@@ -18,17 +18,21 @@ incOptions := incOptions.value.withNameHashing(true)
 
 resolvers += "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases"
 
-resolvers += "GitHab releases" at "https://raw.github.com/asami/maven-repository/2020/releases"
+resolvers += "GitHab releases 2019" at "https://raw.github.com/asami/maven-repository/2019/releases"
 
-resolvers += "Asami Maven Repository" at "http://www.asamioffice.com/maven"
+resolvers += "GitHab releases 2020" at "https://raw.github.com/asami/maven-repository/2020/releases"
 
 // resolvers += "Asami Maven Repository" at "http://www.asamioffice.com/maven"
+
+resolvers += "Local Maven Repository" at "file://"+Path.userHome.absolutePath+"/.m2/repository"
+
+// libraryDependencies += "org.scalaz" %% "scalaz-core" % "7.0.6"
 
 libraryDependencies += "org.goldenport" %% "goldenport-atom" % "2.1.0"
 
 libraryDependencies += "org.smartdox" %% "smartdox" % "2.1.1"
 
-libraryDependencies += "org.goldenport" %% "goldenport-scala-lib" % "2.1.4"
+libraryDependencies += "org.goldenport" %% "goldenport-scala-lib" % "2.1.5"
 
 libraryDependencies += "com.typesafe.play" %% "play-json" % "2.6.10" % "provided" exclude("org.scala-stm", "scala-stm_2.10.0")
 

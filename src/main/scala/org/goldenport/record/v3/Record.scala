@@ -66,7 +66,9 @@ import org.goldenport.values.PathName
  *  version Sep. 30, 2019
  *  version Oct. 16, 2019
  *  version Nov. 29, 2019
- * @version Jan. 28, 2020
+ *  version Jan. 28, 2020
+ *  version Mar. 23, 2020
+ * @version Apr.  3, 2020
  * @author  ASAMI, Tomoharu
  */
 case class Record(
@@ -369,7 +371,18 @@ case class Record(
 
   def removeField(key: String): Record = copy(fields = fields.filterNot(_.key.name == key))
 
-  def complement(p: IRecord): IRecord = RAISE.notImplementedYetDefect
+  def complement(p: IRecord): Record = {
+    case class Z(xs: Vector[Field] = fields.toVector) {
+      def r = Record(xs)
+
+      def +(rhs: Field) =
+        if (isDefined(rhs.key))
+          this
+        else
+          copy(xs = xs :+ rhs)
+    }
+    p.fields./:(Z())(_+_).r
+  }
 
   def mapField(p: Field => Field): Record = copy(fields = fields.map(p))
 
@@ -788,35 +801,6 @@ object Record {
     zzzz.getWholeVector.map(Left.apply).getOrElse(Right(zzzz.record))
   }
 
-  // private case class ZZ(
-  //   wholeRecords: Vector[Record] = Vector.empty,
-  //   fields: Vector[Field] = Vector.empty
-  // ) {
-  //   def r: Either[NonEmptyVector[Record], Record] = {
-  //     println(s"ZZ: $this")
-  //     wholeRecords.headOption.map(x =>
-  //       Left(NonEmptyVector(x, wholeRecords.tail))
-  //     ).getOrElse(
-  //       Right(Record(fields))
-  //     )
-  //   }
-
-  //   def +(rhs: (String, Vector[Slot])) = {
-  //     val (propname, slots) = rhs
-  //     val field = _zzz(propname, slots)
-
-  //   // def +(rhs: (String, Vector[Slot])) = {
-  //   //   val (propname, slots) = rhs
-  //   //   val xs: Vector[(String, Field)] = slots./:(ZZZ(propname))(_+_).r
-  //   //   println(s"after ZZZ: $slots => $xs")
-  //   //   val zzzz = xs./:(ZZZZ())(_+_)
-  //   //   println(s"after ZZZZ: $zzzz")
-  //   //   zzzz.getWholeVector.
-  //   //     map(x => copy(wholeRecords = wholeRecords ++ x.vector)).
-  //   //     getOrElse(copy(fields = fields ++ zzzz.fields))
-  //   // }
-  // }
-
   private def _calc_slot(slots: Vector[Slot]): FieldValue = {
     case class Z(
       value: FieldValue = EmptyValue,
@@ -881,44 +865,6 @@ object Record {
     vs./:(Z())(_+_).r
   }
 
-  // private case class ZZZ(
-  //   propName: String,
-  //   xs: Vector[Vector[Slot]] = VectorMap.empty
-  // ) {
-  //   def r: Vector[(PropertyName, Field)] = xs.vector.map {
-  //     case (k, v) => propName -> Field(Symbol(propName), _to_value(v))
-  //   }
-
-  //   private def _to_value(ps: Vector[Slot]): FieldValue = {
-  //     case class Z(
-  //       value: FieldValue = EmptyValue,
-  //       fields: VectorMap[PropertyName, FieldValue] = VectorMap.empty
-  //     ) {
-  //       def r: FieldValue = if (fields.isEmpty)
-  //         value
-  //       else
-  //         SingleValue(Record(fields.vector.map(Field.apply)))
-
-  //       def +(rhs: Slot) = rhs match {
-  //         case m: LeafSlot => copy(value = value + m.field.value)
-  //         case m: ChildSlot => copy(fields = fields update _to_field(m))
-  //       }
-
-  //       private def _to_field(p: ChildSlot): (PropertyName, FieldValue) = {
-  //         p.path.getChild.
-  //           map { child => 
-  //             RAISE.unsupportedOperationFault(s"ZZZ: $p")
-  //           }.getOrElse(
-  //             (p.path.head, p.field.value)
-  //           )
-  //       }
-  //     }
-  //     ps./:(Z())(_+_).r
-  //   }
-
-  //   def +(rhs: Slot) = copy(xs = xs |+| VectorMap(rhs.name -> Vector(rhs)))
-  // }
-
   sealed trait MultiplicitySlot
   case class PlainSlot(field: Field) extends MultiplicitySlot
   case class WholeArraySlot(name: String, field: Field) extends MultiplicitySlot
@@ -934,13 +880,53 @@ object Record {
     whole: VectorMap[IndexName, Vector[ZZZZSlot]] = VectorMap.empty,
     property: VectorMap[PropertyName, Vector[ZZZZSlot]] = VectorMap.empty
   ) {
+    private lazy val _sorted_whole = VectorMap(_normalize_whole)
+
+    private def _normalize_whole = {
+      case class Z(
+        os: Vector[(IndexName, Vector[ZZZZSlot])] = Vector.empty,
+        is: Vector[(Int, Vector[ZZZZSlot])] = Vector.empty,
+        activep: Boolean = true
+      ) {
+        def r = if (activep)
+          is.sortBy(_._1).map {
+            case (k, v) => k.toString -> v
+          }
+        else
+          os
+
+        def +(rhs: (IndexName, Vector[ZZZZSlot])) = {
+          if (activep) {
+            val (i, xs) = rhs
+            val a = i.dropWhile(_ == '_')
+            getInt(a).
+              map(x =>
+                copy(os = os :+ rhs, is = is :+ (x -> xs))).
+              getOrElse(copy(os = os :+ rhs, activep = false))
+          } else {
+            copy(os = os :+ rhs)
+          }
+        }
+      }
+      whole.vector./:(Z())(_+_).r
+    }
+
+    // TODO migrate to NumberUtils.
+    private def getInt(p: String): Option[Int] = try {
+      Some(p.trim.toInt)
+    } catch {
+      case e: NumberFormatException => None
+    }
+
+    private def _sorted_property = property // TODO
+
     def getWholeVector: Option[NonEmptyVector[Record]] =
       if (whole.isEmpty)
         None
       else
         Some(NonEmptyVector(
-          _to_record(whole.head),
-          whole.tail.map(_to_record).toVector
+          _to_record(_sorted_whole.head),
+          _sorted_whole.tail.map(_to_record).toVector
         ))
 
     private def _to_record(ps: (IndexName, Vector[ZZZZSlot])): Record = {
@@ -958,7 +944,7 @@ object Record {
     def record: Record = Record(fields)
 
     def fields: Vector[Field] =
-      property.toVector.map {
+      _sorted_property.toVector.map {
         case (k, v) => Field(k, _to_value(v))
       }
 

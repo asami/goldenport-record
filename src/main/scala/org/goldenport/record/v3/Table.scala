@@ -7,7 +7,9 @@ import org.goldenport.Strings
 import org.goldenport.matrix.{IMatrix, VectorRowColumnMatrixBase, VectorRowColumnMatrix, VectorColumnRowMatrix}
 import org.goldenport.xsv.{Xsv, Lxsv}
 import org.goldenport.parser.LogicalToken
+import org.goldenport.i18n._
 import org.goldenport.values.NumberRange
+import org.goldenport.value._
 import org.goldenport.util.{StringUtils, AnyUtils => LAnyUtils}
 import org.goldenport.record.v2.{Schema, Column, XString, XDouble}
 import org.goldenport.record.util.AnyUtils
@@ -24,7 +26,9 @@ import org.goldenport.record.util.AnyUtils
  *  version Oct. 16, 2019
  *  version Nov. 28, 2019
  *  version Dec.  8, 2019
- * @version Jan. 30, 2020
+ *  version Jan. 30, 2020
+ *  version Feb. 28, 2020
+ * @version Mar. 30, 2020
  * @author  ASAMI, Tomoharu
  */
 case class Table(
@@ -170,6 +174,17 @@ case class Table(
 
   def select(names: Seq[String]): Table = {
     val is = data.selectIndex(names)
+    Table(
+      records.map(_.select(names)),
+      meta.select(names),
+      head.map(_.select(is)),
+      foot.map(_.select(is))
+    )
+  }
+
+  def select(range: NumberRange): Table = {
+    val is = range.indexes
+    val names = is./:(Vector.empty[String])((z, x) => z :+ schema.columns(x).name)
     Table(
       records.map(_.select(names)),
       meta.select(names),
@@ -335,6 +350,23 @@ object Table {
     case Right(r) =>
       val schema = IRecord.makeSchema(r)
       create(schema, Vector(r))
+  }
+
+  def create(
+    i18nContext: I18NContext,
+    header: Table.HeaderStrategy,
+    schema: Option[Schema],
+    p: RecordSequence
+  ): Table = schema.map(create(i18nContext, header, _, p)).getOrElse(create(p))
+
+  def create(
+    i18nContext: I18NContext,
+    header: Table.HeaderStrategy,
+    schema: Schema,
+    p: RecordSequence
+  ): Table = {
+    val builder = Builder(i18nContext, header, schema)
+    builder.build(p)
   }
 
   def create(schema: Schema, p: RecordSequence): Table = create(schema, p.irecords)
@@ -553,4 +585,74 @@ object Table {
   }
 
   private def _to_string(p: Any): String = AnyUtils.toString(p)
+
+  case class HeaderStrategy(
+    label: HeaderStrategy.LabelStrategy
+  )
+  object HeaderStrategy {
+    val name = HeaderStrategy(HeaderStrategy.NameLabel)
+    val label = HeaderStrategy(HeaderStrategy.LabelLabel)
+
+    sealed trait LabelStrategy extends NamedValueInstance {
+    }
+    case object NameLabel extends LabelStrategy {
+      val name = "name"
+    }
+    case object LabelLabel extends LabelStrategy {
+      val name = "label"
+    }
+    object LabelStrategy extends EnumerationClass[LabelStrategy] {
+      val name = "label"
+
+      val elements = Vector(NameLabel, LabelLabel)
+    }
+  }
+
+  case class Builder(
+    i18n: I18NContext,
+    header: HeaderStrategy,
+    schema: Schema
+  ) {
+    def build(ps: RecordSequence): Table = build(ps.irecords)
+
+    def build(ps: Seq[IRecord]): Table = {
+      val head = _build_head
+      val body = _build_body(ps)
+      Table(body, MetaData(schema), Some(head))
+    }
+
+    private def _build_head = {
+      val xs = schema.columns.map(_to_cell)
+      Head(xs.toList)
+    }
+
+    private def _to_cell(p: Column): Cell = {
+      val s = header.label match {
+        case HeaderStrategy.NameLabel => p.name
+        case HeaderStrategy.LabelLabel => p.labelI18NString(i18n.locale)
+      }
+      Cell(s)
+    }
+
+    private def _build_body(ps: Seq[IRecord]) = {
+      ps.map(_.toRecord).map(_normalize).toVector
+    }
+
+    private def _normalize(p: Record) = {
+      case class Z(xs: Vector[Field] = Vector.empty) {
+        def r = p.copy(fields = xs)
+
+        def +(rhs: Column) = {
+          val names = rhs.nameCandidates
+          p.fields.find(x => names.contains(x.name)).
+            map { f =>
+              val label = rhs.labelI18NString(i18n.locale)
+              val a = f.withKey(label)
+              copy(xs = xs :+ a)
+            }.getOrElse(this)
+        }
+      }
+      schema.columns./:(Z())(_+_).r
+    }
+  }
 }

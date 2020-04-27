@@ -13,7 +13,8 @@ import org.goldenport.record.sql.SqlU
  *  version May.  9, 2019
  *  version Jul. 15, 2019
  *  version Oct.  7, 2019
- * @version Nov. 27, 2019
+ *  version Nov. 27, 2019
+ * @version Mar. 31, 2020
  * @author  ASAMI, Tomoharu
  */
 class SqlStore(
@@ -127,9 +128,11 @@ object SqlStore {
 
     // http://www.mysqltutorial.org/mysql-last_insert_id.aspx
     private def _fetch_insert_id_mysql = {
-      val sql = s"""SELECT LAST_INSERT_ID()"""
-      store.sqlContext.selectHeadOption(store_name, sql).getOrElse(-1)
+      val sql = s"""SELECT LAST_INSERT_ID() AS INSERT_ID"""
+      store.sqlContext.selectHeadOption(store_name, sql).flatMap(_to_msql_id).getOrElse(-1)
     }
+
+    private def _to_msql_id(p: Record): Option[Any] = p.get("INSERT_ID")
 
     def update(id: Id, rec: IRecord): Unit = {
       val sql = _sql_builder.update(id.string, rec)

@@ -80,7 +80,8 @@ case class Field(
   // def long: Long = value.long
   // def timestamp: Timestamp = value.timestamp
   // def datetime: DateTime = value.datetime
-  // def withKey(name: String): Field = copy(key = Symbol(name))
+
+   def withKey(name: String): Field = copy(key = Symbol(name))
 
   def withValue(p: FieldValue): Field = copy(value = p)
 

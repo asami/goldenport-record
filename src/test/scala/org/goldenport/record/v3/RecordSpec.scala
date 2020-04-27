@@ -8,7 +8,8 @@ import org.goldenport.collection.NonEmptyVector
 
 /*
  * @since   Dec. 26, 2018
- * @version Dec. 28, 2018
+ *  version Dec. 28, 2018
+ * @version Feb. 29, 2020
  * @author  ASAMI, Tomoharu
  */
 @RunWith(classOf[JUnitRunner])
@@ -115,7 +116,7 @@ class RecordSpec extends WordSpec with Matchers {
           "__2/mno" -> "mno2"
         )
         val b = a.http.request.build
-        val c = NonEmptyVector(
+        val c = NonEmptyVector.create(
           Record.data(
             "xyz" -> "xyz1",
             "mno" -> "mno1"

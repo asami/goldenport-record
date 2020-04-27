@@ -12,7 +12,8 @@ import org.goldenport.record.v2.bag.CsvBag
  *  version Jun. 23, 2019
  *  version Jul. 16, 2019
  *  version Aug. 26, 2019
- * @version Sep. 19, 2019
+ *  version Sep. 19, 2019
+ * @version Feb. 26, 2020
  * @author  ASAMI, Tomoharu
  */
 case class CsvMatrix(bag: CsvBag) extends IMatrix[Double] {
@@ -27,8 +28,8 @@ case class CsvMatrix(bag: CsvBag) extends IMatrix[Double] {
   def height: Int = matrix.height
   override def rowIterator: Iterator[Vector[Double]] = matrix.rowIterator
   override def columnIterator: Iterator[Vector[Double]] = matrix.columnIterator
-  def projection(p: NumberRange): IMatrix[Double] = RAISE.notImplementedYetDefect
-  def selection(p: NumberRange): IMatrix[Double] = RAISE.notImplementedYetDefect
+  def select(p: NumberRange): IMatrix[Double] = RAISE.notImplementedYetDefect
+  def filter(p: NumberRange): IMatrix[Double] = RAISE.notImplementedYetDefect
   def toDoubleMatrix: IMatrix[Double] = RAISE.notImplementedYetDefect
   def makeDoubleMatrix: IMatrix[Double] = RAISE.notImplementedYetDefect
 

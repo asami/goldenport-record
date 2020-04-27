@@ -61,7 +61,8 @@ import org.goldenport.util.{TimestampUtils, DateUtils}
  *  version Apr. 11, 2019
  *  version May. 10, 2019
  *  version Jul. 31, 2019
- * @version Jan. 28, 2020
+ *  version Jan. 28, 2020
+ * @version Mar. 27, 2020
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -133,6 +134,14 @@ case class Record(
       case _ => true
     }
   }
+
+  def getEffectiveValue(key: Symbol): Option[Any] = getField(key).flatMap(_.effectiveValue)
+
+  def getEffectiveValue(key: String): Option[Any] = getField(key).flatMap(_.effectiveValue)
+
+  def getEffectiveList(key: Symbol): Option[List[Any]] = getField(key).map(_.effectiveList)
+
+  def getEffectiveList(key: String): Option[List[Any]] = getField(key).map(_.effectiveList)
 
   // TODO unify Field
   def getString(key: Symbol): Option[String] = {
@@ -1119,8 +1128,10 @@ case class Record(
     copy(fields = xs)
   }
 
-  override def toString(): String = {
+  override def toString(): String = try {
     "Record(" + fields + ", " + inputFiles + ")"
+  } catch {
+    case NonFatal(e) => s"Record($e)"
   }
 
   // def distillByPrefix(rec: Record, prefix: String): Record = {

@@ -7,7 +7,7 @@ import org.goldenport.Strings
 import org.goldenport.extension.{IDocument, Description}
 import com.asamioffice.goldenport.text.UString
 import org.goldenport.exception.RAISE
-import org.goldenport.i18n.I18NString
+import org.goldenport.i18n.{I18NString, I18NMessage}
 import org.goldenport.collection.NonEmptyVector
 import org.goldenport.extension.Showable
 import org.goldenport.util.AnyUtils
@@ -56,7 +56,8 @@ import org.goldenport.record.v3.IRecord
  *  version Aug. 20, 2019
  *  version Oct.  1, 2019
  *  version Dec. 30, 2019
- * @version Jan. 12, 2020
+ *  version Jan. 12, 2020
+ * @version Apr. 17, 2020
  * @author  ASAMI, Tomoharu
  */
 case class Schema(
@@ -1109,11 +1110,11 @@ case class DataTypeFailure(datatype: DataType, value: Seq[String], key: Option[S
     }
   }
   private final def _message = value_label + "は" + datatype.label + "ではありません。"
-  private final def _i18n_message = I18NString(
+  private final def _i18n_message = I18NMessage(
     "{0} is not {1}.",
     "{0} は {1} ではありません。",
     Vector(value_label, datatype.label)
-  )
+  ).toI18NString
   def descriptions = {
     Vector(VDescription(label orElse key, _i18n_message, value))
   }
