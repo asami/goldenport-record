@@ -1358,7 +1358,7 @@ case object XSearch extends DataType {
   }
 
   def validate(d: Any): ValidationResult = Valid
-  def label = "色"
+  def label = "検索"
   override def getXmlDatatypeName = Some("token")
   override def getHtmlInputTypeName = Some("searchbox")
 }
