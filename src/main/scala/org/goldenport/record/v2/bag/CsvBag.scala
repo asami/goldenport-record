@@ -16,7 +16,7 @@ import org.goldenport.record.v2._
 import org.goldenport.matrix._
 import org.goldenport.table.ITable
 import org.goldenport.Platform.codec.{UTF8, WINDOWS31J}
-import org.goldenport.io.ResourceHandle
+import org.goldenport.io.{ResourceHandle, MimeType}
 import org.goldenport.csv.CsvLineMaker
 import org.goldenport.bag._
 import org.goldenport.record.v2.util.CsvUtils
@@ -41,7 +41,8 @@ import RecordBag._
  *  version Feb. 12, 2019
  *  version Aug. 18, 2019
  *  version Jan. 28, 2020
- * @version Feb. 24, 2020
+ *  version Feb. 24, 2020
+ * @version May. 26, 2020
  * @author  ASAMI, Tomoharu
  */
 class CsvBag(
@@ -64,7 +65,7 @@ class CsvBag(
 
   def chunkBag = bag
   override def filenameSuffix = Some("csv")
-  override def mimetype: String = Strings.mimetype.text_csv
+  override def mimetype: MimeType = MimeType.text_csv
 
   protected def generate_Schema(): Option[Schema] = {
     RecordBag.getSchema(bag, strategy, CsvUtils.parseLine)

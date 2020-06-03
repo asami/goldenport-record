@@ -8,7 +8,8 @@ import org.goldenport.collection.NonEmptyVector
 
 /*
  * @since   Apr. 17, 2020
- * @version Apr. 18, 2020
+ *  version May. 26, 2020
+ * @version Jun.  3, 2020
  * @author  ASAMI, Tomoharu
  */
 case class Conclusion(
@@ -35,6 +36,8 @@ case class Conclusion(
 }
 
 object Conclusion {
+  type ConclusionResult[T] = Either[Conclusion, T]
+
   case class ValidationSlot(
     key: Symbol,
     result: ValidationResult
@@ -45,6 +48,7 @@ object Conclusion {
   def badRequest(p: String): Conclusion = badRequest(I18NString(p))
   def badRequest(p: I18NString): Conclusion = error(400, p)
   def unauthorized(p: String): Conclusion = unauthorized(I18NString(p))
+  def unauthorized(en: String, ja: String): Conclusion = unauthorized(I18NString(en, ja))
   def unauthorized(p: I18NString): Conclusion = error(401, p)
   def paymentRequired(p: String): Conclusion = paymentRequired(I18NString(p))
   def paymentRequired(p: I18NString): Conclusion = error(402, p)
@@ -92,6 +96,15 @@ object Conclusion {
     None,
     None,
     (p +: ps).map(_missing).toList
+  )
+
+  def missings(ps: Seq[String]): Conclusion = Conclusion(
+    400,
+    None,
+    None,
+    None,
+    None,
+    ps.map(_missing).toList
   )
 
   private def _missing(p: String) = {

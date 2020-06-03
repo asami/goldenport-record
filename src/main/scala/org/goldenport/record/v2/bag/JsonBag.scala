@@ -6,6 +6,7 @@ import scalax.io._
 import play.api.libs.json._
 import org.goldenport.Strings
 import org.goldenport.Platform.codec.UTF8
+import org.goldenport.io.MimeType
 import org.goldenport.record.v2._
 import org.goldenport.record.v2.bag.RecordBag._
 import org.goldenport.record.v2.util.RecordUtils
@@ -15,7 +16,8 @@ import org.goldenport.bag._
  * @since   Sep. 21, 2015
  *  version Oct. 27, 2015
  *  version Sep.  4, 2017
- * @version Oct. 16, 2018
+ *  version Oct. 16, 2018
+ * @version May. 26, 2020
  * @author  ASAMI, Tomoharu
  */
 class JsonBag(
@@ -28,7 +30,7 @@ class JsonBag(
   type WORKBOOK = JsValue // JsObject or JsArray
   type SHEET = JsArray
   override def filenameSuffix = Some("json")
-  override def mimetype: String = Strings.mimetype.application_json
+  override def mimetype: MimeType = MimeType.application_json
 
   protected def generate_Schema(): Option[Schema] = {
     None // TODO

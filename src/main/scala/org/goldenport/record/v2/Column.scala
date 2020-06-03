@@ -36,7 +36,9 @@ import org.goldenport.record.v2.projector.ProjectorContext
  *  version Aug. 23, 2019
  *  version Oct.  9, 2019
  *  version Feb. 25, 2020
- * @version Mar. 30, 2020
+ *  version Mar. 30, 2020
+ *  version May. 11, 2020
+ * @version Jun.  1, 2020
  * @author  ASAMI, Tomoharu
  */
 case class Column(
@@ -77,10 +79,12 @@ case class Column(
 
   def withDatatype(p: DataType) = copy(datatype = p)
   def withPlaceholder(p: String) = copy(form = form.withPlaceholder(p))
+  def withDefault(p: Any) = copy(extension = extension.withDefault(p))
 
   def converter = extension.converter
   def importer = extension.importer
   def exporter = extension.exporter
+  def default = extension.default
   def orderBy: Option[SqlOrder] = displayFormat.flatMap(_.orderBy)
 
   def validate(f: Field): ValidationResult = {
@@ -251,6 +255,12 @@ object Column {
   }
   object Form {
     val empty = Form()
+
+    def create(placeholder: Option[String], value: Option[String]): Form =
+      Form(
+        placeholder.map(I18NString.apply),
+        value
+      )
   }
 
   case class Xml(
@@ -268,17 +278,19 @@ object Column {
   case class Extension(
 //    displayFormat: Option[DisplayFormat],
     converter: Option[Converter], // convert to/from internal datatype
-    importer: Option[Importer], // import data to represent datattype
-    exporter: Option[Exporter] // export data from represent datatype
-  )
+    importer: Option[Importer], // import data to represent datatype
+    exporter: Option[Exporter], // export data from represent datatype
+    default: Option[Any]
+  ) {
+    def withDefault(p: Any) = copy(default = Some(p))
+  }
 
   object Extension {
-    val empty = Extension(None, None, None)
+    val empty = Extension(None, None, None, None)
 
-    def create(importer: Importer): Extension = Extension(None, Some(importer), None)
+    def create(importer: Importer): Extension = Extension(None, Some(importer), None, None)
 
     //    def apply(p: DisplayFormat): Extension = Extension(Some(p), None, None, None)
-
   }
 
   object record {

@@ -1,5 +1,6 @@
 package org.goldenport.record.v2.util
 
+import scala.language.reflectiveCalls
 import scalaz._, Scalaz._
 import scalax.io.Codec
 import scala.util.Try
@@ -31,7 +32,8 @@ import org.goldenport.record.v2.bag.{RecordBag, CsvBag}
  *  version Nov. 13, 2017
  *  version Jan. 21, 2018
  *  version Oct. 24, 2018
- * @version Apr.  3, 2019
+ *  version Apr.  3, 2019
+ * @version May. 26, 2020
  * @author  ASAMI, Tomoharu
  */
 object RecordUtils {
@@ -626,6 +628,15 @@ object RecordUtils {
     val l = n.lefts./:(Z(z.lefts.toVector))(_+_).r
     val r = n.rights./:(Z(z.rights.toVector))(_+_).r
     Slot(n.column, l, r)
+  }
+
+  //
+  def toValueOrRecord(p: Any): Any = p match {
+    case m: String => m
+    case m: Record => m
+    case m: Map[_, _] =>
+    case HasToRecord(o) => o.toRecord
+    case m => m
   }
 
   // LTSV

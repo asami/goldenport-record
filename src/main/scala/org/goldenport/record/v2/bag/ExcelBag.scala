@@ -15,7 +15,7 @@ import com.asamioffice.goldenport.io.UURL
 import org.goldenport.Platform
 import org.goldenport.Strings
 import org.goldenport.values.FileName
-import org.goldenport.io.ResourceHandle
+import org.goldenport.io.{ResourceHandle, MimeType}
 import org.goldenport.bag._
 import org.goldenport.record.v2._
 import org.goldenport.record.v2.bag.RecordBag._
@@ -27,7 +27,8 @@ import org.goldenport.util.StringUtils
  *  version Oct. 28, 2015
  *  version Sep. 22, 2016
  *  version Sep. 21, 2017
- * @version Aug. 18, 2019
+ *  version Aug. 18, 2019
+ * @version May. 26, 2020
  * @author  ASAMI, Tomoharu
  */
 class ExcelBag(
@@ -37,7 +38,7 @@ class ExcelBag(
   override val name: String = "data",
   val sheetNumber: Int = 0,
   val sheetName: Option[String] = None, // filenameBody
-  val properties: ExcelBag.Properties = ExcelBag.Properties.empty
+  val excelProperties: ExcelBag.Properties = ExcelBag.Properties.empty
 ) extends RecordBag with WorkbookFeature {
   import ExcelBag._
 
@@ -49,7 +50,7 @@ class ExcelBag(
   //   bag
   // }
   override def filenameSuffix = Some(kind.suffix)
-  override def mimetype: String = Strings.mimetype.application_excel
+  override def mimetype: MimeType = MimeType.application_excel
   override def getCodec = Some(Platform.codec.WINDOWS31J)
 
   def dispose() {
@@ -219,8 +220,8 @@ class ExcelBag(
     style.setFillBackgroundColor(color)
   }
 
-  protected def is_ruled_line = properties.ruledLine | false
-  protected def is_fixed_header = properties.fixedHeader| false
+  protected def is_ruled_line = excelProperties.ruledLine | false
+  protected def is_fixed_header = excelProperties.fixedHeader| false
 
   private def _header_cellstyle(c: Column) = {
     c.displayFormat.flatMap(_.header.backgroundColorRgb) match {
@@ -422,7 +423,7 @@ object ExcelBag {
     val kind = _to_kind(filename)
     val name = _to_name(filename)
     val file = org.goldenport.bag.FileBag.create(filename)
-    new ExcelBag(kind, file, strategy, name, properties = properties)
+    new ExcelBag(kind, file, strategy, name, excelProperties = properties)
   }
 
   def load(
@@ -446,7 +447,7 @@ object ExcelBag {
     val file = bag.switchToFileBag
     val kind = _to_kind(uri)
     val name = _to_name(uri)
-    new ExcelBag(kind, file, strategy, name = name, properties = properties)
+    new ExcelBag(kind, file, strategy, name = name, excelProperties = properties)
   }
 
   def loadResource(rh: ResourceHandle, strategy: Strategy = Strategy.windowsAuto): ExcelBag = {

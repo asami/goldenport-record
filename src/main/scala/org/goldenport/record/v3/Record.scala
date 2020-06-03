@@ -68,7 +68,8 @@ import org.goldenport.values.PathName
  *  version Nov. 29, 2019
  *  version Jan. 28, 2020
  *  version Mar. 23, 2020
- * @version Apr.  3, 2020
+ *  version Apr.  3, 2020
+ * @version May. 29, 2020
  * @author  ASAMI, Tomoharu
  */
 case class Record(
@@ -154,46 +155,49 @@ case class Record(
   def getStringCaseInsensitive(keys: NonEmptyVector[String]): Option[String] =
     fields.find(x => keys.exists(x.name.equalsIgnoreCase)).map(_.asString)
 
-  def asString(key: Symbol): String = {
+  def takeString(key: Symbol): String = {
     getString(key) getOrElse {
       throw new IllegalArgumentException(s"Missing string '$key.name'")
     }
   }
+  def takeString(key: String): String = takeString(Symbol(key))
 
   override def getInt(key: Symbol): Option[Int] = getField(key).map(_.asInt)
   override def getInt(key: String): Option[Int] = getField(key).map(_.asInt)
 
-  def asInt(key: Symbol): Int = getInt(key) getOrElse {
+  def takeInt(key: Symbol): Int = getInt(key) getOrElse {
     throw new IllegalArgumentException(s"Missing int '$key.name'")
   }
+  def takeInt(key: String): Int = takeInt(Symbol(key))
 
   override def getLong(key: Symbol): Option[Long] = {
     getField(key).map(_.asLong)
   }
 
-  def asLong(key: Symbol): Long = {
+  def takeLong(key: Symbol): Long = {
     getLong(key) getOrElse {
       throw new IllegalArgumentException(s"Missing long '$key.name'")
     }
   }
+  def takeLong(key: String): Long = takeLong(Symbol(key))
 
   override def getFloat(key: Symbol): Option[Float] = getField(key).map(_.asFloat)
   override def getFloat(key: String): Option[Float] = getField(key).map(_.asFloat)
 
-  def asFloat(key: Symbol): Float =
+  def takeFloat(key: Symbol): Float =
     getFloat(key) getOrElse {
       throw new IllegalArgumentException(s"Missing float '$key.name'")
     }
-  def asFloat(key: String): Float = asFloat(Symbol(key))
+  def takeFloat(key: String): Float = takeFloat(Symbol(key))
 
   override def getDouble(key: Symbol): Option[Double] = getField(key).map(_.asDouble)
   override def getDouble(key: String): Option[Double] = getField(key).map(_.asDouble)
 
-  def asDouble(key: Symbol): Double =
+  def takeDouble(key: Symbol): Double =
     getDouble(key) getOrElse {
       throw new IllegalArgumentException(s"Missing double '$key.name'")
     }
-  def asDouble(key: String): Double = asDouble(Symbol(key))
+  def takeDouble(key: String): Double = takeDouble(Symbol(key))
 
   // def getTimestamp(key: Symbol): Option[Timestamp] = {
   //   getField(key).map(_.asTimestamp)
@@ -203,7 +207,7 @@ case class Record(
   //   getField(key).map(_.asDateTime)
   // }
 
-  // def asDateTime(key: Symbol): DateTime = {
+  // def takeDateTime(key: Symbol): DateTime = {
   //   getDateTime(key) getOrElse {
   //     throw new IllegalArgumentException(s"Missing datetime '$key.name'")
   //   }

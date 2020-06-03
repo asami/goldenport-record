@@ -18,7 +18,8 @@ import org.goldenport.record.util.DateUtils
  *  version Jul. 15, 2019
  *  version Oct.  9, 2019
  *  version Nov. 27, 2019
- * @version Mar. 29, 2020
+ *  version Mar. 29, 2020
+ * @version May. 13, 2020
  * @author  ASAMI, Tomoharu
  */
 class SqlBuilder(
@@ -215,6 +216,7 @@ class SqlBuilder(
   }
 
   def literal(p: Any): String = p match {
+    case EmptyValue => "NULL"
     case SingleValue(v) => literal(v)
     case m: MultipleValue => RAISE.notImplementedYetDefect
     case m: ValueCommand => m.getSqlLiteralForSet getOrElse RAISE.noReachDefect

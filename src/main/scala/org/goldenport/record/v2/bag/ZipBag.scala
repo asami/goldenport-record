@@ -6,6 +6,7 @@ import java.nio.charset.Charset
 import java.util.zip._
 import org.goldenport.Platform
 import org.goldenport.Strings
+import org.goldenport.io.MimeType
 import org.goldenport.bag._
 
 /*
@@ -13,7 +14,8 @@ import org.goldenport.bag._
  *  version Oct. 24, 2015
  *  version Jul. 25, 2017
  *  version Sep.  4, 2017
- * @version Jan. 23, 2018
+ *  version Jan. 23, 2018
+ * @version May. 26, 2020
  * @author  ASAMI, Tomoharu
  */
 class ZipBag(
@@ -22,7 +24,7 @@ class ZipBag(
   import ZipBag._
 
   override def filenameSuffix = Some("zip")
-  override def mimetype: String = Strings.mimetype.application_zip
+  override def mimetype: MimeType = MimeType.application_zip
   def getChunkBag = None
   def createChunkBag: ChunkBag = {
     val buf = new BufferFileBag()
