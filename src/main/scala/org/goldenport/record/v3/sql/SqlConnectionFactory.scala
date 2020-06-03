@@ -10,7 +10,8 @@ import SqlContext._
 /*
  * @since   Mar. 23, 2019
  *  version Mar. 30, 2019
- * @version Apr.  6, 2019
+ *  version Apr.  6, 2019
+ * @version May. 29, 2020
  * @author  ASAMI, Tomoharu
  */
 trait SqlConnectionFactory {
@@ -42,7 +43,7 @@ trait SqlConnectionFactory {
           case (name, v) =>
             name -> SqlContext.DatabaseConfig(
               name,
-              v.asString('url),
+              v.takeString('url),
               v.getString("driver"),
               v.getString("user"),
               v.getString("password")

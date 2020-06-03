@@ -9,7 +9,8 @@ import org.goldenport.record.util.AnyUtils
 /*
  * @since   Sep. 17, 2015
  *  version Nov. 19, 2015
- * @version Mar. 28, 2020
+ *  version Mar. 28, 2020
+ * @version May. 20, 2020
  * @author  ASAMI, Tomoharu
  */
 sealed trait FieldCommand[T] extends ExtensionValueCommand {
@@ -50,6 +51,10 @@ case class AppendCommand[T](value: T) extends FieldCommand[T] {
   def convert[A](f: T => A): AppendCommand[A] = AppendCommand(f(value))
 }
 
+case class PrependCommand[T](value: T) extends FieldCommand[T] {
+  def convert[A](f: T => A): PrependCommand[A] = PrependCommand(f(value))
+}
+
 case class RemoveCommand[T](value: T) extends FieldCommand[T] {
   def convert[A](f: T => A): RemoveCommand[A] = RemoveCommand(f(value))
 }
@@ -68,6 +73,7 @@ object FieldCommand {
   val FIELD_NULL = "null"
   val FIELD_UNCHANGE = "unchange"
   val FIELD_APPEND = "append"
+  val FIELD_PREPEND = "prepend"
   val FIELD_REMOVE = "remove"
   val FIELD_DELETE = "delete"
   val FIELD_CLEAR = "clear"
@@ -110,6 +116,7 @@ object FieldCommand {
           rec.getEffectiveValue(_make_key(key, FIELD_NULL)).map(NullCommand(_)) orElse
           rec.getEffectiveValue(_make_key(key, FIELD_UNCHANGE)).map(UnchangeCommand(_)) orElse
           rec.getEffectiveValue(_make_key(key, FIELD_APPEND)).map(AppendCommand(_)) orElse
+          rec.getEffectiveValue(_make_key(key, FIELD_PREPEND)).map(PrependCommand(_)) orElse
           rec.getEffectiveValue(_make_key(key, FIELD_REMOVE)).map(RemoveCommand(_)) orElse
           rec.getEffectiveValue(_make_key(key, FIELD_DELETE)).map(DeleteCommand(_)) orElse
           rec.getEffectiveValue(_make_key(key, FIELD_CLEAR)).map(ClearCommand(_))
@@ -245,6 +252,7 @@ object FieldCommand {
     rec.getString(makekey(FIELD_NULL)).map(NullCommand(_)) orElse
     rec.getString(makekey(FIELD_UNCHANGE)).map(UnchangeCommand(_)) orElse
     rec.getConcreteString(makekey(FIELD_APPEND)).map(AppendCommand(_)) orElse
+    rec.getConcreteString(makekey(FIELD_PREPEND)).map(PrependCommand(_)) orElse
     rec.getConcreteString(makekey(FIELD_REMOVE)).map(RemoveCommand(_)) orElse
     rec.getConcreteString(makekey(FIELD_DELETE)).map(DeleteCommand(_)) orElse
     rec.getConcreteString(makekey(FIELD_CLEAR)).map(ClearCommand(_))
@@ -267,6 +275,7 @@ object FieldCommand {
     f(makekey(FIELD_NULL)).map(NullCommand(_)) orElse
     f(makekey(FIELD_UNCHANGE)).map(UnchangeCommand(_)) orElse
     f(makekey(FIELD_APPEND)).map(AppendCommand(_)) orElse
+    f(makekey(FIELD_PREPEND)).map(PrependCommand(_)) orElse
     f(makekey(FIELD_REMOVE)).map(RemoveCommand(_)) orElse
     f(makekey(FIELD_DELETE)).map(DeleteCommand(_)) orElse
     f(makekey(FIELD_CLEAR)).map(ClearCommand(_))

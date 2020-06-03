@@ -37,7 +37,8 @@ import org.goldenport.record.v2.projector.ProjectorContext
  *  version Oct.  9, 2019
  *  version Feb. 25, 2020
  *  version Mar. 30, 2020
- * @version May. 11, 2020
+ *  version May. 11, 2020
+ * @version Jun.  1, 2020
  * @author  ASAMI, Tomoharu
  */
 case class Column(
@@ -254,6 +255,12 @@ object Column {
   }
   object Form {
     val empty = Form()
+
+    def create(placeholder: Option[String], value: Option[String]): Form =
+      Form(
+        placeholder.map(I18NString.apply),
+        value
+      )
   }
 
   case class Xml(
