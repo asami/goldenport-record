@@ -1,6 +1,7 @@
 package org.goldenport.record.v2
 
 import scalaz._, Scalaz._
+import java.util.Locale
 import play.api.libs.json._
 import org.goldenport.RAISE
 import org.goldenport.i18n.I18NString
@@ -9,7 +10,7 @@ import org.goldenport.collection.NonEmptyVector
 /*
  * @since   Apr. 17, 2020
  *  version May. 26, 2020
- * @version Jun.  3, 2020
+ * @version Jun.  8, 2020
  * @author  ASAMI, Tomoharu
  */
 case class Conclusion(
@@ -33,15 +34,77 @@ case class Conclusion(
       case _ => None
     }
   ).toMap
+
+  def message: String = message(Locale.ENGLISH)
+  def messageError: String = messageError(Locale.ENGLISH)
+  def messageWarning: String = messageWarning(Locale.ENGLISH)
+  def getMessage: Option[String] = getMessage(Locale.ENGLISH)
+  def getMessageError: Option[String] = getMessageError(Locale.ENGLISH)
+  def getMessageWarning: Option[String] = getMessageWarning(Locale.ENGLISH)
+  def message(locale: Locale): String = getMessage(locale) getOrElse ""
+  def messageError(locale: Locale): String = getMessageError(locale) getOrElse ""
+  def messageWarning(locale: Locale): String = getMessageWarning(locale) getOrElse ""
+  def getMessage(l: Locale): Option[String] = {
+    val a = _messages(l, errors) ++ _messages(l, warnings) ++ _errors(l, validations) ++ _warnings(l, validations)
+    a match {
+      case Nil => None
+      case xs => Some(xs.mkString(";"))
+    }
+  }
+  def getMessageError(l: Locale): Option[String] = {
+    val a = _messages(l, errors) ++ _errors(l, validations) 
+    a match {
+      case Nil => None
+      case xs => Some(xs.mkString(";"))
+    }
+  }
+  def getMessageWarning(l: Locale): Option[String] = {
+    val a = _messages(l, warnings) ++ _warnings(l, validations)
+    a match {
+      case Nil => None
+      case xs => Some(xs.mkString(";"))
+    }
+  }
+
+  private def _messages(l: Locale, ps: Option[NonEmptyVector[I18NString]]): List[String] =
+    ps.map(x => _messages(l, x.list)).getOrElse(Nil)
+
+  private def _messages(l: Locale, ps: List[I18NString]): List[String] = ps.map(_.as(l))
+
+  private def _errors(l: Locale, ps: List[Conclusion.ValidationSlot]): List[String] =
+    _messages(l, ps.filter(_.isError).map(_.i18nMessage))
+
+  private def _warnings(l: Locale, ps: List[Conclusion.ValidationSlot]): List[String] =
+    _messages(l, ps.filter(_.isWarning).map(_.i18nMessage))
+
+  def +(rhs: Conclusion): Conclusion = Conclusion(
+    code,
+    detail,
+    errors |+| rhs.errors,
+    warnings |+| rhs.warnings,
+    exception,
+    _unify(validations, rhs.validations)
+  )
+
+  private def _unify(lhs: List[Conclusion.ValidationSlot], rhs: List[Conclusion.ValidationSlot]) = {
+    lhs ++ rhs // TODO merge
+  }
 }
 
 object Conclusion {
-  type ConclusionResult[T] = Either[Conclusion, T]
+  implicit object ConclusionMonoid extends Monoid[Conclusion] {
+    def append(lhs: Conclusion, rhs: => Conclusion) = lhs + rhs
+    def zero = Conclusion.success
+  }
 
   case class ValidationSlot(
     key: Symbol,
     result: ValidationResult
-  )
+  ) {
+    def i18nMessage = result.i18nMessage
+    def isWarning = result.isWarning
+    def isError = result.isError
+  }
 
   val success = Conclusion(200, None, None, None, None, Nil)
 

@@ -56,7 +56,8 @@ import org.goldenport.record.v3.IRecord
  *  version Oct.  1, 2019
  *  version Dec. 30, 2019
  *  version Jan. 12, 2020
- * @version Apr. 17, 2020
+ *  version Apr. 17, 2020
+ * @version Jun.  8, 2020
  * @author  ASAMI, Tomoharu
  */
 case class Schema(
@@ -824,6 +825,9 @@ sealed trait ValidationResult {
   def enlabel(label: String): ValidationResult = this
   def i18nMessage: I18NString
   def message(locale: Locale): String = i18nMessage(locale)
+  def isSuccess: Boolean
+  def isWarning: Boolean
+  def isError: Boolean
 }
 
 case object Valid extends ValidationResult {
@@ -835,6 +839,10 @@ case object Valid extends ValidationResult {
     }
   }
   def i18nMessage = I18NString("Valid")
+
+  def isSuccess: Boolean = true
+  def isWarning: Boolean = false
+  def isError: Boolean = false
 }
 
 case class VDescription(
@@ -938,6 +946,10 @@ trait Warning extends ValidationResult {
   def i18nMessages: Vector[I18NString] = descriptions.map(_.i18nMessage)
   def i18nMessage: I18NString = I18NString.concat(i18nMessages)
   def displayWarnings: NonEmptyVector[Warning] = NonEmptyVector(this)
+
+  def isSuccess: Boolean = false
+  def isWarning: Boolean = true
+  def isError: Boolean = false
 }
 
 case class CompoundWarning(warnings: NonEmptyVector[Warning]) extends Warning {
@@ -1011,6 +1023,10 @@ trait Invalid extends ValidationResult {
   def i18nMessage: I18NString = I18NString.concat(i18nMessages)
   def displayWarnings: Option[NonEmptyVector[Warning]] = None
   def displayErrors: NonEmptyVector[Invalid] = NonEmptyVector(this)
+
+  def isSuccess: Boolean = false
+  def isWarning: Boolean = false
+  def isError: Boolean = true
 }
 
 case class CompoundFailure(failures: NonEmptyVector[Invalid], warning: Option[Warning] = None) extends Invalid {
