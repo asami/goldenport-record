@@ -1,27 +1,64 @@
 package org.goldenport.record.v2
 
+import scalaz._, Scalaz._
+import java.util.Locale
 import org.goldenport.i18n.I18NString
 
 /*
  * @since   Jun.  3, 2020
- * @version Jun.  3, 2020
+ * @version Jun. 11, 2020
  * @author  ASAMI, Tomoharu
  */
 sealed trait ConclusionResult[T] {
   def conclusion: Conclusion
+  def toOption: Option[T]
+  def add(p: Conclusion): ConclusionResult[T]
+  def map[U](f: T => U): ConclusionResult[U]
+  // ConclusionResult is not Monad. Just using for Scala syntax suger of for comprehension.
+  def flatMap[U](f: T => ConclusionResult[U]): ConclusionResult[U]
+
+  def getMessage: Option[String] = conclusion.getMessage
+  def message: String = conclusion.message
+  def getMessage(locale: Locale): Option[String] = conclusion.getMessage(locale)
+  def message(locale: Locale): String = conclusion.message(locale)
 }
 case class SuccessConclusionResult[T](
   result: T,
   conclusion: Conclusion = Conclusion.success
 ) extends ConclusionResult[T] {
+  def toOption: Option[T] = Some(result)
+  def add(p: Conclusion): ConclusionResult[T] = copy(conclusion = conclusion + p)
+  def map[U](f: T => U): ConclusionResult[U] = copy(result = f(result))
+  def flatMap[U](f: T => ConclusionResult[U]): ConclusionResult[U] =
+    f(result) match {
+      case m: SuccessConclusionResult[_] => m.copy(conclusion = conclusion + m.conclusion)
+      case m: ErrorConclusionResult[_] => m.copy(conclusion = conclusion + m.conclusion)
+    }
 }
 
 case class ErrorConclusionResult[T](
   conclusion: Conclusion
 ) extends ConclusionResult[T] {
+  def toOption: Option[T] = None
+  def add(p: Conclusion): ConclusionResult[T] = copy(conclusion = conclusion + p)
+  def map[U](f: T => U): ConclusionResult[U] = this.asInstanceOf[ErrorConclusionResult[U]]
+  def flatMap[U](f: T => ConclusionResult[U]): ConclusionResult[U] = this.asInstanceOf[ConclusionResult[U]]
 }
 
 object ConclusionResult {
+  implicit object ConclusionResultApplicative extends Applicative[ConclusionResult] {
+    def ap[A, B](fa: => ConclusionResult[A])(f: => ConclusionResult[A => B]): ConclusionResult[B] = f match {
+      case SuccessConclusionResult(sf, cs) => fa.map(sf).add(cs)
+      case m: ErrorConclusionResult[_] => fa match {
+        case mm: SuccessConclusionResult[_] => m.add(mm.conclusion).asInstanceOf[ErrorConclusionResult[B]]
+        case mm: ErrorConclusionResult[_] => mm.add(m.conclusion).asInstanceOf[ErrorConclusionResult[B]]
+      }
+    }
+    def point[A](a: => A): ConclusionResult[A] = SuccessConclusionResult(a)
+  }
+
+  def apply[T](p: T): ConclusionResult[T] = SuccessConclusionResult(p)
+
   def badRequest[T](p: String): ConclusionResult[T] = badRequest(I18NString(p))
   def badRequest[T](p: I18NString): ConclusionResult[T] = error(400, p)
   def unauthorized[T](p: String): ConclusionResult[T] = unauthorized(I18NString(p))

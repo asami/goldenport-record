@@ -15,7 +15,8 @@ import org.goldenport.util.StringUtils
  *  version Nov. 23, 2015
  *  version Dec.  9, 2015
  *  version Nov. 12, 2017
- * @version Jan. 11, 2020
+ *  version Jan. 11, 2020
+ * @version Jun. 10, 2020
  * @author  ASAMI, Tomoharu
  */
 trait Powertype {
@@ -41,6 +42,14 @@ trait Powertype {
   }
 
   def label(locale: Locale): String = i18nLabel.flatMap(_.get(locale)).getOrElse(label)
+
+  private lazy val _value_string = value.toString
+
+  def isMatch(p: Any): Boolean = p match {
+    case m: String => m == name || m == _value_string
+    case m: Int => m == value
+    case m => m == this
+  }
 }
 
 trait PowertypeClass {
