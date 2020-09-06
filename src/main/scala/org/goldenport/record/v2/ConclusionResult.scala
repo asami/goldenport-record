@@ -1,12 +1,17 @@
 package org.goldenport.record.v2
 
 import scalaz._, Scalaz._
+import scala.util.control.NonFatal
 import java.util.Locale
 import org.goldenport.i18n.I18NString
+import org.goldenport.collection.NonEmptyVector
+import org.goldenport.parser.{ParseResult, ParseSuccess, ParseFailure, EmptyParseResult}
+import org.goldenport.parser.{ParseMessage}
 
 /*
  * @since   Jun.  3, 2020
- * @version Jun. 11, 2020
+ *  version Jun. 30, 2020
+ * @version Sep.  6, 2020
  * @author  ASAMI, Tomoharu
  */
 sealed trait ConclusionResult[T] {
@@ -14,7 +19,7 @@ sealed trait ConclusionResult[T] {
   def toOption: Option[T]
   def add(p: Conclusion): ConclusionResult[T]
   def map[U](f: T => U): ConclusionResult[U]
-  // ConclusionResult is not Monad. Just using for Scala syntax suger of for comprehension.
+  // ConclusionResult is not Monad. Just to use 'for' comprehension in Scala syntax suger.
   def flatMap[U](f: T => ConclusionResult[U]): ConclusionResult[U]
 
   def getMessage: Option[String] = conclusion.getMessage
@@ -26,6 +31,7 @@ case class SuccessConclusionResult[T](
   result: T,
   conclusion: Conclusion = Conclusion.success
 ) extends ConclusionResult[T] {
+  def code = conclusion.code
   def toOption: Option[T] = Some(result)
   def add(p: Conclusion): ConclusionResult[T] = copy(conclusion = conclusion + p)
   def map[U](f: T => U): ConclusionResult[U] = copy(result = f(result))
@@ -57,8 +63,12 @@ object ConclusionResult {
     def point[A](a: => A): ConclusionResult[A] = SuccessConclusionResult(a)
   }
 
-  def apply[T](p: T): ConclusionResult[T] = SuccessConclusionResult(p)
-
+  def apply[T](p: => T): ConclusionResult[T] = success(p)
+  def success[T](p: T): ConclusionResult[T] = SuccessConclusionResult(p)
+  //
+  def successOrMissingProperty[T](name: String, p: Option[T]): ConclusionResult[T] =
+    p.map(success).getOrElse(missing(name))
+  //
   def badRequest[T](p: String): ConclusionResult[T] = badRequest(I18NString(p))
   def badRequest[T](p: I18NString): ConclusionResult[T] = error(400, p)
   def unauthorized[T](p: String): ConclusionResult[T] = unauthorized(I18NString(p))
@@ -92,11 +102,53 @@ object ConclusionResult {
   def serviceUnavailable[T](p: I18NString): ConclusionResult[T] = error(503, p)
   def gatewayTimeout[T](p: String): ConclusionResult[T] = gatewayTimeout(I18NString(p))
   def gatewayTimeout[T](p: I18NString): ConclusionResult[T] = error(504, p)
-
+  //
   def error[T](code: Int, p: String): ConclusionResult[T] = error(code, I18NString(p))
   def error[T](code: Int, p: I18NString): ConclusionResult[T] = ErrorConclusionResult(Conclusion.error(code, p))
-
+  def error[T](e: Throwable): ConclusionResult[T] = e match {
+    case m: IllegalArgumentException => badRequest(m.getMessage)
+    case m: SecurityException => unauthorized(m.getMessage)
+    case m: UnsupportedOperationException => notImplemented(m.getMessage)
+    case m: NoSuchElementException => notFound(m.getMessage)
+    case m: java.io.FileNotFoundException => notFound(m.getMessage)
+    case m => internalServerError(m.getMessage)
+  }
+  //
   def missing[T](p: String, ps: String*): ConclusionResult[T] = missings(p +: ps)
-
   def missings[T](ps: Seq[String]): ConclusionResult[T] = ErrorConclusionResult(Conclusion.missings(ps))
+  //
+  def execute[T](body: => T): ConclusionResult[T] = try {
+    SuccessConclusionResult(body)
+  } catch {
+    case NonFatal(e) => error(e)
+  }
+  //
+  def from[A](p: ParseResult[A]): ConclusionResult[A] = p match {
+    case m: ParseSuccess[_] => SuccessConclusionResult(m.ast, _conclusion_success(m))
+    case m: ParseFailure[_] => ErrorConclusionResult(_conclusion_error(m))
+    case m: EmptyParseResult[_] => ErrorConclusionResult(_conclusion_error(m))
+  }
+
+  private def _conclusion_success(p: ParseResult[_]): Conclusion =
+    Conclusion(
+      200,
+      None,
+      errors = _messages(p.errors),
+      warnings = _messages(p.warnings),
+      None,
+      Nil
+    )
+
+  private def _conclusion_error(p: ParseResult[_]): Conclusion = 
+    Conclusion(
+      400,
+      None,
+      errors = _messages(p.errors),
+      warnings = _messages(p.warnings),
+      None,
+      Nil
+    )
+
+  private def _messages(ps: Vector[ParseMessage]) =
+    NonEmptyVector.createOption(ps.map(_.msg))
 }

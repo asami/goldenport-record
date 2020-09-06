@@ -5,9 +5,11 @@ import java.sql.Timestamp
 import org.w3c.dom.{Element, Attr}
 import org.joda.time.DateTime
 import play.api.libs.json._
+import com.typesafe.config.Config
 import org.goldenport.RAISE
 import org.goldenport.util.VectorUtils
 import org.goldenport.record.util.StringUtils
+import org.goldenport.record.util.AnyUtils
 import org.goldenport.record.v2.{Record => Record2, Field => Field2, Schema}
 import org.goldenport.record.v2.util.RecordUtils
 import org.goldenport.collection.{NonEmptyVector, VectorMap}
@@ -59,7 +61,8 @@ import org.goldenport.values.PathName
  *  version Jan. 28, 2020
  *  version Mar. 23, 2020
  *  version Apr.  3, 2020
- * @version May. 29, 2020
+ *  version May. 29, 2020
+ * @version Sep.  4, 2020
  * @author  ASAMI, Tomoharu
  */
 case class Record(
@@ -174,6 +177,9 @@ case class Record(
       throw new IllegalArgumentException(s"Missing double '$key.name'")
     }
   def takeDouble(key: String): Double = takeDouble(Symbol(key))
+
+  def getBigDecimal(key: Symbol): Option[BigDecimal] = getField(key).map(_.asBigDecimal)
+  def getBigDecimal(key: String): Option[BigDecimal] = getField(key).map(_.asBigDecimal)
 
   // def getTimestamp(key: Symbol): Option[Timestamp] = {
   //   getField(key).map(_.asTimestamp)
@@ -358,6 +364,31 @@ object Record {
 
   def createSymbolAnySeq(ps: Seq[(Symbol, Any)]): Record =
     Record(ps.map(Field.create))
+
+  def createAnyMap(data: Map[Any, Any]): Record = createAnySeq(data.toVector)
+
+  def createAnySet(data: Set[(Any, Any)]): Record = createAnySeq(data.toSeq)
+
+  def createAnySeq(data: Seq[(Any, Any)]): Record =
+    createSymbolAnySeq(data.map {
+      case (k, v) =>
+        val x = k match {
+          case m: Symbol => m
+          case m: String => Symbol(m)
+          case m => Symbol(AnyUtils.toString(m))
+        }
+        x -> v
+    })
+
+  def createConfig(p: Config): Record = {
+    import scala.collection.JavaConverters._
+    createDataSeq(p.entrySet.asScala.toVector.map(x => x.getKey -> x.getValue.unwrapped))
+  }
+
+  def createJavaMap(p: java.util.Map[_, _]): Record = {
+    import scala.collection.JavaConverters._
+    createAnyMap(p.asScala.toMap)
+  }
 
   def createHttp(data: Map[String, List[String]]): Record =
     create(data).http.request.normalize

@@ -4,9 +4,12 @@ import scala.util.control.NonFatal
 import scala.math.BigInt
 import scala.math.BigDecimal
 import java.util.Locale
+import com.typesafe.config._
 import org.goldenport.RAISE
 import org.goldenport.i18n.I18NString
+import org.goldenport.hocon.RichConfig.Implicits._
 import org.goldenport.util.StringUtils
+import org.goldenport.record.util.AnyUtils
 
 /*
  * @since   Aug. 12, 2015
@@ -16,7 +19,8 @@ import org.goldenport.util.StringUtils
  *  version Dec.  9, 2015
  *  version Nov. 12, 2017
  *  version Jan. 11, 2020
- * @version Jun. 10, 2020
+ *  version Jun. 18, 2020
+ * @version Aug. 19, 2020
  * @author  ASAMI, Tomoharu
  */
 trait Powertype {
@@ -75,12 +79,17 @@ trait PowertypeClass {
     }
   }
 
+  def get(config: Config, key: String): Option[T] = config.getStringOption(key).flatMap(get)
+
   def getName(v: Int): Option[String] = get(v).map(_.name)
   def getName(v: String): Option[String] = get(v).map(_.name)
+  def getName(config: Config, key: String): Option[String] = get(config, key).map(_.name)
   def getLabel(v: Int): Option[String] = get(v).map(_.label)
   def getLabel(v: String): Option[String] = get(v).map(_.label)
+  def getLabel(config: Config, key: String): Option[String] = get(config, key).map(_.label)
   def getValue(v: Int): Option[Int] = get(v).map(_.value)
   def getValue(v: String): Option[Int] = get(v).map(_.value)
+  def getValue(config: Config, key: String): Option[Int] = get(config, key).map(_.value)
 
   def toValue(v: Any): Int = Option(v).flatMap {
     case m: Int => getValue(m)
@@ -92,6 +101,15 @@ trait PowertypeClass {
   }
 
   def toValues(vs: Seq[Any]): Seq[Int] = vs.map(toValue)
+
+  def makeLabel(v: Any): String = Option(v).flatMap {
+    case m: Int => getLabel(m)
+    case m: Number => getLabel(m.intValue)
+    case m: String => getLabel(m)
+    case m => getLabel(m.toString)
+  }.getOrElse {
+    AnyUtils.toString(v)
+  }
 
   def getsByMarkAndRemainder(s: String): (Seq[T], Option[String]) = {
     case class Z(

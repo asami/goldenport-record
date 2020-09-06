@@ -12,7 +12,8 @@ import org.goldenport.record.v2._
  *  version Mar. 28, 2018
  *  version Apr.  7, 2018
  *  version May. 31, 2018
- * @version Sep. 13, 2019
+ *  version Sep. 13, 2019
+ * @version Jun. 26, 2020
  * @author  ASAMI, Tomoharu
  */
 sealed trait StoreOperation[+A] extends ExtensionUnitOfWork[A] {
@@ -74,8 +75,12 @@ case class DeleteResult(
   items: IndexedSeq[Store.Id] = Vector.empty
 )
 case class DeletesResult(ids: IndexedSeq[Store.Id])
+
 sealed trait CommitResult {
   def log: String
+}
+object CommitResult {
+  val empty = CommitSuccess("")
 }
 case class CommitSuccess(log: String) extends CommitResult {
 }
