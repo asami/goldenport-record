@@ -62,7 +62,7 @@ import org.goldenport.values.PathName
  *  version Mar. 23, 2020
  *  version Apr.  3, 2020
  *  version May. 29, 2020
- * @version Sep.  4, 2020
+ * @version Sep. 10, 2020
  * @author  ASAMI, Tomoharu
  */
 case class Record(
@@ -230,6 +230,8 @@ case class Record(
     }
     copy(fields = r)
   }
+
+  def update(key: String, value: Any): Record = update(Symbol(key), value)
 
   def updateField(key: Symbol, value: FieldValue): Record = {
     val (prefix, suffix) = fields.span(_.key != key) // XXX isMatch?
