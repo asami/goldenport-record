@@ -2,7 +2,7 @@ organization := "org.goldenport"
 
 name := "goldenport-record"
 
-version := "1.3.28.1"
+version := "1.3.29"
 
 scalaVersion := "2.10.3"
 // crossScalaVersions := Seq("2.9.2", "2.9.1")
@@ -29,7 +29,7 @@ libraryDependencies += "org.goldenport" %% "goldenport-atom" % "1.0.1"
 
 // libraryDependencies += "org.goldenport" % "goldenport-java-lib" % "0.1.2"
 
-libraryDependencies += "org.goldenport" %% "goldenport-scala-lib" % "1.2.67"
+libraryDependencies += "org.goldenport" %% "goldenport-scala-lib" % "1.2.68"
 
 // libraryDependencies += "org.smartdox" %% "smartdox" % "1.2.2"
 
@@ -49,7 +49,7 @@ libraryDependencies += "org.apache.poi" % "poi-ooxml" % "3.12" % "compile"
 
 libraryDependencies += "org.jfree" % "jfreechart" % "1.5.0"
 
-libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.6" % "test"
+libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.6"
 
 libraryDependencies += "junit" % "junit" % "4.10" % "test"
 
