@@ -11,10 +11,11 @@ import org.goldenport.parser.{ParseMessage}
 /*
  * @since   Jun.  3, 2020
  *  version Jun. 30, 2020
- * @version Sep.  6, 2020
+ *  version Sep.  6, 2020
+ * @version Oct. 13, 2020
  * @author  ASAMI, Tomoharu
  */
-sealed trait ConclusionResult[T] {
+sealed trait ConclusionResult[+T] {
   def conclusion: Conclusion
   def toOption: Option[T]
   def add(p: Conclusion): ConclusionResult[T]

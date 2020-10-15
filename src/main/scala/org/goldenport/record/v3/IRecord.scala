@@ -6,6 +6,7 @@ import java.sql.Timestamp
 import play.api.libs.json._
 import org.goldenport.exception.RAISE
 import org.goldenport.util.ListUtils
+import org.goldenport.util.StringUtils
 import org.goldenport.record.v2.{Schema, Column, DataType, Multiplicity}
 import org.goldenport.record.v2.{MZeroOne, MZeroMore}
 import org.goldenport.record.util.AnyUtils
@@ -21,7 +22,8 @@ import org.goldenport.record.util.AnyUtils
  *  version Jul. 29, 2019
  *  version Aug. 22, 2019
  *  version Nov. 29, 2019
- * @version Jan.  9, 2020
+ *  version Jan.  9, 2020
+ * @version Oct. 15, 2020
  * @author  ASAMI, Tomoharu
  */
 trait IRecord extends org.goldenport.record.IRecord
@@ -49,6 +51,10 @@ trait IRecord extends org.goldenport.record.IRecord
   def getStringList(key: String): Option[List[String]] = getList(key).map(_.map(AnyUtils.toString))
   def takeStringList(key: Symbol): List[String] = takeList(key).map(AnyUtils.toString)
   def takeStringList(key: String): List[String] = takeList(key).map(AnyUtils.toString)
+  def getEagerTokenList(key: Symbol): Option[List[String]] = getList(key).map(_eager_tokens_list)
+  def getEagerTokenList(key: String): Option[List[String]] = getList(key).map(_eager_tokens_list)
+  def takeEagerTokenList(key: Symbol): List[String] = takeList(key).flatMap(_eager_tokens)
+  def takeEagerTokenList(key: String): List[String] = takeList(key).flatMap(_eager_tokens)
   def getBoolean(key: Symbol): Option[Boolean] = get(key).map(AnyUtils.toBoolean)
   def getBoolean(key: String): Option[Boolean] = get(key).map(AnyUtils.toBoolean)
   def getByte(key: Symbol): Option[Byte] = get(key).map(AnyUtils.toByte)
@@ -101,6 +107,12 @@ trait IRecord extends org.goldenport.record.IRecord
   // def eagerStringList(key: String): List[String] = RAISE.unsupportedOperationFault
   // def effectiveList(key: String): List[Any] = RAISE.unsupportedOperationFault
   // def toStringVector: Vector[(String, String)] = RAISE.unsupportedOperationFault
+
+  private def _eager_tokens_list(ps: List[Any]): List[String] =
+    StringUtils.eagerCommaForm(ps.map(AnyUtils.toString))
+
+  private def _eager_tokens(p: Any): List[String] =
+    StringUtils.eagerCommaForm(AnyUtils.toString(p))
 }
 
 object IRecord {

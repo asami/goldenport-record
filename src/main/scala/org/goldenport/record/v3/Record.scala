@@ -62,7 +62,8 @@ import org.goldenport.values.PathName
  *  version Mar. 23, 2020
  *  version Apr.  3, 2020
  *  version May. 29, 2020
- * @version Sep. 10, 2020
+ *  version Sep. 10, 2020
+ * @version Oct. 14, 2020
  * @author  ASAMI, Tomoharu
  */
 case class Record(
@@ -70,7 +71,7 @@ case class Record(
   meta: Record.MetaData = Record.MetaData.empty,
   extra: Record.Extra = Record.Extra.empty,
   override val parent: Option[Record] = None
-) extends IRecord with ElementNode with MapPart
+) extends IRecord with ElementNode with MapPart with ParsePart
     with XmlPart with JsonPart with CsvPart with LtsvPart with LxsvPart
     with HttpPart with SqlPart
     with CompatibilityPart {
