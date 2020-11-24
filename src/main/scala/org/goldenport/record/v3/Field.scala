@@ -1,6 +1,7 @@
 package org.goldenport.record.v3
 
 import scala.util.control.NonFatal
+import scala.collection.JavaConverters._
 import java.sql.Timestamp
 import java.util.Locale
 import org.joda.time.DateTime
@@ -48,7 +49,8 @@ import org.goldenport.record.util.AnyUtils
  *  version Aug. 23, 2019
  *  version Sep. 30, 2019
  *  version Oct.  7, 2019
- * @version Nov. 29, 2019
+ *  version Nov. 29, 2019
+ * @version Sep.  7, 2020
  * @author  ASAMI, Tomoharu
  */
 case class Field(
@@ -71,6 +73,7 @@ case class Field(
   def asLong: Long = value.asLong
   def asFloat: Float = value.asFloat
   def asDouble: Double = value.asDouble
+  def asBigDecimal: BigDecimal = value.asBigDecimal
   def asTimestamp: Timestamp = value.asTimestamp
   def asRecord: Record = value.asRecord
   def asRecordList: List[Record] = value.asRecordList
@@ -171,12 +174,31 @@ object Field {
 
   def create(key: Symbol, value: Any): Field = {
     value match {
+      case null => Field(key, EmptyValue)
       case m: FieldValue => apply(key, m)
       case Some(x) => create(key, x)
       case None => Field(key, EmptyValue)
-      case xs: Seq[_] => Field(key, MultipleValue(xs))
-      case x => Field(key, SingleValue(x))
+      case xs: Seq[_] => Field(key, MultipleValue(xs.map(_normalize_value)))
+      case xs: java.util.List[_] => Field(key, MultipleValue(xs.asScala.map(_normalize_value)))
+      case x => Field(key, SingleValue(_normalize_value(x)))
     }
+  }
+
+  private def _multiple_value(ps: Seq[Any]): MultipleValue =
+    MultipleValue(ps.map(_normalize_value))
+
+  private def _normalize_value(p: Any): Any = p match {
+    case m: Map[_, _] => Record(m.map {
+      case (k, v) =>
+        val key = k match {
+          case mm: Symbol => mm
+          case mm: String => Symbol(mm)
+          case mm => Symbol(AnyUtils.toString(mm))
+        }
+        key -> _normalize_value(v)
+    })
+    case m: java.util.Map[_, _] => _normalize_value(m.asScala.toMap)
+    case m => m
   }
 
   def create(key: Symbol, value: Any, column: Column): Field = {

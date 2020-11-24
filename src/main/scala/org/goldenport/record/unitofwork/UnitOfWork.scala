@@ -19,7 +19,8 @@ import org.goldenport.record.v2._
  *  version May. 31, 2018
  *  version Sep. 12, 2018
  *  version Oct. 16, 2018
- * @version Sep. 13, 2019
+ *  version Sep. 13, 2019
+ * @version Jun. 26, 2020
  * @author  ASAMI, Tomoharu
  */
 sealed trait UnitOfWork[+A] {
@@ -39,7 +40,12 @@ case class Raise(e: Throwable) extends UnitOfWork[Throwable]
 case class UnitOfWorkResult[T](
   result: T,
   commit: CommitResult
-)
+) {
+  def map[B](f: T => B): UnitOfWorkResult[B] = copy(result = f(result))
+}
+object UnitOfWorkResult {
+  def apply[T](p: T): UnitOfWorkResult[T] = UnitOfWorkResult(p, CommitResult.empty)
+}
 
 object UnitOfWork {
   type UnitOfWorkFM[T] = Free[UnitOfWork, T]
