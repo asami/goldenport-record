@@ -2,6 +2,7 @@ package org.goldenport.record.command
 
 import java.util.Date
 import java.sql.Timestamp
+import org.goldenport.RAISE
 import org.goldenport.Strings
 import org.goldenport.record.v2._
 import org.goldenport.record.util.AnyUtils
@@ -10,7 +11,8 @@ import org.goldenport.record.util.AnyUtils
  * @since   Sep. 17, 2015
  *  version Nov. 19, 2015
  *  version Mar. 28, 2020
- * @version May. 20, 2020
+ *  version May. 20, 2020
+ * @version Feb. 20, 2021
  * @author  ASAMI, Tomoharu
  */
 sealed trait FieldCommand[T] extends ExtensionValueCommand {
@@ -63,8 +65,19 @@ case class DeleteCommand[T](value: T) extends FieldCommand[T] {
   def convert[A](f: T => A): DeleteCommand[A] = DeleteCommand(f(value))
 }
 
-case class ClearCommand[T](value: T) extends FieldCommand[T] {
-  def convert[A](f: T => A): ClearCommand[A] = ClearCommand(f(value))
+case class RemoveAllCommand[T]() extends FieldCommand[T] {
+  def value: T = RAISE.unsupportedOperationFault
+  def convert[A](f: T => A): RemoveAllCommand[A] = this.asInstanceOf[RemoveAllCommand[A]]
+}
+
+case class DeleteAllCommand[T]() extends FieldCommand[T] {
+  def value: T = RAISE.unsupportedOperationFault
+  def convert[A](f: T => A): DeleteAllCommand[A] = this.asInstanceOf[DeleteAllCommand[A]]
+}
+
+case class ClearCommand[T]() extends FieldCommand[T] { // RemoveAll and more
+  def value: T = RAISE.unsupportedOperationFault
+  def convert[A](f: T => A): ClearCommand[A] = this.asInstanceOf[ClearCommand[A]]
 }
 
 object FieldCommand {
@@ -76,6 +89,8 @@ object FieldCommand {
   val FIELD_PREPEND = "prepend"
   val FIELD_REMOVE = "remove"
   val FIELD_DELETE = "delete"
+  val FIELD_REMOVE_ALL = "remove_all"
+  val FIELD_DELETE_ALL = "delete_all"
   val FIELD_CLEAR = "clear"
 
   val DELIMITER = "__"
@@ -119,7 +134,9 @@ object FieldCommand {
           rec.getEffectiveValue(_make_key(key, FIELD_PREPEND)).map(PrependCommand(_)) orElse
           rec.getEffectiveValue(_make_key(key, FIELD_REMOVE)).map(RemoveCommand(_)) orElse
           rec.getEffectiveValue(_make_key(key, FIELD_DELETE)).map(DeleteCommand(_)) orElse
-          rec.getEffectiveValue(_make_key(key, FIELD_CLEAR)).map(ClearCommand(_))
+          rec.getEffectiveValue(_make_key(key, FIELD_REMOVE_ALL)).map(_ => RemoveAllCommand[Any]()) orElse
+          rec.getEffectiveValue(_make_key(key, FIELD_DELETE_ALL)).map(_ => DeleteAllCommand[Any]()) orElse
+          rec.getEffectiveValue(_make_key(key, FIELD_CLEAR)).map(_ => ClearCommand[Any]())
       )
 
   private def _make_key(key: String, cmd: String) = key + DELIMITER + cmd
@@ -255,7 +272,7 @@ object FieldCommand {
     rec.getConcreteString(makekey(FIELD_PREPEND)).map(PrependCommand(_)) orElse
     rec.getConcreteString(makekey(FIELD_REMOVE)).map(RemoveCommand(_)) orElse
     rec.getConcreteString(makekey(FIELD_DELETE)).map(DeleteCommand(_)) orElse
-    rec.getConcreteString(makekey(FIELD_CLEAR)).map(ClearCommand(_))
+    rec.getConcreteString(makekey(FIELD_CLEAR)).map(_ => ClearCommand())
   }
 
   def getCmdInt(rec: Record, key: Symbol, isoverwrite: Boolean): Option[FieldCommand[Int]] = {
@@ -278,6 +295,6 @@ object FieldCommand {
     f(makekey(FIELD_PREPEND)).map(PrependCommand(_)) orElse
     f(makekey(FIELD_REMOVE)).map(RemoveCommand(_)) orElse
     f(makekey(FIELD_DELETE)).map(DeleteCommand(_)) orElse
-    f(makekey(FIELD_CLEAR)).map(ClearCommand(_))
+    f(makekey(FIELD_CLEAR)).map(_ => ClearCommand())
   }
 }

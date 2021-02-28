@@ -9,6 +9,7 @@ import org.goldenport.RAISE
 import org.goldenport.i18n.I18NString
 import org.goldenport.hocon.RichConfig.Implicits._
 import org.goldenport.util.StringUtils
+// import org.goldenport.util.NumberUtils
 import org.goldenport.record.util.AnyUtils
 
 /*
@@ -20,7 +21,9 @@ import org.goldenport.record.util.AnyUtils
  *  version Nov. 12, 2017
  *  version Jan. 11, 2020
  *  version Jun. 18, 2020
- * @version Aug. 19, 2020
+ *  version Aug. 19, 2020
+ *  version Oct. 28, 2020
+ * @version Feb. 20, 2021
  * @author  ASAMI, Tomoharu
  */
 trait Powertype {
@@ -102,11 +105,20 @@ trait PowertypeClass {
 
   def toValues(vs: Seq[Any]): Seq[Int] = vs.map(toValue)
 
+  def makeName(v: Any): String = Option(v).flatMap {
+    case m: Int => getName(m)
+    case m: Number => getName(m.intValue)
+    case m: String => getName(m)
+    case m => getName(AnyUtils.toString(m))
+  }.getOrElse {
+    AnyUtils.toString(v)
+  }
+
   def makeLabel(v: Any): String = Option(v).flatMap {
     case m: Int => getLabel(m)
     case m: Number => getLabel(m.intValue)
     case m: String => getLabel(m)
-    case m => getLabel(m.toString)
+    case m => getLabel(AnyUtils.toString(m))
   }.getOrElse {
     AnyUtils.toString(v)
   }
@@ -191,6 +203,13 @@ trait PowertypeClass {
       case NonFatal(e) => get(x)
     }
   }
+
+  // def getValue(rec: Record, key: String): Option[Int] =
+  //   rec.getOne(key).map {
+  //     case m: Int => m
+  //     case m: String => apply(m).value
+  //     case m => NumberUtils.getInt(m).getOrElse(RAISE.invalidArgumentFault(s"Unavailable value: $m"))
+  //   }
 
   def normalizeValue(rec: Record, key: String): Record = {
     getParamString(rec.getString(key)) match {

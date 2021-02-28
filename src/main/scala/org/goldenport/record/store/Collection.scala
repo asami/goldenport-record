@@ -7,7 +7,8 @@ import org.goldenport.record.v3._
  *  version Apr.  7, 2019
  *  version Jul. 15, 2019
  *  version Oct.  3, 2019
- * @version Nov. 27, 2019
+ *  version Nov. 27, 2019
+ * @version Feb. 20, 2021
  * @author  ASAMI, Tomoharu
  */
 trait Collection {
@@ -17,6 +18,7 @@ trait Collection {
   def insert(rec: IRecord): Id
   def inserts(rs: Seq[IRecord]): Seq[Id] = rs.map(insert)
   def update(id: Id, rec: IRecord): Unit
+  def imports(rs: Seq[IRecord]): MutationResult
   def delete(id: Id): Unit
   def create(): Unit
   def drop(): Unit

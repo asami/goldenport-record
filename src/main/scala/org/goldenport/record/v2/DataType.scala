@@ -41,7 +41,8 @@ import org.goldenport.record.util.{
  *  version Jul. 31, 2019
  *  version Aug. 16, 2019
  *  version Nov.  4, 2019
- * @version Jan.  9, 2020
+ *  version Jan.  9, 2020
+ * @version Feb. 27, 2021
  * @author  ASAMI, Tomoharu
  */
 sealed trait DataType {
@@ -237,7 +238,7 @@ object DataType {
 
   val periodRegex = """([^~]+)([!]?)~([^!]+)([!]?)""".r
 
-  def get(p: String): Option[DataType] = _datatypes.find(_.name == p) orElse {
+  def get(p: String): Option[DataType] = _datatypes.find(_.name.equalsIgnoreCase(p)) orElse {
     val pf: PartialFunction[String, DataType] = {
       case "statemachine" => XStateMachine()
     }
@@ -1019,7 +1020,7 @@ case object XDateTime extends DataType {
   }
 
   override protected def period_to_query_expression(ctx: QueryExpression.Context, p: String): QueryExpression = {
-    val builder = DateTimePeriod.Builder(ctx.datetime, ctx.timezoneJoda)
+    val builder = DateTimePeriod.Builder(ctx.datetime)
     DateTimePeriodQuery(builder.fromExpression(p))
   }
 }

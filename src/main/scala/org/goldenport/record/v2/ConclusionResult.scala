@@ -12,7 +12,9 @@ import org.goldenport.parser.{ParseMessage}
  * @since   Jun.  3, 2020
  *  version Jun. 30, 2020
  *  version Sep.  6, 2020
- * @version Oct. 13, 2020
+ *  version Oct. 13, 2020
+ *  version Jan. 29, 2021
+ * @version Feb. 20, 2021
  * @author  ASAMI, Tomoharu
  */
 sealed trait ConclusionResult[+T] {
@@ -69,6 +71,8 @@ object ConclusionResult {
   //
   def successOrMissingProperty[T](name: String, p: Option[T]): ConclusionResult[T] =
     p.map(success).getOrElse(missing(name))
+  // def successOrMissingPropertyOrError[T](name: String, p: Option[Left[String, T]]): ConclusionResult[T] =
+  //   p.map(success).getOrElse(missingPropertyOrError(name))
   //
   def badRequest[T](p: String): ConclusionResult[T] = badRequest(I18NString(p))
   def badRequest[T](p: I18NString): ConclusionResult[T] = error(400, p)

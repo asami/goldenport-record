@@ -8,6 +8,7 @@ import org.goldenport.RAISE
 import org.goldenport.record.sql.SqlDatatype
 import org.goldenport.record.store
 import org.goldenport.record.v2.{Schema, Column, SqlColumn, DataType}
+import org.goldenport.record.v2.{XDateTime}
 import org.goldenport.record.v3._
 import org.goldenport.record.command.ValueCommand
 import org.goldenport.record.util.DateUtils
@@ -19,7 +20,8 @@ import org.goldenport.record.util.DateUtils
  *  version Oct.  9, 2019
  *  version Nov. 27, 2019
  *  version Mar. 29, 2020
- * @version May. 13, 2020
+ *  version May. 13, 2020
+ * @version Feb. 28, 2021
  * @author  ASAMI, Tomoharu
  */
 class SqlBuilder(
@@ -281,10 +283,21 @@ class SqlBuilder(
   }
 
   private def _value(datatype: DataType, p: Field): String = p.value match {
-    case SingleValue(v) => literal(datatype.toInstance(v))
+    case SingleValue(v) => _value(datatype, v)
     case MultipleValue(v) => RAISE.notImplementedYetDefect
     case EmptyValue => "NULL"
   }
+
+  private def _value(datatype: DataType, p: Any): String = datatype match {
+    case XDateTime => p match {
+      case m: LocalDate => RAISE.notImplementedYetDefect
+      case m: LocalDateTime => literal(_to_timestamp(m))
+      case m => literal(datatype.toInstance(p))
+    }
+    case m => literal(datatype.toInstance(p))
+  }
+
+  private def _to_timestamp(p: LocalDateTime): Timestamp = sqlContext.toTimestamp(p)
 
   def insertValues(rec: Record): String = rec.fields.map(_.value).map(literal).mkString(", ")
 
@@ -304,12 +317,14 @@ class SqlBuilder(
 
   private def _update_value(c: Column, p: Field): String = {
     val v = p.value match {
-      case SingleValue(v) => literal(c.datatype.toInstance(v))
+      case SingleValue(v) => _update_value(c.datatype, v)
       case MultipleValue(v) => RAISE.notImplementedYetDefect
       case EmptyValue => "NULL"
     }
     s"${column_name_literal(c.name)} = $v"
   }
+
+  private def _update_value(dt: DataType, p: Any): String = _value(dt, p)
 
   def updateValues(rec: Record): String = rec.fields.map(x =>
     s"${column_name_literal(x.key.name)} = ${literal(x.value)}"
@@ -318,16 +333,16 @@ class SqlBuilder(
 
 object SqlBuilder {
   def apply(tablename: String): SqlBuilder =
-    new SqlBuilder(tablename, None, None, SqlContext.empty)
+    new SqlBuilder(tablename, None, None, SqlContext.now())
 
   def apply(tablename: String, idcolumn: String): SqlBuilder =
-    new SqlBuilder(tablename, Some(idcolumn), None, SqlContext.empty)
+    new SqlBuilder(tablename, Some(idcolumn), None, SqlContext.now())
 
   def apply(tablename: String, idcolumn: String, schema: Option[Schema]): SqlBuilder =
-    new SqlBuilder(tablename, Some(idcolumn), schema, SqlContext.empty)
+    new SqlBuilder(tablename, Some(idcolumn), schema, SqlContext.now())
 
   def create(tablename: String, schema: Schema): SqlBuilder = {
-    new SqlBuilder(tablename, None, Some(schema), SqlContext.empty)
+    new SqlBuilder(tablename, None, Some(schema), SqlContext.now())
   }
 
   def escape(s: String): String = 

@@ -14,7 +14,8 @@ import org.goldenport.record.sql.SqlU
  *  version Jul. 15, 2019
  *  version Oct.  7, 2019
  *  version Nov. 27, 2019
- * @version Mar. 31, 2020
+ *  version Mar. 31, 2020
+ * @version Feb. 20, 2021
  * @author  ASAMI, Tomoharu
  */
 class SqlStore(
@@ -156,6 +157,8 @@ object SqlStore {
       val sql = s"""DROP TABLE ${table_name}"""
       store.sqlContext.execute(store_name, sql)
     }
+
+    def imports(rs: Seq[IRecord]): MutationResult = RAISE.notImplementedYetDefect
   }
 
   class SqlCollection(
