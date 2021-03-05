@@ -2,9 +2,9 @@ organization := "org.goldenport"
 
 name := "goldenport-record"
 
-version := "2.1.8"
+version := "2.1.9"
 
-scalaVersion := "2.12.7"
+scalaVersion := "2.12.13"
 
 // crossScalaVersions := Seq("2.11.6", "2.10.5")
 
@@ -15,6 +15,8 @@ scalacOptions += "-unchecked"
 scalacOptions += "-feature"
 
 incOptions := incOptions.value.withNameHashing(true)
+
+javacOptions ++= Seq("-source", "1.8", "-target", "1.8")
 
 resolvers += "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases"
 
@@ -28,11 +30,11 @@ resolvers += "Local Maven Repository" at "file://"+Path.userHome.absolutePath+"/
 
 // libraryDependencies += "org.scalaz" %% "scalaz-core" % "7.0.6"
 
-libraryDependencies += "org.goldenport" %% "goldenport-atom" % "2.1.0"
+libraryDependencies += "org.goldenport" %% "goldenport-atom" % "2.1.1"
 
-libraryDependencies += "org.smartdox" %% "smartdox" % "2.1.1"
+libraryDependencies += "org.smartdox" %% "smartdox" % "2.1.3"
 
-libraryDependencies += "org.goldenport" %% "goldenport-scala-lib" % "2.1.8"
+libraryDependencies += "org.goldenport" %% "goldenport-scala-lib" % "2.1.11"
 
 libraryDependencies += "com.typesafe.play" %% "play-json" % "2.6.10" % "provided" exclude("org.scala-stm", "scala-stm_2.10.0")
 
