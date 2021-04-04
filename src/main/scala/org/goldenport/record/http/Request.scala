@@ -14,7 +14,8 @@ import org.goldenport.util.StringUtils
  *  version Aug. 19, 2018
  *  version Sep. 17, 2018
  *  version Oct. 30, 2018
- * @version Nov.  7, 2018
+ *  version Nov.  7, 2018
+ * @version Mar. 20, 2021
  * @author  ASAMI, Tomoharu
  */
 case class Request(
@@ -33,6 +34,9 @@ case class Request(
 
 object Request {
   sealed trait Method extends NamedValueInstance {
+  }
+  object Method extends EnumerationClass[Method] {
+    val elements = Vector(GET, POST, PUT, DELETE)
   }
   case object GET extends Method {
     val name = "GET"

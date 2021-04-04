@@ -14,6 +14,7 @@ import org.goldenport.Strings
 import org.goldenport.exception.RAISE
 import org.goldenport.extension.IRecord
 import org.goldenport.i18n.I18NString
+import org.goldenport.parser.ParseResult
 import org.goldenport.values.DateTimePeriod
 import org.goldenport.record.query._
 import org.goldenport.record.util.{
@@ -42,7 +43,8 @@ import org.goldenport.record.util.{
  *  version Aug. 16, 2019
  *  version Nov.  4, 2019
  *  version Jan.  9, 2020
- * @version Feb. 27, 2021
+ *  version Feb. 27, 2021
+ * @version Mar. 21, 2021
  * @author  ASAMI, Tomoharu
  */
 sealed trait DataType {
@@ -50,6 +52,11 @@ sealed trait DataType {
   val name = getClass.getSimpleName.substring(1).filterNot(_ == '$').toLowerCase // eliminame 'X'
   def toInstance(v: Any): InstanceType
   def validate(d: Any): ValidationResult
+  def parse(p: Any): ParseResult[InstanceType] =
+    if (validate(p).isSuccess)
+      ParseResult(toInstance(p))
+    else
+      ParseResult.error(s"Unmatch datatype[$name]: ${AnyUtils.toString(name)}")
   def label: String
   def labelI18N: I18NString = I18NString(label)
   def mapData(s: String): String = s

@@ -63,7 +63,8 @@ import org.goldenport.values.PathName
  *  version Apr.  3, 2020
  *  version May. 29, 2020
  *  version Sep. 10, 2020
- * @version Oct. 14, 2020
+ *  version Oct. 14, 2020
+ * @version Mar. 28, 2021
  * @author  ASAMI, Tomoharu
  */
 case class Record(
@@ -321,7 +322,7 @@ object Record {
 
   def apply(data: Seq[(Symbol, Any)]): Record = createSymbolAnySeq(data)
 
-  def data(data: (String, Any)*): Record = createDataSeq(data)
+  def data(h: (String, Any), t: (String, Any)*): Record = createDataSeq(h +: t)
 
   def dataOption(data: (String, Option[Any])*): Record = {
     val xs = data.collect {
@@ -337,8 +338,14 @@ object Record {
 
   def create(data: Seq[(String, Any)]): Record = createDataSeq(data)
 
+  def create(data: Iterable[(String, Any)]): Record = create(data.toVector)
+
+  def create(data: Iterator[(String, Any)]): Record = create(data.toVector)
+
   def createOption(data: Seq[(String, Option[Any])]): Record = 
     create(VectorUtils.buildTupleVector(data))
+
+  def create(p: org.goldenport.extension.IRecord): Record = apply(p.toMapS)
 
   def create(p: IRecord): Record = p.toRecord
 
@@ -368,11 +375,11 @@ object Record {
   def createSymbolAnySeq(ps: Seq[(Symbol, Any)]): Record =
     Record(ps.map(Field.create))
 
-  def createAnyMap(data: Map[Any, Any]): Record = createAnySeq(data.toVector)
+  def createAnyMap(data: Map[_, _]): Record = createAnySeq(data.toVector)
 
-  def createAnySet(data: Set[(Any, Any)]): Record = createAnySeq(data.toSeq)
+  def createAnySet(data: Set[(_, _)]): Record = createAnySeq(data.toSeq)
 
-  def createAnySeq(data: Seq[(Any, Any)]): Record =
+  def createAnySeq(data: Seq[(_, _)]): Record =
     createSymbolAnySeq(data.map {
       case (k, v) =>
         val x = k match {

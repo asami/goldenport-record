@@ -3,7 +3,7 @@ package org.goldenport.record.v3
 import org.w3c.dom._
 import org.goldenport.exception.RAISE
 import org.goldenport.matrix.IMatrix
-import org.goldenport.record.v2.{Schema, XmlSchema, Column}
+import org.goldenport.record.v2.{Schema, XmlSchema, Column => V2Column}
 import org.goldenport.values.{NumberRange, EnumRange}
 
 /*
@@ -15,7 +15,8 @@ import org.goldenport.values.{NumberRange, EnumRange}
  *  version Aug. 23, 2019
  *  version Sep. 16, 2019
  *  version Jan. 26, 2020
- * @version Feb. 28, 2020
+ *  version Feb. 28, 2020
+ * @version Mar. 25, 2021
  * @author  ASAMI, Tomoharu
  */
 trait ITable extends org.goldenport.table.ITable {
@@ -61,8 +62,8 @@ object ITable {
     Schema(columns, xml = XmlSchema("tr"))
   }
 
-  private val _th_column = Column("th", xml = Column.Xml.element)
-  private val _td_column = Column("td", xml = Column.Xml.element)
+  private val _th_column = V2Column("th", xml = V2Column.Xml.element)
+  private val _td_column = V2Column("td", xml = V2Column.Xml.element)
 
   case class HtmlBuilder() {
     def dom(p: ITable): Element = record(p)

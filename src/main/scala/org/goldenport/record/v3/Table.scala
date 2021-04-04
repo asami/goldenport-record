@@ -11,7 +11,7 @@ import org.goldenport.i18n._
 import org.goldenport.values.NumberRange
 import org.goldenport.value._
 import org.goldenport.util.{StringUtils, AnyUtils => LAnyUtils}
-import org.goldenport.record.v2.{Schema, Column, XString, XDouble}
+import org.goldenport.record.v2.{Schema, Column => Column2, XString, XDouble}
 import org.goldenport.record.util.AnyUtils
 
 /*
@@ -28,7 +28,8 @@ import org.goldenport.record.util.AnyUtils
  *  version Dec.  8, 2019
  *  version Jan. 30, 2020
  *  version Feb. 28, 2020
- * @version Mar. 30, 2020
+ *  version Mar. 30, 2020
+ * @version Mar. 25, 2021
  * @author  ASAMI, Tomoharu
  */
 case class Table(
@@ -62,16 +63,16 @@ case class Table(
 
   private def _guess_number(p: Vector[Any]) = p.forall(LAnyUtils.guessNumberOrEmpty)
 
-  private def _matrix_row(columns: Seq[Column], rec: Record): Vector[Double] = {
+  private def _matrix_row(columns: Seq[Column2], rec: Record): Vector[Double] = {
     case class Z(r: Vector[Double] = Vector.empty) {
-      def +(rhs: Column) = {
+      def +(rhs: Column2) = {
         if (rhs.datatype.isNumber)
           copy(r = r :+ _value(rhs))
         else
           this
       }
 
-      private def _value(rhs: Column) = rec.getDouble(rhs.name).getOrElse(0.0)
+      private def _value(rhs: Column2) = rec.getDouble(rhs.name).getOrElse(0.0)
     }
     columns./:(Z())(_+_).r
   }
@@ -82,20 +83,20 @@ case class Table(
   }
   def display = s"Table[${width}x${height}]"
   def show = {
-    val tv = TableVisualizer(isEmbed = true)
+    val tv = TableVisualizer(isCompact = true, isEmbed = true)
     tv.plainText(this)
   }
   def embed: String = display
 
   lazy val data: Table.Data = { // TODO unify schema
     case class Z(
-      columns: Vector[Column] = Vector.empty,
+      columns: Vector[Column2] = Vector.empty,
       matrix: Vector[Vector[Table.Cell]] = Vector.empty
     ) {
       def r = Table.Data(columns, Table.DataMatrix.create(matrix))
 
       def +(rhs: Record) = {
-        val cs: Vector[Column] = rhs.fields./:(columns) { (z, x) =>
+        val cs: Vector[Column2] = rhs.fields./:(columns) { (z, x) =>
           if (z.exists(_.name == x.key.name))
             z.map(xx =>
               if (xx.name == x.key.name)
@@ -121,10 +122,10 @@ case class Table(
 
       import org.goldenport.record.v2.{Field => _, Table => _, _}
 
-      private def _to_column(p: Field): Column = {
+      private def _to_column(p: Field): Column2 = {
         p.value match {
-          case SingleValue(v) => Column(p.name, _datatype(v), MOne)
-          case MultipleValue(v) => Column(p.name, _datatype_multi(v), _multiplicity(v))
+          case SingleValue(v) => Column2(p.name, _datatype(v), MOne)
+          case MultipleValue(v) => Column2(p.name, _datatype_multi(v), _multiplicity(v))
           case EmptyValue => RAISE.notImplementedYetDefect
         }
       }
@@ -139,7 +140,7 @@ case class Table(
         else
           MOneMore
 
-      private def _to_column(c: Column, p: Field): Column = c // TODO datatype & multiplicity
+      private def _to_column(c: Column2, p: Field): Column2 = c // TODO datatype & multiplicity
 
       private def _to_content(p: SingleValue): Table.Cell = Table.Cell(p.value)
 
@@ -192,6 +193,16 @@ case class Table(
       foot.map(_.select(is))
     )
   }
+
+  def ensureHead: Table =
+    if (head.isDefined)
+      this
+    else
+      records.headOption.map { x =>
+        val head = Table.Head.create(x.fields.map(_.asString))
+        val data = records.tail
+        copy(records = data, head = Some(head))
+      }.getOrElse(this)
 }
 
 object Table {
@@ -223,7 +234,7 @@ object Table {
   }
 
   case class Data(
-    columns: Vector[Column],
+    columns: Vector[Column2],
     matrix: DataMatrix
   ) {
     def width = columns.length
@@ -268,10 +279,12 @@ object Table {
     def select(names: Seq[String]): Data = {
       val is = selectIndex(names)
       Data(
-        is./:(Vector.empty[Column])((z, x) => z :+ columns(x)),
+        is./:(Vector.empty[Column2])((z, x) => z :+ columns(x)),
         DataMatrix.create(matrix.select(is))
       )
     }
+
+    def trim: Data = copy(matrix = matrix.trim)
   }
 
   case class Cell(
@@ -286,6 +299,10 @@ object Table {
     def embed(width: Option[Int]): String = width.map(embed).getOrElse(embed)
     def embed(width: Int): String = AnyUtils.toString(content) // TODO
     def embed: String = AnyUtils.toEmbed(content) // TODO
+    def trim: Cell = content match {
+      case m: String => copy(content = m.trim)
+      case _ => this
+    }
   }
   object Cell {
     val empty = Cell(Empty)
@@ -301,6 +318,10 @@ object Table {
     def appendRows(ps: IMatrix[Cell]): DataMatrix = DataMatrix(matrix ++ ps.rowIterator)
     def appendColumn(ps: Seq[Cell]): IMatrix[Cell] = RAISE.notImplementedYetDefect
     def appendColumns(ps: IMatrix[Cell]): IMatrix[Cell] = RAISE.notImplementedYetDefect
+    def trim: DataMatrix = {
+      val r = matrix.map(x => x.map(_.trim))
+      copy(matrix = r)
+    }
   }
   object DataMatrix {
     def create(pss: Seq[Seq[Cell]]): DataMatrix = DataMatrix(
@@ -316,6 +337,8 @@ object Table {
     def select(is: Seq[Int]) = Head(
       is./:(Vector.empty[Cell])((z, x) => z :+ names(x)).toList
     )
+
+    def trim: Head = copy(names = names.map(_.trim))
   }
   object Head {
     def apply(name: String, names: String*): Head = create(name +: names)
@@ -329,6 +352,21 @@ object Table {
     def select(is: Seq[Int]) = Foot(
       is./:(Vector.empty[Cell])((z, x) => z :+ data(x)).toList
     )
+
+    def trim: Foot = copy(data = data.map(_.trim))
+  }
+
+  sealed trait CreateHtmlStrategy extends NamedValueInstance {
+  }
+  object CreateHtmlStrategy extends EnumerationClass[CreateHtmlStrategy] {
+    val elements = Vector(NaturalStrategy, EnsureHeadStrategy)
+
+    case object NaturalStrategy extends CreateHtmlStrategy {
+      val name = "natural"
+    }
+    case object EnsureHeadStrategy extends CreateHtmlStrategy {
+      val name = "ensure-head"
+    }
   }
 
   def apply(head: Table.Head, data: Seq[Record]): Table =
@@ -393,7 +431,7 @@ object Table {
     Head(xs.toList)
   }
 
-  private def _to_cell(p: Column): Cell = Cell(p.name)
+  private def _to_cell(p: Column2): Cell = Cell(p.name)
 
   def create(p: Xsv): Table = {
     val xs = p.rowIterator.toVector
@@ -402,7 +440,7 @@ object Table {
 
   private def _create(head: Vector[LogicalToken], tail: Vector[Vector[LogicalToken]]): Table = {
     val names = head.map(_.raw)
-    val columns = names.map(Column(_))
+    val columns = names.map(Column2(_))
     val schema = Schema(columns)
     case class Z(
       records: Vector[Record] = Vector.empty
@@ -445,7 +483,7 @@ object Table {
   }
 
   def createDouble(p: IMatrix[Double]): Table = {
-    val cs = for (i <- 1 to p.width) yield Column(s"$i", XDouble)
+    val cs = for (i <- 1 to p.width) yield Column2(s"$i", XDouble)
     val schema = Schema(cs)
     create(schema, p.asInstanceOf[IMatrix[Any]])
   }
@@ -465,7 +503,7 @@ object Table {
   def createAuto(names: Seq[String], p: IMatrix[Any]): Table = {
     val matrix = if (true) _distill_numberable_matrix(p) else p
     case class Z(
-      ns: Vector[Column] = Vector.empty,
+      ns: Vector[Column2] = Vector.empty,
       xs: Vector[Vector[Any]] = Vector.empty
     ) {
       def r = create(Schema(ns), VectorColumnRowMatrix(xs))
@@ -479,7 +517,7 @@ object Table {
 
       private def _name(p: Int): String = names.lift(p).getOrElse(s"${p + 1}")
 
-      private def _column(p: Int): Column = Column(_name(p), XDouble)
+      private def _column(p: Int): Column2 = Column2(_name(p), XDouble)
     }
     (0 until matrix.width)./:(Z())(_+_).r
   }
@@ -500,7 +538,7 @@ object Table {
   def createAuto(p: IMatrix[Any]): Table = {
     val cs = for (i <- 1 to p.width) yield {
       val datatype = XString // TODO
-      Column(s"$i", datatype)
+      Column2(s"$i", datatype)
     }
     val schema = Schema(cs)
     create(schema, p)
@@ -517,9 +555,23 @@ object Table {
     Table(rs, MetaData(schema), Some(head), None)
   }
 
-  def createHtml(p: Node): Table = createHtmlOption(p).getOrElse(RAISE.invalidArgumentFault("No table content"))
+  def createHtml(
+    strategy: CreateHtmlStrategy,
+    p: Node
+  ): Table = createHtmlOption(strategy, p).getOrElse(RAISE.invalidArgumentFault("No table content"))
 
-  def createHtmlOption(p: Node): Option[Table] = _create_html(p)
+  def createHtmlOption(
+    strategy: CreateHtmlStrategy,
+    p: Node
+  ): Option[Table] = {
+    import CreateHtmlStrategy._
+    _create_html(p).map(x =>
+      strategy match {
+        case NaturalStrategy => x
+        case EnsureHeadStrategy => x.ensureHead
+      }
+    )
+  }
 
   private def _create_html(p: Node): Option[Table] = Option(p) flatMap {
     case m: Element => _create_element_html(m)
@@ -579,12 +631,12 @@ object Table {
     ps.map(_make_meta).getOrElse(MetaData.empty)
 
   private def _make_meta(p: Head): MetaData = {
-    val a = p.names.map(x => Column(_to_string(x.content))) // TODO width
+    val a = p.names.map(x => Column2(_to_string(x.content))) // TODO width
     val s = Schema(a)
     MetaData(Some(s))
   }
 
-  private def _to_string(p: Any): String = AnyUtils.toString(p)
+  private def _to_string(p: Any): String = AnyUtils.toString(p).trim
 
   case class HeaderStrategy(
     label: HeaderStrategy.LabelStrategy
@@ -626,7 +678,7 @@ object Table {
       Head(xs.toList)
     }
 
-    private def _to_cell(p: Column): Cell = {
+    private def _to_cell(p: Column2): Cell = {
       val s = header.label match {
         case HeaderStrategy.NameLabel => p.name
         case HeaderStrategy.LabelLabel => p.labelI18NString(i18n.locale)
@@ -642,7 +694,7 @@ object Table {
       case class Z(xs: Vector[Field] = Vector.empty) {
         def r = p.copy(fields = xs)
 
-        def +(rhs: Column) = {
+        def +(rhs: Column2) = {
           val names = rhs.nameCandidates
           p.fields.find(x => names.contains(x.name)).
             map { f =>

@@ -6,6 +6,7 @@ import java.util.Locale
 import com.asamioffice.goldenport.text.UString
 import org.goldenport.extension.Description
 import org.goldenport.i18n.I18NString
+import org.goldenport.parser.ParseResult
 import org.goldenport.record.query.QueryExpression
 import org.goldenport.record.v2.projector.ProjectorContext
 
@@ -38,7 +39,8 @@ import org.goldenport.record.v2.projector.ProjectorContext
  *  version Feb. 25, 2020
  *  version Mar. 30, 2020
  *  version May. 11, 2020
- * @version Jun.  1, 2020
+ *  version Jun.  1, 2020
+ * @version Mar. 21, 2021
  * @author  ASAMI, Tomoharu
  */
 case class Column(
@@ -104,6 +106,16 @@ case class Column(
   private def _validate_constraints(f: Field): ValidationResult = {
     // constraints
     Valid
+  }
+
+  def parse(p: Any): ParseResult[Any] = for {
+    parsed <- datatype.parse(p)
+    validated <- _validate_constraints_in_parsing(parsed)
+  } yield validated
+
+  private def _validate_constraints_in_parsing(p: Any): ParseResult[Any] = {
+    // TODO
+    ParseResult.success(p)
   }
 
   def toModelValidation: List[String] = {
