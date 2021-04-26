@@ -4,6 +4,7 @@ import org.w3c.dom._
 import play.api.libs.json._
 import org.goldenport.RAISE
 import org.goldenport.Strings
+import org.goldenport.extension.Showable
 import org.goldenport.matrix.{IMatrix, VectorRowColumnMatrixBase, VectorRowColumnMatrix, VectorColumnRowMatrix}
 import org.goldenport.xsv.{Xsv, Lxsv}
 import org.goldenport.parser.LogicalToken
@@ -12,6 +13,7 @@ import org.goldenport.values.NumberRange
 import org.goldenport.value._
 import org.goldenport.util.{StringUtils, AnyUtils => LAnyUtils}
 import org.goldenport.record.v2.{Schema, Column => Column2, XString, XDouble}
+import org.goldenport.record.v2.XObject
 import org.goldenport.record.util.AnyUtils
 
 /*
@@ -29,7 +31,8 @@ import org.goldenport.record.util.AnyUtils
  *  version Jan. 30, 2020
  *  version Feb. 28, 2020
  *  version Mar. 30, 2020
- * @version Mar. 25, 2021
+ *  version Mar. 25, 2021
+ * @version Apr. 13, 2021
  * @author  ASAMI, Tomoharu
  */
 case class Table(
@@ -142,9 +145,20 @@ case class Table(
 
       private def _to_column(c: Column2, p: Field): Column2 = c // TODO datatype & multiplicity
 
-      private def _to_content(p: SingleValue): Table.Cell = Table.Cell(p.value)
+      private def _to_content(p: SingleValue): Table.Cell = Table.Cell(_to_embed(p.value))
 
-      private def _to_content(p: MultipleValue): Table.Cell = Table.Cell(p.values) // TODO
+      private def _to_embed(p: Any): String = p match {
+        case m: Showable => m.embed
+        case m => AnyUtils.toString(p)
+      }
+
+      private def _to_content(p: MultipleValue): Table.Cell = Table.Cell(_to_embeds(p.values)) // TODO
+
+      private def _to_embeds(ps: Seq[Any]): String = ps match {
+        case Seq() => ""
+        case Seq(x) => _to_embed(x)
+        case m: Seq[_] => Vector(_to_embed(m(0)), _to_embed(m(1))).mkString("\n")
+      }
     }
     records./:(Z())(_+_).r
   }
@@ -480,6 +494,14 @@ object Table {
   def create(ps: Vector[Lxsv]): Table = {
     val rs = ps.map(Record.create)
     create(rs)
+  }
+
+  def create(p: IRecord): Table = {
+    val name = "Name"
+    val value = "Value"
+    val schema = Schema(List(Column2(name, XObject), Column2(value, XObject)))
+    val rs = p.fields.map(x => Record.data(name -> x.name, value -> x.getValue.getOrElse("")))
+    create(schema, rs)
   }
 
   def createDouble(p: IMatrix[Double]): Table = {

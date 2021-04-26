@@ -48,7 +48,8 @@ import org.goldenport.record.util.AnyUtils
  *  version Oct.  7, 2019
  *  version Nov. 29, 2019
  *  version Sep.  7, 2020
- * @version Mar. 25, 2021
+ *  version Mar. 25, 2021
+ * @version Apr. 21, 2021
  * @author  ASAMI, Tomoharu
  */
 case class Field(
@@ -66,6 +67,7 @@ case class Field(
   def getValue: Option[Any] = value.getValue // Object or Seq
   def asString: String = value.asString
   def asStringList: List[String] = RAISE.unsupportedOperationFault
+  def asBoolean: Boolean = value.asBoolean
   def asInt: Int = value.asInt
   def asLong: Long = value.asLong
   def asFloat: Float = value.asFloat

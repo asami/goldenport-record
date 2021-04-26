@@ -42,7 +42,8 @@ import org.goldenport.record.v2.Validator._
  *  version May. 11, 2020
  *  version Jun.  1, 2020
  *  version Mar. 21, 2021
- * @version Mar. 25, 2021 restart
+ *  version Mar. 25, 2021 restart
+ * @version Apr. 12, 2021
  * @author  ASAMI, Tomoharu
  */
 case class Column(
@@ -105,6 +106,13 @@ case class Column(
 }
 
 object Column {
+  trait Holder extends Designation.Holder {
+    def column: Column
+    def designation = column.designation
+  }
+
+  def apply(name: String, datatype: DataType): Column = apply(name, datatype, MOne)
+
   def apply(name: String, datatype: DataType, multiplicity: Multiplicity): Column = {
     Column(Designation(name), datatype, multiplicity)
   }

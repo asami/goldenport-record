@@ -44,7 +44,8 @@ import org.goldenport.record.util.{
  *  version Nov.  4, 2019
  *  version Jan.  9, 2020
  *  version Feb. 27, 2021
- * @version Mar. 21, 2021
+ *  version Mar. 21, 2021
+ * @version Apr. 18, 2021
  * @author  ASAMI, Tomoharu
  */
 sealed trait DataType {
@@ -213,12 +214,16 @@ object DataType {
     XNonBlankText,
     XBase64,
     XBinary,
+    //
     XLink,
     XImageLink,
     XEMail,
     XMoney,
     XPercent,
     XUnit,
+    XGender,
+    XSex,
+    XAge,
     XColor,
     XFile,
     XMonth,
@@ -239,7 +244,8 @@ object DataType {
     XEverforthid,
     XXml,
     XHtml,
-    XRecordInstance
+    XRecordInstance,
+    XObject
     // XEntityReference, XValue, XEverforthObjectReference, XPowertype, XPowertypeReference, XStateMachine, XStateMachineReference, XExternalDataType
   )
 
@@ -551,6 +557,7 @@ case object XInt extends DataType {
       case x: Long if Int.MinValue <= x && x <= Int.MaxValue => Valid
       case x: BigInt if x.isValidInt => Valid
       case x: BigDecimal if x.isValidInt => Valid
+      case m: spire.math.Number if m.withinInt => Valid
       case x: String => try {
         x.toInt
         Valid
@@ -591,6 +598,7 @@ case object XLong extends DataType {
       case _: Long => Valid
       case x: BigInt if x.isValidLong => Valid
       case x: BigDecimal if x.isValidLong => Valid
+      case m: spire.math.Number if m.withinLong => Valid
       case x: String => try {
         x.toLong
         Valid
@@ -1179,6 +1187,42 @@ case object XUnit extends DataType {
   override def getHtmlInputTypeName = Some("text")
 }
 
+case object XGender extends DataType {
+  type InstanceType = String
+  def toInstance(x: Any): InstanceType = {
+    x.toString
+  }
+
+  def validate(d: Any): ValidationResult = Valid
+  def label = "ジェンダー"
+  override def getXmlDatatypeName = Some("token")
+  override def getHtmlInputTypeName = Some("text")
+}
+
+case object XSex extends DataType {
+  type InstanceType = String
+  def toInstance(x: Any): InstanceType = {
+    x.toString
+  }
+
+  def validate(d: Any): ValidationResult = Valid
+  def label = "性別"
+  override def getXmlDatatypeName = Some("token")
+  override def getHtmlInputTypeName = Some("text")
+}
+
+case object XAge extends DataType {
+  type InstanceType = String
+  def toInstance(x: Any): InstanceType = {
+    x.toString
+  }
+
+  def validate(d: Any): ValidationResult = Valid
+  def label = "年齢"
+  override def getXmlDatatypeName = Some("nonNegativeInteger")
+  override def getHtmlInputTypeName = Some("number")
+}
+
 // HTML
 case object XColor extends DataType {
   type InstanceType = String
@@ -1487,6 +1531,17 @@ case object XRecordInstance extends DataType {
 
   def validate(d: Any): ValidationResult = Valid // TODO
   def label = "レコード"
+  override def isSqlString = false // typical case
+  override def isValue = true
+  override def isReference = false
+}
+
+case object XObject extends DataType {
+  type InstanceType = Object
+  def toInstance(x: Any): InstanceType = x.asInstanceOf[Object]
+
+  def validate(d: Any): ValidationResult = Valid // TODO
+  def label = "オブジェクト"
   override def isSqlString = false // typical case
   override def isValue = true
   override def isReference = false

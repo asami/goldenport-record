@@ -32,7 +32,8 @@ import org.goldenport.record.v2.bag.{RecordBag, CsvBag}
  *  version Nov. 13, 2017
  *  version Jan. 21, 2018
  *  version Apr.  3, 2019
- * @version May. 26, 2020
+ *  version May. 26, 2020
+ * @version Apr. 12, 2021
  * @author  ASAMI, Tomoharu
  */
 object RecordUtils {
@@ -111,6 +112,9 @@ object RecordUtils {
       case XMoney => AnyRefUtils.toBigDecimal(x)
       case XPercent => AnyRefUtils.toFloat(x)
       case XUnit => AnyRefUtils.toString(x)
+      case XGender => AnyRefUtils.toString(x)
+      case XSex => AnyRefUtils.toString(x)
+      case XAge => AnyRefUtils.toInt(x)
       case XColor => AnyRefUtils.toString(x)
       case XFile => AnyRefUtils.toString(x)
       case XMonth => AnyRefUtils.toInt(x)
@@ -135,6 +139,7 @@ object RecordUtils {
       case t: XValue => ???
       case t: XExternalDataType => AnyRefUtils.toString(x)
       case XRecordInstance => RAISE.notImplementedYetDefect
+      case XObject => AnyRefUtils.toAnyRef(x)
     }
   }
 

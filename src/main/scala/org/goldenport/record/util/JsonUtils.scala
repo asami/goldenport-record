@@ -10,7 +10,8 @@ import org.goldenport.record.v3.Record
  *  version Jun.  1, 2014
  *  version Dec. 28, 2014
  *  version Jan.  1, 2015
- * @version Mar. 28, 2021
+ *  version Mar. 28, 2021
+ * @version Apr. 22, 2021
  * @author  ASAMI, Tomoharu
  */
 object JsonUtils {
@@ -36,6 +37,7 @@ object JsonUtils {
       case _: Double => buf.append(v)
       case _: BigInt => buf.append(v)
       case _: BigDecimal => buf.append(v)
+      case _: spire.math.Number => buf.append(v)
       case ts: Timestamp => appendstring(DateTimeUtils.toIsoDateTimeStringJst(ts))
       case dt: DateTime => appendstring(DateTimeUtils.toIsoDateTimeStringJst(dt))
 //      case d: Date => buf.append(DateTimeUtils.toString(ts))

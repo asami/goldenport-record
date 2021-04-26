@@ -21,7 +21,8 @@ import org.goldenport.record.util.DateUtils
  *  version Nov. 27, 2019
  *  version Mar. 29, 2020
  *  version May. 13, 2020
- * @version Feb. 28, 2021
+ *  version Feb. 28, 2021
+ * @version Apr. 12, 2021
  * @author  ASAMI, Tomoharu
  */
 class SqlBuilder(
@@ -100,6 +101,9 @@ class SqlBuilder(
       case XMoney => DECIMAL
       case XPercent => FLOAT
       case XUnit => token
+      case XGender => TINYINT
+      case XSex => TINYINT
+      case XAge => TINYINT
       case XColor => token
       case XFile => token
       case XMonth => TINYINT
@@ -120,11 +124,12 @@ class SqlBuilder(
       case XXml => CLOB
       case XHtml => CLOB
       case XRecordInstance => CLOB
+      case XObject => CLOB
       case m: XEntityReference => token
       case m: XRange => token
       case m: XValue => token
       case m: XEverforthObjectReference => token
-      case m: XPowertype => token
+      case m: XPowertype => TINYINT
       case m: XPowertypeReference => token
       case m: XStateMachine => string
       case m: XStateMachineReference => token

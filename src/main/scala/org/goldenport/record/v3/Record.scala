@@ -64,7 +64,8 @@ import org.goldenport.values.PathName
  *  version May. 29, 2020
  *  version Sep. 10, 2020
  *  version Oct. 14, 2020
- * @version Mar. 28, 2021
+ *  version Mar. 28, 2021
+ * @version Apr. 22, 2021
  * @author  ASAMI, Tomoharu
  */
 case class Record(
@@ -98,7 +99,7 @@ case class Record(
   def print: String = toLxsv.print
   def display: String = print // TODO
   def show: String = print // TODO
-  def embed: String = display
+  def embed: String = display.replace('\t', ' ')
 
   def get(key: String): Option[Any] = getField(key).flatMap(_.value.getValue)
 
@@ -142,6 +143,12 @@ case class Record(
     }
   }
   def takeString(key: String): String = takeString(Symbol(key))
+
+  def asBoolean(key: Symbol, default: Boolean): Boolean = getBoolean(key) getOrElse default
+  def asBoolean(key: String, default: Boolean): Boolean = getBoolean(key) getOrElse default
+
+  override def getBoolean(key: Symbol): Option[Boolean] = getField(key).map(_.asBoolean)
+  override def getBoolean(key: String): Option[Boolean] = getField(key).map(_.asBoolean)
 
   override def getInt(key: Symbol): Option[Int] = getField(key).map(_.asInt)
   override def getInt(key: String): Option[Int] = getField(key).map(_.asInt)
@@ -244,7 +251,19 @@ case class Record(
     copy(fields = r)
   }
 
+  def mapField(p: Field => Field): Record = copy(fields = fields.map(p))
+
+  def flatMapField(p: Field => Seq[Field]): Record = copy(fields = fields.flatMap(p))
+
   def removeField(key: String): Record = copy(fields = fields.filterNot(_.key.name == key))
+
+  def removeField(p: Field => Boolean): Record = copy(fields = fields.filterNot(p))
+
+  def mapFieldValue(p: FieldValue => FieldValue): Record =
+    copy(fields = fields.map(_.mapValue(p)))
+
+  def mapValue(p: Any => Any): Record = 
+    copy(fields = fields.map(_.mapContent(p)))
 
   def complement(p: IRecord): Record = {
     case class Z(xs: Vector[Field] = fields.toVector) {
@@ -258,16 +277,6 @@ case class Record(
     }
     p.fields./:(Z())(_+_).r
   }
-
-  def mapField(p: Field => Field): Record = copy(fields = fields.map(p))
-
-  def flatMapField(p: Field => Seq[Field]): Record = copy(fields = fields.flatMap(p))
-
-  def mapFieldValue(p: FieldValue => FieldValue): Record =
-    copy(fields = fields.map(_.mapValue(p)))
-
-  def mapValue(p: Any => Any): Record = 
-    copy(fields = fields.map(_.mapContent(p)))
 
   def select(names: Seq[String]): Record = Record(
     names./:(Vector.empty[Field])((z, x) => fields.find(_.name == x).map(a => z :+ a).getOrElse(RAISE.noSuchElementFault(x))),
