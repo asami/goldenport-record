@@ -18,7 +18,7 @@ import com.asamioffice.goldenport.text.UPathString
  *  version Oct.  3, 2013
  *  version Nov. 29, 2014
  *  version Feb. 26, 2016
- * @version Apr. 18, 2021
+ * @version Apr. 26, 2021
  * @author  ASAMI, Tomoharu
  */
 trait InputFile {
@@ -30,7 +30,7 @@ trait InputFile {
   def properties: Map[String, Any]
   def getUrl: Option[URL] = None
   def createWorkFile(): WorkFile
-  def contentType = {
+  def contentType: String = {
     val suffix = UPathString.getSuffix(filename).toLowerCase
     suffix match {
       case "png" => "image/png"
@@ -49,7 +49,7 @@ trait InputFile {
       case "gzip" => "application/x-zip"
       case "xls" => "application/vnd.ms-excel"
       case "xlsx" => "application/vnd.ms-excel"
-      case _ => MimeType.getBySuffix(suffix) getOrElse "application/octet-stream"
+      case _ => MimeType.getBySuffix(suffix).map(_.name) getOrElse "application/octet-stream"
     }
   }
 
