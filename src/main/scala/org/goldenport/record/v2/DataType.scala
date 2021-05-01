@@ -45,7 +45,7 @@ import org.goldenport.record.util.{
  *  version Jan.  9, 2020
  *  version Feb. 27, 2021
  *  version Mar. 21, 2021
- * @version Apr. 18, 2021
+ * @version Apr. 29, 2021
  * @author  ASAMI, Tomoharu
  */
 sealed trait DataType {
@@ -545,6 +545,10 @@ case object XInt extends DataType {
       case v: Byte => v
       case v: Short => v
       case v: Int => v
+      case x: Long => x.intValue
+      case x: BigInt => x.intValue
+      case x: BigDecimal => x.intValue
+      case m: spire.math.Number => m.intValue
       case v => v.toString.toInt
     }
   }
@@ -586,6 +590,9 @@ case object XLong extends DataType {
       case v: Short => v
       case v: Int => v
       case v: Long => v
+      case x: BigInt => x.longValue
+      case x: BigDecimal => x.longValue
+      case m: spire.math.Number => m.longValue
       case v => v.toString.toLong
     }
   }
@@ -623,6 +630,9 @@ case object XFloat extends DataType {
   def toInstance(x: Any): InstanceType = {
     x match {
       case v: Float => v
+      case x: BigInt => x.floatValue
+      case x: BigDecimal => x.floatValue
+      case m: spire.math.Number => m.floatValue
       case v => v.toString.toFloat
     }
   }
@@ -637,6 +647,7 @@ case object XFloat extends DataType {
       case x: Double if Float.MinValue <= x && x <= Float.MaxValue => Valid
       case x: BigInt if x.isValidFloat => Valid
       case x: BigDecimal if x.isValidFloat => Valid
+      case m: spire.math.Number if m.withinDouble => Valid // TODO
       case x: String => try {
         x.toFloat
         Valid
@@ -700,6 +711,7 @@ case object XDouble extends DataType {
     x match {
       case v: Float => v
       case v: Double => v
+      case m: spire.math.Number => m.doubleValue
       case v => v.toString.toDouble
     }
   }
@@ -710,6 +722,7 @@ case object XDouble extends DataType {
       case _: Double => Valid
       case x: BigInt if x.isValidDouble => Valid
       case x: BigDecimal if x.isValidDouble => Valid
+      case m: spire.math.Number if m.withinDouble => Valid
       case x: String => try {
         x.toDouble
         Valid

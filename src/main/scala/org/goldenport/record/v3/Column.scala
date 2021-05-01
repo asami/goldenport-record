@@ -3,13 +3,9 @@ package org.goldenport.record.v3
 import scalaz._, Scalaz._
 import org.goldenport.RAISE
 import org.goldenport.values.Designation
-import org.goldenport.context.{ArgumentFault, InvalidArgumentFault}
+import org.goldenport.context.ValueDomainFault
 import org.goldenport.record.v2.{DataType, XString}
 import org.goldenport.record.v2.{Multiplicity, MOne, MZeroOne}
-import org.goldenport.record.v2.{Constraint, CompoundFailure}
-import org.goldenport.record.v2.{ValidationResult, Valid, Invalid, Warning}
-import org.goldenport.record.v2.{MultiplicityFailure}
-import org.goldenport.record.v2.Validator._
 
 /*
  * @since   Dec.  8, 2012
@@ -43,66 +39,19 @@ import org.goldenport.record.v2.Validator._
  *  version Jun.  1, 2020
  *  version Mar. 21, 2021
  *  version Mar. 25, 2021 restart
- * @version Apr. 12, 2021
+ * @version Apr. 29, 2021
  * @author  ASAMI, Tomoharu
  */
 case class Column(
   designation: Designation,
-  datatype: DataType = XString,
-  multiplicity: Multiplicity = MOne,
-  constraints: List[Constraint] = Nil
+  domain: ValueDomain
 ) extends Designation.Holder {
-  def isSingle = multiplicity match {
-    case MOne => true
-    case MZeroOne => true
-    case _ => false
-  }
+  def datatype = domain.datatype
+  def multiplicity = domain.multiplicity
+  def constraints = domain.constraints
+  def isSingle = domain.isSingle
 
-  def resolve(p: Any): ValidationNel[ArgumentFault, Any] =
-    _multiple_or_single(p) match {
-      case Right(s) => 
-        if (isSingle)
-          _resolve_single(p)
-        else
-          _resolve_multiple(p)
-      case Left(m) => 
-        if (isSingle)
-          _resolve_single(p)
-        else
-          _resolve_multiple(p)
-    }
-
-  private def _multiple_or_single(p: Any): Either[Seq[_], Any] = p match {
-    case m: Seq[_] => Left(m)
-    case m: Array[_] => Left(m.toVector)
-    case m: Iterable[_] => Left(m.toVector)
-    case m: Iterator[_] => Left(m.toVector)
-    case m => Right(m)
-  }
-
-  private def _resolve_multiple(p: Any) = {
-    RAISE.notImplementedYetDefect
-  }
-
-  private def _resolve_single(p: Any): ValidationNel[ArgumentFault, Any] =
-    datatype.validate(p) |+| _validate_constraints(p) match {
-      case Valid => Success(datatype.toInstance(p))
-      case m: Warning => Success(datatype.toInstance(p)) // TODO
-      case m: Invalid => m match {
-        case CompoundFailure(fs, w) =>
-          val a = fs.map(_argument_fault)
-          Failure(NonEmptyList.nel(a.head, a.tail.toList))
-        case mm => Failure(NonEmptyList(InvalidArgumentFault(mm.i18nMessage)))
-      }
-    }
-
-  private def _validate_constraints(p: Any): ValidationResult =
-    constraints.foldMap(_.validate(datatype, p))
-
-  private def _argument_fault(p: Invalid): ArgumentFault = p match {
-    case m: MultiplicityFailure => InvalidArgumentFault(m.i18nMessage) // TODO
-    case m => InvalidArgumentFault(m.i18nMessage)
-  }
+  def resolve(p: Any): ValidationNel[ValueDomainFault, Any] = domain.resolve(p)
 }
 
 object Column {
@@ -114,6 +63,6 @@ object Column {
   def apply(name: String, datatype: DataType): Column = apply(name, datatype, MOne)
 
   def apply(name: String, datatype: DataType, multiplicity: Multiplicity): Column = {
-    Column(Designation(name), datatype, multiplicity)
+    Column(Designation(name), ValueDomain(datatype, multiplicity))
   }
 }
