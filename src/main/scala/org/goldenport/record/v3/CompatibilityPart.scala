@@ -6,7 +6,7 @@ import org.goldenport.record.v2.InputFile
 
 /*
  * @since   Aug. 23, 2018
- * @version May.  8, 2021
+ * @version May. 10, 2021
  * @author  ASAMI, Tomoharu
  */
 trait CompatibilityPart { self: Record =>
@@ -16,12 +16,14 @@ trait CompatibilityPart { self: Record =>
 
   private def _to_record2 = {
     case class Z(
-      fs: Vector[Field2] = Vector.empty
+      fs: Vector[Field2] = Vector.empty,
+      is: Vector[InputFile] = Vector.empty
     ) {
-      def r = Record2(fs.toList)
+      def r = Record2(fs.toList, inputFiles = is.toList)
 
       def +(rhs: Field) = rhs.value match {
         case SingleValue(v) => v match {
+          case m: InputFile => copy(is = is :+ m) // .withKey('file)) : Not image record
           case m: Record =>
             val rec = _record2(m)
             val f = rhs.withValue(SingleValue(rec))
@@ -31,13 +33,18 @@ trait CompatibilityPart { self: Record =>
         case MultipleValue(vs) =>
           val xs = vs.map {
             case m: Record => _record2(m)
+            case m: InputFile => None
             case m => m
           }
+          val xis = vs.collect {
+            case m: InputFile => m // .withKey('file) : Not image record
+          }
           val f = rhs.withValue(MultipleValue(xs))
-          copy(fs = fs :+ f.toField2)
+          copy(fs = fs :+ f.toField2, is = is ++ xis)
         case EmptyValue => this
       }
 
+      // for Image record
       private def _record2(p: Record): Record2 = {
         // println(s"_record2: $p")
         case class ZZ(
@@ -46,10 +53,13 @@ trait CompatibilityPart { self: Record =>
         ) {
           def r = Record2(fs2.toList, inputFiles = is2.toList)
 
-          def +(rhs: Field) = {
+          def +(rhs: Field): ZZ = {
             // println(s"_record2: $rhs")
             rhs.value match {
               case SingleValue(v) => v match {
+                case m: Record =>
+                  val f = rhs.withValue(SingleValue(_record2(m)))
+                  copy(fs2 = fs2 :+ f.toField2)
                 case m: InputFile => copy(is2 = is2 :+ m.withKey('file))
                 case _ => copy(fs2 = fs2 :+ rhs.toField2)
               }
