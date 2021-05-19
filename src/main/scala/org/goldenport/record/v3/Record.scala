@@ -18,6 +18,8 @@ import org.goldenport.record.v2.{Record => Record2, Field => Field2, Schema}
 import org.goldenport.record.util.StringUtils
 import org.goldenport.record.util.AnyUtils
 import org.goldenport.util.VectorUtils
+import org.goldenport.record.v2.{Record => Record2, Field => Field2, Schema}
+import org.goldenport.record.v2.InputFile
 import org.goldenport.record.v2.util.RecordUtils
 import org.goldenport.collection.{NonEmptyVector, VectorMap}
 import org.goldenport.xsv.Lxsv
@@ -74,7 +76,10 @@ import org.goldenport.values.PathName
  *  version Apr.  3, 2020
  *  version May. 29, 2020
  *  version Sep. 10, 2020
- * @version Oct. 14, 2020
+ *  version Oct. 14, 2020
+ *  version Mar. 28, 2021
+ *  version Apr. 22, 2021
+ * @version May. 20, 2021
  * @author  ASAMI, Tomoharu
  */
 case class Record(
@@ -87,14 +92,13 @@ case class Record(
     with HttpPart with SqlPart
     with CompatibilityPart {
   def toRecord = this
-  def toRecord2: Record2 = extra.v2.
-    map(_.copy(fields.map(_.toField2).toList)).
-    getOrElse(Record2(fields.map(_.toField2).toList))
   def getSchema: Option[Schema] = meta.schema
 
   override def toMap = this
 
   override def isEmpty: Boolean = fields.isEmpty
+  override def toString(): String = s"Record($show)"
+
   def isDefined(key: Symbol): Boolean = fields.exists(_.key == key)
   def isDefined(key: String): Boolean = isDefined(Symbol(key))
 
@@ -108,7 +112,7 @@ case class Record(
   def print: String = toLxsv.print
   def display: String = print // TODO
   def show: String = print // TODO
-  def embed: String = display
+  def embed: String = display.replace('\t', ' ')
 
   def get(key: String): Option[Any] = getField(key).flatMap(_.value.getValue)
 
@@ -166,6 +170,12 @@ case class Record(
     }
   }
   def takeString(key: String): String = takeString(Symbol(key))
+
+  def asBoolean(key: Symbol, default: Boolean): Boolean = getBoolean(key) getOrElse default
+  def asBoolean(key: String, default: Boolean): Boolean = getBoolean(key) getOrElse default
+
+  override def getBoolean(key: Symbol): Option[Boolean] = getField(key).map(_.asBoolean)
+  override def getBoolean(key: String): Option[Boolean] = getField(key).map(_.asBoolean)
 
   override def getInt(key: Symbol): Option[Int] = getField(key).map(_.asInt)
   override def getInt(key: String): Option[Int] = getField(key).map(_.asInt)
@@ -257,6 +267,8 @@ case class Record(
   def +(rhs: Record): Record = update(rhs)
 
   def withExtra(p: Record.Extra): Record = copy(extra = p)
+
+  def withRecord2(p: Record2): Record = copy(extra = extra.withRecord2(p))
 
   def update(rec: IRecord): IRecord = update(rec.toRecord)
 
@@ -383,7 +395,19 @@ case class Record(
     copy(fields = r)
   }
 
+  def mapField(p: Field => Field): Record = copy(fields = fields.map(p))
+
+  def flatMapField(p: Field => Seq[Field]): Record = copy(fields = fields.flatMap(p))
+
   def removeField(key: String): Record = copy(fields = fields.filterNot(_.key.name == key))
+
+  def removeField(p: Field => Boolean): Record = copy(fields = fields.filterNot(p))
+
+  def mapFieldValue(p: FieldValue => FieldValue): Record =
+    copy(fields = fields.map(_.mapValue(p)))
+
+  def mapValue(p: Any => Any): Record = 
+    copy(fields = fields.map(_.mapContent(p)))
 
   def complement(p: IRecord): Record = {
     case class Z(xs: Vector[Field] = fields.toVector) {
@@ -397,16 +421,6 @@ case class Record(
     }
     p.fields./:(Z())(_+_).r
   }
-
-  def mapField(p: Field => Field): Record = copy(fields = fields.map(p))
-
-  def flatMapField(p: Field => Seq[Field]): Record = copy(fields = fields.flatMap(p))
-
-  def mapFieldValue(p: FieldValue => FieldValue): Record =
-    copy(fields = fields.map(_.mapValue(p)))
-
-  def mapValue(p: Any => Any): Record = 
-    copy(fields = fields.map(_.mapContent(p)))
 
   def select(names: Seq[String]): Record = Record(
     names./:(Vector.empty[Field])((z, x) => fields.find(_.name == x).map(a => z :+ a).getOrElse(RAISE.noSuchElementFault(x))),
@@ -448,6 +462,8 @@ object Record {
   ) {
     def isV2: Boolean = v2.isDefined
     def isV2InputFile: Boolean = v2.map(_.inputFiles.nonEmpty).getOrElse(false)
+
+    def withRecord2(p: Record2): Extra = copy(v2 = Some(p))
 
     def select(names: Seq[String]): Extra = Extra(
       v2.map(_.select(names))
@@ -511,8 +527,14 @@ object Record {
   // def createDataSeq(data: Seq[(String, Any)]): Record =
   //   Record(data.map(Field.createData).toVector)
 
+  def create(data: Iterable[(String, Any)]): Record = create(data.toVector)
+
+  def create(data: Iterator[(String, Any)]): Record = create(data.toVector)
+
   def createOption(data: Seq[(String, Option[Any])]): Record = 
     create(VectorUtils.buildTupleVector(data))
+
+  def create(p: org.goldenport.extension.IRecord): Record = apply(p.toMapS)
 
   def create(p: IRecord): Record = p.toRecord
 
@@ -533,7 +555,15 @@ object Record {
       }
       Field(f.key, v)
     }
-    Record(p.fields.map(tofield), extra = Extra(p))
+    val xs = p.fields.map(tofield)
+    val fs = p.inputFiles.map(_to_field)
+    // Record(xs ++ fs, extra = Extra(p))
+    Record(xs ++ fs)
+  }
+
+  private def _to_field(p: InputFile): Field = {
+    // println(s"XXX: ${p.key}")
+    Field(Symbol(p.key), SingleValue(p))
   }
 
   def createDataSeq(data: Seq[(String, Any)]): Record =
@@ -542,11 +572,11 @@ object Record {
   def createSymbolAnySeq(ps: Seq[(Symbol, Any)]): Record =
     Record(ps.map(Field.create))
 
-  def createAnyMap(data: Map[Any, Any]): Record = createAnySeq(data.toVector)
+  def createAnyMap(data: Map[_, _]): Record = createAnySeq(data.toVector)
 
-  def createAnySet(data: Set[(Any, Any)]): Record = createAnySeq(data.toSeq)
+  def createAnySet(data: Set[(_, _)]): Record = createAnySeq(data.toSeq)
 
-  def createAnySeq(data: Seq[(Any, Any)]): Record =
+  def createAnySeq(data: Seq[(_, _)]): Record =
     createSymbolAnySeq(data.map {
       case (k, v) =>
         val x = k match {
@@ -803,7 +833,9 @@ object Record {
     ) {
       def r: Either[NonEmptyVector[Record], Record] = {
         // println(s"Z#r: $this")
-        xs.toVector./:(ZZ())(_+_).r
+        val z = xs.toVector./:(ZZ())(_+_).r
+        // println(s"Z#r z: $z")
+        z
       }
 
       def +(rhs: Field) = {
@@ -831,6 +863,7 @@ object Record {
     def +(rhs: (PropertyName, Vector[Slot])) = {
       val (propname, slots) = rhs
       val v = _calc_slot(slots)
+      // println(s"ZZ+: $propname, $slots, $v")
       copy(xs = xs :+ (propname, v))
     }
   }
@@ -913,7 +946,7 @@ object Record {
   case class ValueSlot(value: FieldValue) extends ZZZZSlot
   case class SequenceSlot(index: String, value: FieldValue) extends ZZZZSlot
 
-  private val _regex = """([^_]+)?__([^_]+)""".r
+  private val _regex = """(.+)?__([^_]+)""".r
 
   private case class ZZZZ(
     whole: VectorMap[IndexName, Vector[ZZZZSlot]] = VectorMap.empty,

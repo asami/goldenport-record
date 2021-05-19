@@ -2,13 +2,16 @@ package org.goldenport.record.util
 
 import java.sql.Timestamp
 import org.joda.time.DateTime
+import org.goldenport.extension.{IRecord => LIRecord}
 import org.goldenport.record.v3.Record
 
 /*
  * @since   May. 23, 2014
  *  version Jun.  1, 2014
  *  version Dec. 28, 2014
- * @version Jan.  1, 2015
+ *  version Jan.  1, 2015
+ *  version Mar. 28, 2021
+ * @version Apr. 22, 2021
  * @author  ASAMI, Tomoharu
  */
 object JsonUtils {
@@ -34,6 +37,7 @@ object JsonUtils {
       case _: Double => buf.append(v)
       case _: BigInt => buf.append(v)
       case _: BigDecimal => buf.append(v)
+      case _: spire.math.Number => buf.append(v)
       case ts: Timestamp => appendstring(DateTimeUtils.toIsoDateTimeStringJst(ts))
       case dt: DateTime => appendstring(DateTimeUtils.toIsoDateTimeStringJst(dt))
 //      case d: Date => buf.append(DateTimeUtils.toString(ts))
@@ -51,6 +55,8 @@ object JsonUtils {
         })
         buf.append("]")
       }
+      case m: Map[_, _] => Record.createAnyMap(m).buildJsonString(buf)
+      case m: LIRecord => Record.create(m).buildJsonString(buf)
       case _ => {
         buf.append("\"")
         buf.append(escape(v.toString))

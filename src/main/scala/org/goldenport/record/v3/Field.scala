@@ -8,7 +8,7 @@ import org.joda.time.DateTime
 import org.goldenport.record.v2.{ValidationResult, Valid, Warning, Invalid}
 import play.api.libs.json._
 import org.goldenport.exception.RAISE
-import org.goldenport.record.v2.{Column, Field => Field2}
+import org.goldenport.record.v2.{Column => Column2, Field => Field2}
 import org.goldenport.record.util.AnyUtils
 
 /*
@@ -50,7 +50,9 @@ import org.goldenport.record.util.AnyUtils
  *  version Sep. 30, 2019
  *  version Oct.  7, 2019
  *  version Nov. 29, 2019
- * @version Sep.  7, 2020
+ *  version Sep.  7, 2020
+ *  version Mar. 25, 2021
+ * @version Apr. 21, 2021
  * @author  ASAMI, Tomoharu
  */
 case class Field(
@@ -69,6 +71,7 @@ case class Field(
   def getValue: Option[Any] = value.getValue // Object or Seq
   def asString: String = value.asString
   def asStringList: List[String] = RAISE.unsupportedOperationFault
+  def asBoolean: Boolean = value.asBoolean
   def asInt: Int = value.asInt
   def asLong: Long = value.asLong
   def asFloat: Float = value.asFloat
@@ -145,7 +148,7 @@ case class Field(
 
 object Field {
   case class MetaData(
-    column: Option[Column] = None
+    column: Option[Column2] = None
   ) {
     def name = column.map(_.name)
     def datatype = column.map(_.datatype)
@@ -159,18 +162,18 @@ object Field {
   object MetaData {
     val empty = MetaData()
 
-    def apply(p: Column): MetaData = MetaData(Some(p))
+    def apply(p: Column2): MetaData = MetaData(Some(p))
   }
 
   def apply(kv: (String, FieldValue)): Field = apply(kv._1, kv._2)
 
   def apply(key: String, value: FieldValue): Field = Field(Symbol(key), value)
 
-  def apply(c: Column, value: FieldValue): Field = Field(c.key, value, MetaData(c))
+  def apply(c: Column2, value: FieldValue): Field = Field(c.key, value, MetaData(c))
 
   def create(key: String, value: Any): Field = create(Symbol(key), value)
 
-  def create(key: String, value: Any, column: Column): Field = create(Symbol(key), value, column)
+  def create(key: String, value: Any, column: Column2): Field = create(Symbol(key), value, column)
 
   def create(key: Symbol, value: Any): Field = {
     value match {
@@ -201,7 +204,7 @@ object Field {
     case m => m
   }
 
-  def create(key: Symbol, value: Any, column: Column): Field = {
+  def create(key: Symbol, value: Any, column: Column2): Field = {
     create(key, value).copy(meta = MetaData(column))
   }
 
@@ -215,7 +218,7 @@ object Field {
 
   def create(key: String, p: JsValue): Field = Field(Symbol(key), FieldValue.create(p))
 
-  def create(c: Column, p: Any): Field = {
+  def create(c: Column2, p: Any): Field = {
     import org.goldenport.record.v2.{MOne, MZeroOne, MOneMore, MZeroMore, MRange, MRanges}
     val v = c.multiplicity match {
       case MOne => _single_value(c, p)
@@ -228,9 +231,9 @@ object Field {
     Field(c, v)
   }
 
-  private def _single_value(c: Column, p: Any) = SingleValue(c.datatype.toInstance(p))
+  private def _single_value(c: Column2, p: Any) = SingleValue(c.datatype.toInstance(p))
 
-  private def _multiple_value(c: Column, p: Any): MultipleValue = p match {
+  private def _multiple_value(c: Column2, p: Any): MultipleValue = p match {
     case m: Array[_] => MultipleValue(m.map(c.datatype.toInstance(_)))
     case m: Iterable[_] => MultipleValue(m.toVector.map(c.datatype.toInstance(_)))
     case m: Iterator[_] => MultipleValue(m.toVector.map(c.datatype.toInstance(_)))

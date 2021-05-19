@@ -20,11 +20,13 @@ import org.goldenport.RAISE
  *  version Feb. 26, 2016
  *  version Jan. 21, 2017
  *  version May. 24, 2017
- * @version Apr. 28, 2019
+ *  version Apr. 28, 2019
+ * @version Mar. 25, 2021
  * @author  ASAMI, Tomoharu
  */
 trait Constraint {
   def label: String = getClass.getSimpleName
+  def validate(datatype: DataType, value: Any): ValidationResult = Valid // TODO
   def validate(datatype: DataType, value: String, record: Record): Option[ValidationResult]
   def toJson: JsObject = RAISE.notImplementedYetDefect
 
@@ -218,6 +220,9 @@ object Constraint {
 }
 
 case class CDataTypeConstraint(datatype: DataType) extends Constraint {
+  override def validate(dt: DataType, value: Any): ValidationResult =
+    datatype.validate(value)
+
   def validate(dt: DataType, value: String, record: Record): Option[ValidationResult] = {
     datatype.validate(value).some
   }
@@ -226,6 +231,8 @@ object CDataTypeConstraint extends ConstraintClass {
 }
 
 case class CWRange(minimum: Double, maximum: Double) extends Constraint {
+  // def validate(dt: DataType, value: Any): Option[ValidationResult] =
+
   def validate(datatype: DataType, value: String, record: Record): Option[ValidationResult] = {
     datatype.toDouble(value).map( x =>
       if (x < minimum) ValueDomainWarning("%sは${minimum}未満になっています。".replace("${minimum}", minimum.toString), value)

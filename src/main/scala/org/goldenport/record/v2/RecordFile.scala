@@ -3,6 +3,7 @@ package org.goldenport.record.v2
 import java.io._
 import java.net.URL
 import org.goldenport.Strings
+import org.goldenport.io.MimeType
 import com.asamioffice.goldenport.io.UURL
 import com.asamioffice.goldenport.text.UPathString
 
@@ -16,7 +17,8 @@ import com.asamioffice.goldenport.text.UPathString
  *  version Aug.  7, 2013
  *  version Oct.  3, 2013
  *  version Nov. 29, 2014
- * @version Feb. 26, 2016
+ *  version Feb. 26, 2016
+ * @version Apr. 26, 2021
  * @author  ASAMI, Tomoharu
  */
 trait InputFile {
@@ -28,8 +30,9 @@ trait InputFile {
   def properties: Map[String, Any]
   def getUrl: Option[URL] = None
   def createWorkFile(): WorkFile
-  def contentType = {
-    UPathString.getSuffix(filename).toLowerCase match {
+  def contentType: String = {
+    val suffix = UPathString.getSuffix(filename).toLowerCase
+    suffix match {
       case "png" => "image/png"
       case "jpg" => "image/jpeg"
       case "jpeg" => "image/jpeg"
@@ -46,7 +49,7 @@ trait InputFile {
       case "gzip" => "application/x-zip"
       case "xls" => "application/vnd.ms-excel"
       case "xlsx" => "application/vnd.ms-excel"
-      case _ => "application/octet-stream"
+      case _ => MimeType.getBySuffix(suffix).map(_.name) getOrElse "application/octet-stream"
     }
   }
 

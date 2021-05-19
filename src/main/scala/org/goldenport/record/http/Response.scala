@@ -6,6 +6,7 @@ import java.nio.charset.Charset
 import play.api.libs.json.JsValue
 import org.goldenport.RAISE
 import org.goldenport.Strings
+import org.goldenport.context.{StatusCode, Conclusion}
 import org.goldenport.bag.BufferFileBag
 import org.goldenport.record.v2.Record
 import org.goldenport.record.v2.util.SchemaBuilder
@@ -19,7 +20,8 @@ import org.goldenport.bag.{ChunkBag, BufferFileBag}
  *  version Aug. 29, 2018
  *  version Sep. 18, 2018
  *  version Oct.  8, 2018
- * @version Apr. 21, 2019
+ *  version Apr. 21, 2019
+ * @version Feb. 21, 2021
  * @author  ASAMI, Tomoharu
  */
 sealed trait Response {
@@ -35,6 +37,8 @@ sealed trait Response {
   def show: String
   def isSuccess = code == 200
   def isNotFound = code == 404
+  def toStatusCode: StatusCode = StatusCode(code)
+  def toConclusion: Conclusion = Conclusion(toStatusCode)
 }
 
 object Response {

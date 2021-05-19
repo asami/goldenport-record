@@ -14,6 +14,7 @@ import org.goldenport.Strings
 import org.goldenport.exception.RAISE
 import org.goldenport.extension.IRecord
 import org.goldenport.i18n.I18NString
+import org.goldenport.parser.ParseResult
 import org.goldenport.values.DateTimePeriod
 import org.goldenport.record.query._
 import org.goldenport.record.util.{
@@ -41,7 +42,10 @@ import org.goldenport.record.util.{
  *  version Jul. 31, 2019
  *  version Aug. 16, 2019
  *  version Nov.  4, 2019
- * @version Jan.  9, 2020
+ *  version Jan.  9, 2020
+ *  version Feb. 27, 2021
+ *  version Mar. 21, 2021
+ * @version Apr. 29, 2021
  * @author  ASAMI, Tomoharu
  */
 sealed trait DataType {
@@ -49,6 +53,11 @@ sealed trait DataType {
   val name = getClass.getSimpleName.substring(1).filterNot(_ == '$').toLowerCase // eliminame 'X'
   def toInstance(v: Any): InstanceType
   def validate(d: Any): ValidationResult
+  def parse(p: Any): ParseResult[InstanceType] =
+    if (validate(p).isSuccess)
+      ParseResult(toInstance(p))
+    else
+      ParseResult.error(s"Unmatch datatype[$name]: ${AnyUtils.toString(name)}")
   def label: String
   def labelI18N: I18NString = I18NString(label)
   def mapData(s: String): String = s
@@ -205,12 +214,16 @@ object DataType {
     XNonBlankText,
     XBase64,
     XBinary,
+    //
     XLink,
     XImageLink,
     XEMail,
     XMoney,
     XPercent,
     XUnit,
+    XGender,
+    XSex,
+    XAge,
     XColor,
     XFile,
     XMonth,
@@ -231,13 +244,14 @@ object DataType {
     XEverforthid,
     XXml,
     XHtml,
-    XRecordInstance
+    XRecordInstance,
+    XObject
     // XEntityReference, XValue, XEverforthObjectReference, XPowertype, XPowertypeReference, XStateMachine, XStateMachineReference, XExternalDataType
   )
 
   val periodRegex = """([^~]+)([!]?)~([^!]+)([!]?)""".r
 
-  def get(p: String): Option[DataType] = _datatypes.find(_.name == p) orElse {
+  def get(p: String): Option[DataType] = _datatypes.find(_.name.equalsIgnoreCase(p)) orElse {
     val pf: PartialFunction[String, DataType] = {
       case "statemachine" => XStateMachine()
     }
@@ -531,6 +545,10 @@ case object XInt extends DataType {
       case v: Byte => v
       case v: Short => v
       case v: Int => v
+      case x: Long => x.intValue
+      case x: BigInt => x.intValue
+      case x: BigDecimal => x.intValue
+      case m: spire.math.Number => m.intValue
       case v => v.toString.toInt
     }
   }
@@ -543,6 +561,7 @@ case object XInt extends DataType {
       case x: Long if Int.MinValue <= x && x <= Int.MaxValue => Valid
       case x: BigInt if x.isValidInt => Valid
       case x: BigDecimal if x.isValidInt => Valid
+      case m: spire.math.Number if m.withinInt => Valid
       case x: String => try {
         x.toInt
         Valid
@@ -571,6 +590,9 @@ case object XLong extends DataType {
       case v: Short => v
       case v: Int => v
       case v: Long => v
+      case x: BigInt => x.longValue
+      case x: BigDecimal => x.longValue
+      case m: spire.math.Number => m.longValue
       case v => v.toString.toLong
     }
   }
@@ -583,6 +605,7 @@ case object XLong extends DataType {
       case _: Long => Valid
       case x: BigInt if x.isValidLong => Valid
       case x: BigDecimal if x.isValidLong => Valid
+      case m: spire.math.Number if m.withinLong => Valid
       case x: String => try {
         x.toLong
         Valid
@@ -607,6 +630,9 @@ case object XFloat extends DataType {
   def toInstance(x: Any): InstanceType = {
     x match {
       case v: Float => v
+      case x: BigInt => x.floatValue
+      case x: BigDecimal => x.floatValue
+      case m: spire.math.Number => m.floatValue
       case v => v.toString.toFloat
     }
   }
@@ -621,6 +647,7 @@ case object XFloat extends DataType {
       case x: Double if Float.MinValue <= x && x <= Float.MaxValue => Valid
       case x: BigInt if x.isValidFloat => Valid
       case x: BigDecimal if x.isValidFloat => Valid
+      case m: spire.math.Number if m.withinDouble => Valid // TODO
       case x: String => try {
         x.toFloat
         Valid
@@ -684,6 +711,7 @@ case object XDouble extends DataType {
     x match {
       case v: Float => v
       case v: Double => v
+      case m: spire.math.Number => m.doubleValue
       case v => v.toString.toDouble
     }
   }
@@ -694,6 +722,7 @@ case object XDouble extends DataType {
       case _: Double => Valid
       case x: BigInt if x.isValidDouble => Valid
       case x: BigDecimal if x.isValidDouble => Valid
+      case m: spire.math.Number if m.withinDouble => Valid
       case x: String => try {
         x.toDouble
         Valid
@@ -1018,7 +1047,7 @@ case object XDateTime extends DataType {
   }
 
   override protected def period_to_query_expression(ctx: QueryExpression.Context, p: String): QueryExpression = {
-    val builder = DateTimePeriod.Builder(ctx.datetime, ctx.timezoneJoda)
+    val builder = DateTimePeriod.Builder(ctx.datetime)
     DateTimePeriodQuery(builder.fromExpression(p))
   }
 }
@@ -1168,6 +1197,42 @@ case object XUnit extends DataType {
   def label = "単位"
   override def getXmlDatatypeName = Some("token")
   override def getHtmlInputTypeName = Some("text")
+}
+
+case object XGender extends DataType {
+  type InstanceType = String
+  def toInstance(x: Any): InstanceType = {
+    x.toString
+  }
+
+  def validate(d: Any): ValidationResult = Valid
+  def label = "ジェンダー"
+  override def getXmlDatatypeName = Some("token")
+  override def getHtmlInputTypeName = Some("text")
+}
+
+case object XSex extends DataType {
+  type InstanceType = String
+  def toInstance(x: Any): InstanceType = {
+    x.toString
+  }
+
+  def validate(d: Any): ValidationResult = Valid
+  def label = "性別"
+  override def getXmlDatatypeName = Some("token")
+  override def getHtmlInputTypeName = Some("text")
+}
+
+case object XAge extends DataType {
+  type InstanceType = String
+  def toInstance(x: Any): InstanceType = {
+    x.toString
+  }
+
+  def validate(d: Any): ValidationResult = Valid
+  def label = "年齢"
+  override def getXmlDatatypeName = Some("nonNegativeInteger")
+  override def getHtmlInputTypeName = Some("number")
 }
 
 // HTML
@@ -1478,6 +1543,17 @@ case object XRecordInstance extends DataType {
 
   def validate(d: Any): ValidationResult = Valid // TODO
   def label = "レコード"
+  override def isSqlString = false // typical case
+  override def isValue = true
+  override def isReference = false
+}
+
+case object XObject extends DataType {
+  type InstanceType = Object
+  def toInstance(x: Any): InstanceType = x.asInstanceOf[Object]
+
+  def validate(d: Any): ValidationResult = Valid // TODO
+  def label = "オブジェクト"
   override def isSqlString = false // typical case
   override def isValue = true
   override def isReference = false

@@ -58,7 +58,8 @@ import org.goldenport.record.v3.IRecord
  *  version Dec. 30, 2019
  *  version Jan. 12, 2020
  *  version Apr. 17, 2020
- * @version Jun.  8, 2020
+ *  version Jun.  8, 2020
+ * @version Mar. 17, 2021
  * @author  ASAMI, Tomoharu
  */
 case class Schema(
@@ -465,6 +466,9 @@ object Schema {
   val empty = NullSchema
   val isDebug: Boolean = false // turn on if debug.
 
+  def createByColumnNamesWithComma(p: String): Schema =
+    Schema(Strings.totokens(p, ",").map(x => Column(x)))
+
   def comp(lhs: Schema, rhs: Schema): List[String] = {
     if (lhs.columns.length != rhs.columns.length)
       RAISE.noReachDefect
@@ -699,7 +703,12 @@ sealed trait SqlOrder {
   val sql: String
 
   def compare(lhs: String, rhs: String): Boolean
+  def compare(lhs: Int, rhs: Int): Boolean
   def compare(lhs: Long, rhs: Long): Boolean
+  def compare(lhs: Float, rhs: Float): Boolean
+  def compare(lhs: Double, rhs: Double): Boolean
+  def compare(lhs: BigInt, rhs: BigInt): Boolean
+  def compare(lhs: BigDecimal, rhs: BigDecimal): Boolean
   def compare(lhs: Timestamp, rhs: Timestamp): Boolean
 }
 
@@ -710,9 +719,19 @@ case object SqlOrderAsc extends SqlOrder {
     lhs.compareTo(rhs) < 0
   }
 
+  def compare(lhs: Int, rhs: Int): Boolean = lhs < rhs
+
   def compare(lhs: Long, rhs: Long): Boolean = {
     lhs.compareTo(rhs) < 0
   }
+
+  def compare(lhs: Float, rhs: Float): Boolean = lhs < rhs
+
+  def compare(lhs: Double, rhs: Double): Boolean = lhs < rhs
+
+  def compare(lhs: BigInt, rhs: BigInt): Boolean = lhs < rhs
+
+  def compare(lhs: BigDecimal, rhs: BigDecimal): Boolean = lhs < rhs
 
   def compare(lhs: Timestamp, rhs: Timestamp): Boolean = {
     lhs.compareTo(rhs) < 0
@@ -725,9 +744,17 @@ case object SqlOrderDesc extends SqlOrder {
     lhs.compareTo(rhs) > 0
   }
 
-  def compare(lhs: Long, rhs: Long): Boolean = {
-    lhs.compareTo(rhs) < 0
-  }
+  def compare(lhs: Int, rhs: Int): Boolean = lhs > rhs
+
+  def compare(lhs: Long, rhs: Long): Boolean = lhs > rhs
+
+  def compare(lhs: Float, rhs: Float): Boolean = lhs > rhs
+
+  def compare(lhs: Double, rhs: Double): Boolean = lhs > rhs
+
+  def compare(lhs: BigInt, rhs: BigInt): Boolean = lhs > rhs
+
+  def compare(lhs: BigDecimal, rhs: BigDecimal): Boolean = lhs > rhs
 
   def compare(lhs: Timestamp, rhs: Timestamp): Boolean = {
     lhs.compareTo(rhs) > 0

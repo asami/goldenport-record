@@ -8,7 +8,8 @@ import org.goldenport.record.v2.Record
  * @since   Apr.  2, 2018
  *  version May. 31, 2018
  *  version Sep. 12, 2018
- * @version Sep. 13, 2019
+ *  version Sep. 13, 2019
+ * @version Mar. 19, 2021
  * @author  ASAMI, Tomoharu
  */
 trait UnitOfWorkHelper {
@@ -23,6 +24,12 @@ trait UnitOfWorkHelper {
   protected def uow_lift[T](p: T): UnitOfWorkFM[T] = UnitOfWork.lift(p)
 
   protected lazy val uow_unit: UnitOfWorkFM[Unit] = UnitOfWork.lift(Unit)
+
+  protected def uow_take[T](label: String, p: Option[T]): UnitOfWorkFM[T] =
+    uow_get_or_raise(new NoSuchElementException(label))(p)
+
+  protected def uow_get_or_raise[T](e: => Throwable)(p: Option[T]): UnitOfWorkFM[T] =
+    p.map(UnitOfWork.lift(_)).getOrElse(UnitOfWork.raise(e))
 
   protected def uow_flush[T](condition: T => Option[Throwable])(
     result: T
@@ -64,6 +71,26 @@ trait UnitOfWorkHelper {
     store: Store, id: String
   ): UnitOfWorkFM[GetResult] = UnitOfWork.store.getExclusive(
     store, StringId(id))
+
+  protected def store_take(store: Store, id: String): UnitOfWorkFM[Entity] = for {
+    x <- UnitOfWork.store.get(store, StringId(id))
+    entity <- uow_take(s"id: $id", x.entity)
+  } yield entity
+
+  protected def store_take_sync(store: Store, id: String): UnitOfWorkFM[Entity] = for {
+    x <- UnitOfWork.store.getSync(store, StringId(id))
+    entity <- uow_take(s"id: $id", x.entity)
+  } yield entity
+
+  protected def store_take_share(store: Store, id: String): UnitOfWorkFM[Entity] = for {
+    x <- UnitOfWork.store.getShare(store, StringId(id))
+    entity <- uow_take(s"id: $id", x.entity)
+  } yield entity
+
+  protected def store_take_exclusive(store: Store, id: String): UnitOfWorkFM[Entity] = for {
+    x <- UnitOfWork.store.getExclusive(store, StringId(id))
+    entity <- uow_take(s"id: $id", x.entity)
+  } yield entity
 
   protected def store_get(
     store: Store, ids: Seq[String]

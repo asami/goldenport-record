@@ -45,14 +45,20 @@ import org.goldenport.record.v2.{Record => Record2, RecordRecord}
  *  version Aug. 23, 2019
  *  version Oct.  7, 2019
  *  version Nov. 29, 2019
- * @version Jan. 11, 2020
+ *  version Jan. 11, 2020
+ *  version Apr. 21, 2021
+ * @version May. 20, 2021
  * @author  ASAMI, Tomoharu
  */
 sealed abstract class FieldValue {
   override def toString() = try {
     s"${getClass.getSimpleName}(${as_string})"
   } catch {
-    case NonFatal(e) => s"""${getClass.getSimpleName}#toString(${getValue.map(_.getClass.getSimpleName).getOrElse("#Empty")}): $e"""
+    case NonFatal(e) => try {
+      s"""${getClass.getSimpleName}#toString(${getValue.map(_.getClass.getSimpleName).getOrElse("#Empty")}): $e"""
+    } catch {
+      case NonFatal(ee) => s"""FieldValue#toString: $e"""
+    }
   }
 
   protected lazy val as_string = getValue.map(AnyUtils.toString).getOrElse("")
@@ -64,6 +70,7 @@ sealed abstract class FieldValue {
   def asListEager: List[Any] = asList.flatMap(x => Strings.totokens(AnyUtils.toString(x), ","))
   def asVector: Vector[Any]
   def asString: String = as_string
+  def asBoolean: Boolean = getValue.map(AnyUtils.toBoolean).getOrElse(RAISE.invalidArgumentFault("empty"))
   def asInt: Int = getValue.map(AnyUtils.toInt).getOrElse(RAISE.invalidArgumentFault("empty"))
   def asLong: Long = getValue.map(AnyUtils.toLong).getOrElse(RAISE.invalidArgumentFault("empty"))
   def asFloat: Float = getValue.map(AnyUtils.toFloat).getOrElse(RAISE.invalidArgumentFault("empty"))
@@ -216,10 +223,20 @@ object FieldValue {
     case null => EmptyValue
     case JsNull => EmptyValue
     case o: JsObject => SingleValue(Record.create(o))
-    case a: JsArray => MultipleValue(a.value.map(FieldValue.create))
+    case a: JsArray => MultipleValue(a.value.map(_create))
     case s: JsString => SingleValue(s.value)
     case b: JsBoolean => SingleValue(b.value)
     case n: JsNumber => SingleValue(n.value)
+  }
+
+  private def _create(p: JsValue): Any = p match {
+    case null => ""
+    case JsNull => ""
+    case o: JsObject => Record.create(o)
+    case a: JsArray => a.value.map(_create)
+    case s: JsString => s.value
+    case b: JsBoolean => b.value
+    case n: JsNumber => n.value
   }
 
   implicit object FieldValueMonoid extends Monoid[FieldValue] {

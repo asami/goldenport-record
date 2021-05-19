@@ -1,8 +1,10 @@
 package org.goldenport.record.query
 
+import java.sql.Timestamp
 import org.joda.time._
 import org.goldenport.RAISE
 import org.goldenport.Strings
+import org.goldenport.context.DateTimeContext
 import org.goldenport.record.v2.{Schema, Column, DataType}
 import org.goldenport.record.v2.{Record => Record2, Field => Field2}
 import org.goldenport.record.v2.{PowertypeClass, Powertype}
@@ -12,6 +14,7 @@ import org.goldenport.record.v3.sql.SqlContext
 import org.goldenport.record.sql.SqlU
 import org.goldenport.record.util.{DateUtils, AnyUtils}
 import org.goldenport.values.{DateTimePeriod, ParameterKey}
+import org.goldenport.values.{NumberInterval, LocalDateTimeInterval}
 import QueryExpression.Context
 
 /*
@@ -22,7 +25,8 @@ import QueryExpression.Context
  *  version Oct. 15, 2019
  *  version Nov. 29, 2019
  *  version Jan. 26, 2020
- * @version Mar. 28, 2020
+ *  version Mar. 28, 2020
+ * @version Feb. 28, 2021
  * @author  ASAMI, Tomoharu
  */
 sealed trait QueryExpression {
@@ -50,6 +54,26 @@ sealed trait QueryExpression {
   protected final def to_literal_list(c: Column, ps: Seq[Any]): String = to_literal_list(c.datatype, ps)
 
   protected final def to_literal_list(dt: DataType, ps: Seq[Any]): String = ps.map(to_literal(dt, _)).mkString(", ")
+
+  protected final def to_literal_ctx(p: Any)(implicit ctx: SqlContext): String = SqlU.literal(p)
+
+  protected final def to_literal_ctx(c: Column, d: Any)(implicit ctx: SqlContext): String = to_literal_ctx(c.datatype, d)
+
+  protected final def to_literal_ctx(dt: DataType, d: Any)(implicit ctx: SqlContext): String = {
+    import org.goldenport.record.v2._
+    dt match {
+      case XDateTime => RAISE.notImplementedYetDefect
+      case XDate => RAISE.notImplementedYetDefect
+      case XString => to_literal(dt, d)
+      case _ => to_literal(dt, d)
+    }
+  }
+
+  protected final def to_literal_list_ctx(ps: Seq[Any])(implicit ctx: SqlContext): String = ps.map(to_literal).mkString(", ")
+
+  protected final def to_literal_list_ctx(c: Column, ps: Seq[Any])(implicit ctx: SqlContext): String = to_literal_list(c.datatype, ps)
+
+  protected final def to_literal_list_ctx(dt: DataType, ps: Seq[Any])(implicit ctx: SqlContext): String = ps.map(to_literal(dt, _)).mkString(", ")
 
   protected final def map_powertype_value(pt: PowertypeClass, v: Any): Either[Throwable, Any] =
     map_powertype_instance(pt, v).right.map(_.value)
@@ -181,11 +205,26 @@ case object NoneQuery extends QueryExpression {
 case class EqualQuery(value: Any) extends QueryExpression {
   def expression(column: String) = value match {
     case m: Seq[_] => s"""${column} IN (${to_literal_list(m)})"""
+    case m: NumberInterval =>
+      val (start, si) = m.toLower
+      val (end, ei) = m.toUpper
+      val q = RangeQuery(start, end, si, ei)
+      q.expression(column)
+    case m: LocalDateTimeInterval => RAISE.notImplementedYetDefect
     case _ => s"${column} = ${to_literal(value)}"
   }
   override def where(column: Column)(implicit ctx: SqlContext): String = value match {
-    case m: Seq[_] => s"""${column.name} IN (${to_literal_list(column, m)})"""
-    case _ => s"${column.name} = ${to_literal(column, value)}"
+    case m: Seq[_] => s"""${column.name} IN (${to_literal_list_ctx(column, m)})"""
+    case m: NumberInterval =>
+      val (start, si) = m.toLower
+      val (end, ei) = m.toUpper
+      val q = RangeQuery(start, end, si, ei)
+      q.where(column)
+    case m: LocalDateTimeInterval =>
+      val dtp = m.toDateTimePeriod(ctx.dateTimeZone)
+      val q = DateTimePeriodQuery(dtp)
+      q.where(column)
+    case _ => s"${column.name} = ${to_literal_ctx(column, value)}"
   }
   def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
 
@@ -370,13 +409,18 @@ case class RangeQuery(start: Option[Any], end: Option[Any], low: Boolean, high: 
   override def where(column: Column)(implicit ctx: SqlContext): String = {
     val l = start.map { x =>
       val operator = if (low) "<=" else "<"
-      s"(${to_literal(column, start)} $operator ${column.name}"
+      s"${to_literal(column, x)} $operator ${column.name}"
     }
     val r = end.map { x =>
       val operator = if (high) "<=" else "<"
-      s"(${column.name} $operator ${to_literal(column, start)}"
+      s"${column.name} $operator ${to_literal(column, x)}"
     }
-    Vector(l, r).flatten.mkString(" AND ")
+    (l, r) match {
+      case (Some(a), Some(b)) => s"($a AND $b)"
+      case (Some(a), None) => a
+      case (None, Some(b)) => b
+      case (None, None) => "1 = 1"
+    }
   }
   def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
 
@@ -500,7 +544,7 @@ object DateTimePeriodQuery extends QueryExpressionClass {
     //   case "exclusive" :: "exclusive" :: Nil => (false, true)
     //   case _ => RAISE.invalidArgumentFault(s"Invalid parameter '${params.mkString("_")}' in datetime-period")
     // }
-    val builder = DateTimePeriod.Builder(ctx.datetime, ctx.timezoneJoda)
+    val builder = DateTimePeriod.Builder(ctx.datetime)
     val s = start.map(builder.toDateTime)
     val e = end.map(builder.toDateTime)
     DateTimePeriodQuery(DateTimePeriod(s, e, low, high))
@@ -604,13 +648,21 @@ object QueryExpression {
   val ADORNMENT_QUERY = "query"
 
   case class Context(
-    datetime: DateTime,
-    timezoneJoda: DateTimeZone
-  )
-  object Context {
-    val default = Context(new DateTime())
+    datetime: DateTimeContext,
+    databaseTimeZone: DateTimeZone
+  ) {
+    def dateTimeZone = datetime.dateTimeZone
 
-    def apply(p: DateTime): Context = Context(p, p.getZone)
+    def toDateTime(p: LocalDateTime): DateTime = p.toDateTime(datetime.dateTimeZone).withZone(databaseTimeZone)
+
+    def toTimestamp(p: LocalDateTime): Timestamp = new Timestamp(toDateTime(p).getMillis)
+  }
+  object Context {
+    def apply(p: DateTime): Context = apply(DateTimeContext(p))
+
+    def apply(p: DateTimeContext): Context = Context(p, p.dateTimeZone)
+
+    def now() = apply(DateTimeContext.now())
   }
 
   val expressions: Vector[QueryExpressionClass] = Vector(

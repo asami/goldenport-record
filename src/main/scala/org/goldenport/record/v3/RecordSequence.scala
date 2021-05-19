@@ -2,6 +2,7 @@ package org.goldenport.record.v3
 
 import org.w3c.dom._
 import org.goldenport.i18n.I18NContext
+import org.goldenport.collection.VectorMap
 import org.goldenport.record.v2.Schema
 import org.goldenport.record.v3.sql.RecordIterator
 
@@ -12,7 +13,8 @@ import org.goldenport.record.v3.sql.RecordIterator
  *  version Aug.  3, 2019
  *  version Sep. 30, 2019
  *  version Oct.  7, 2019
- * @version Mar. 30, 2020
+ *  version Mar. 30, 2020
+ * @version Mar.  2, 2021
  * @author  ASAMI, Tomoharu
  */
 case class RecordSequence(
@@ -51,4 +53,9 @@ object RecordSequence {
   } finally {
     iter.close()
   }
+
+  def create(p: VectorMap[String, String]): RecordSequence = create(Vector(p))
+
+  def create(ps: Seq[VectorMap[String, String]]): RecordSequence =
+    RecordSequence(ps.map(Record.create))
 }

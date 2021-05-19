@@ -5,9 +5,10 @@ import java.net.{URL, URI}
 import java.sql.Timestamp
 import play.api.libs.json._
 import org.goldenport.exception.RAISE
+import org.goldenport.extension.{IRecord => LIRecord}
 import org.goldenport.util.ListUtils
 import org.goldenport.util.StringUtils
-import org.goldenport.record.v2.{Schema, Column, DataType, Multiplicity}
+import org.goldenport.record.v2.{Schema, Column => Column2, DataType, Multiplicity}
 import org.goldenport.record.v2.{MZeroOne, MZeroMore}
 import org.goldenport.record.util.AnyUtils
 
@@ -23,14 +24,15 @@ import org.goldenport.record.util.AnyUtils
  *  version Aug. 22, 2019
  *  version Nov. 29, 2019
  *  version Jan.  9, 2020
- * @version Oct. 15, 2020
+ *  version Oct. 15, 2020
+ * @version Mar. 28, 2021
  * @author  ASAMI, Tomoharu
  */
 trait IRecord extends org.goldenport.record.IRecord
     with org.w3c.dom.Element with DomPart {
   def parent: Option[IRecord] = None
   def toRecord: Record
-  def toMap: Map[String, Any] = toRecord.toMap // XXX
+  override def toMap: Map[String, Any] = toRecord.toMap
   def getSchema: Option[Schema]
   def fields: Seq[Field]
   def isEmpty: Boolean
@@ -84,6 +86,7 @@ trait IRecord extends org.goldenport.record.IRecord
   def takeRecordList(key: Symbol): List[Record]
   def takeRecordList(key: String): List[Record]
   def +(rhs: IRecord): IRecord = update(rhs)
+  def +(rhs: LIRecord): IRecord = RAISE.notImplementedYetDefect
   def update(p: IRecord): IRecord
   def complement(p: IRecord): IRecord
 
@@ -133,7 +136,7 @@ object IRecord {
 
   // def +(lhs: IRecord, rhs: IRecord): IRecord = lhs + rhs
 
-  case class Slot(column: Column, lefts: List[String], rights: List[String]) {
+  case class Slot(column: Column2, lefts: List[String], rights: List[String]) {
     def isMatch(p: Slot): Boolean = isMatch(p.column.name)
     def isMatch(p: String): Boolean = column.name == p
   }
@@ -167,14 +170,14 @@ object IRecord {
       case (ls, cs, rs) => Slot(_to_column(cs.head), ls.map(_.key.name), rs.map(_.key.name))
     }
 
-  private def _to_column(f: Field): Column = {
+  private def _to_column(f: Field): Column2 = {
     val datatype = DataType.guessSeq(f.value.asVector)
     val multiplicity = f.value match {
       case EmptyValue => MZeroOne
       case m: SingleValue => MZeroOne
       case m: MultipleValue => MZeroMore
     }
-    Column(f.key.name, datatype, multiplicity)
+    Column2(f.key.name, datatype, multiplicity)
   }
 
   private def _split(ss: List[Slot], s: Slot): (List[Slot], Slot, List[Slot]) =
