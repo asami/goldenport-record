@@ -10,7 +10,8 @@ import org.goldenport.collection.NonEmptyVector
 /*
  * @since   Apr. 17, 2020
  *  version May. 26, 2020
- * @version Jun.  8, 2020
+ *  version Jun.  8, 2020
+ * @version May. 20, 2021
  * @author  ASAMI, Tomoharu
  */
 case class Conclusion(
@@ -144,7 +145,7 @@ object Conclusion {
 
   def error(code: Int, p: String): Conclusion = error(code, I18NString(p))
   def error(code: Int, p: I18NString): Conclusion = Conclusion(
-    401,
+    code,
     None,
     Some(NonEmptyVector(p)),
     None,

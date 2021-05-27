@@ -14,7 +14,8 @@ import org.goldenport.parser.{ParseMessage}
  *  version Sep.  6, 2020
  *  version Oct. 13, 2020
  *  version Jan. 29, 2021
- * @version Feb. 20, 2021
+ *  version Feb. 20, 2021
+ * @version May. 20, 2021
  * @author  ASAMI, Tomoharu
  */
 sealed trait ConclusionResult[+T] {
@@ -73,7 +74,8 @@ object ConclusionResult {
     p.map(success).getOrElse(missing(name))
   // def successOrMissingPropertyOrError[T](name: String, p: Option[Left[String, T]]): ConclusionResult[T] =
   //   p.map(success).getOrElse(missingPropertyOrError(name))
-  //
+
+  // Generic error derived from HTTP
   def badRequest[T](p: String): ConclusionResult[T] = badRequest(I18NString(p))
   def badRequest[T](p: I18NString): ConclusionResult[T] = error(400, p)
   def unauthorized[T](p: String): ConclusionResult[T] = unauthorized(I18NString(p))
@@ -107,6 +109,7 @@ object ConclusionResult {
   def serviceUnavailable[T](p: I18NString): ConclusionResult[T] = error(503, p)
   def gatewayTimeout[T](p: String): ConclusionResult[T] = gatewayTimeout(I18NString(p))
   def gatewayTimeout[T](p: I18NString): ConclusionResult[T] = error(504, p)
+
   //
   def error[T](code: Int, p: String): ConclusionResult[T] = error(code, I18NString(p))
   def error[T](code: Int, p: I18NString): ConclusionResult[T] = ErrorConclusionResult(Conclusion.error(code, p))
@@ -118,9 +121,11 @@ object ConclusionResult {
     case m: java.io.FileNotFoundException => notFound(m.getMessage)
     case m => internalServerError(m.getMessage)
   }
-  //
+
+  // Specific error with detail code.
   def missing[T](p: String, ps: String*): ConclusionResult[T] = missings(p +: ps)
   def missings[T](ps: Seq[String]): ConclusionResult[T] = ErrorConclusionResult(Conclusion.missings(ps))
+
   //
   def execute[T](body: => T): ConclusionResult[T] = try {
     SuccessConclusionResult(body)
