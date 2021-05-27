@@ -6,7 +6,8 @@ import org.goldenport.record.v3._
 /*
  * @since   Mar. 24, 2019
  *  version Apr.  7, 2019
- * @version Oct.  5, 2019
+ *  version Oct.  5, 2019
+ * @version May. 28, 2021
  * @author  ASAMI, Tomoharu
  */
 trait Store {
@@ -17,6 +18,17 @@ trait Store {
   def delete(collection: Symbol, id: Id): Unit
   def create(collection: Symbol, schema: Schema): Collection
   def drop(collection: Symbol): Unit
-  def define(collection: Symbol, schema: Schema): Collection
+  def define(collection: Symbol, schema: Schema): Collection =
+    define(collection, Store.MetaData(schema))
+  def define(collection: Symbol, meta: Store.MetaData): Collection
   def getCollection(collection: Symbol): Option[Collection]
+}
+object Store {
+  case class MetaData(
+    table: Option[String],
+    schema: Schema
+  )
+  object MetaData {
+    def apply(p: Schema): MetaData = MetaData(None, p)
+  }
 }

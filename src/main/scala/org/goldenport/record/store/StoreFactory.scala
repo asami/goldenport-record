@@ -8,7 +8,8 @@ import org.goldenport.record.v3.sql.SqlContext
 /*
  * @since   Mar. 24, 2019
  *  version Apr. 15, 2019
- * @version Oct.  5, 2019
+ *  version Oct.  5, 2019
+ * @version May. 14, 2021
  * @author  ASAMI, Tomoharu
  */
 class StoreFactory(val config: RichConfig, val sqlContext: SqlContext) {
@@ -43,8 +44,14 @@ class StoreFactory(val config: RichConfig, val sqlContext: SqlContext) {
 
   def defineCollection(collection: Symbol, schema: Schema): Collection = defineCollection(SqlContext.KEY_DEFAULT, collection, schema)
 
+  def defineCollection(collection: Symbol, table: Option[String], schema: Schema): Collection = defineCollection(SqlContext.KEY_DEFAULT, collection, table, schema)
+
   def defineCollection(store: Symbol, collection: Symbol, schema: Schema): Collection =
     getStore(store).map(_.define(collection, schema)).
+      getOrElse(RAISE.invalidArgumentFault(s"Unknown store: ${store.name}"))
+
+  def defineCollection(store: Symbol, collection: Symbol, table: Option[String], schema: Schema): Collection =
+    getStore(store).map(_.define(collection, Store.MetaData(table, schema))).
       getOrElse(RAISE.invalidArgumentFault(s"Unknown store: ${store.name}"))
 }
 

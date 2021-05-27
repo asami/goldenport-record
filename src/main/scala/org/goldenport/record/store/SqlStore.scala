@@ -15,7 +15,8 @@ import org.goldenport.record.sql.SqlU
  *  version Oct.  7, 2019
  *  version Nov. 27, 2019
  *  version Mar. 31, 2020
- * @version Feb. 20, 2021
+ *  version Feb. 20, 2021
+ * @version May. 14, 2021
  * @author  ASAMI, Tomoharu
  */
 class SqlStore(
@@ -73,10 +74,15 @@ class SqlStore(
   def drop(collection: Symbol): Unit =
     takeCollection(collection).drop()
 
-  def define(collection: Symbol, schema: Schema): Collection = define(collection, None, schema)
+  // def define(collection: Symbol, schema: Schema): Collection = define(collection, None, schema)
 
-  def define(collection: Symbol, tablename: Option[String], schema: Schema): Collection = {
-    val c = new SqlSchemaCollection(this, collection, tablename, schema)
+  // def define(collection: Symbol, tablename: Option[String], schema: Schema): Collection = {
+  //   val c = new SqlSchemaCollection(this, collection, tablename, schema)
+  //   _set_collection(collection, c)
+  // }
+
+  def define(collection: Symbol, meta: Store.MetaData): Collection = {
+    val c = new SqlSchemaCollection(this, collection, meta.table, meta.schema)
     _set_collection(collection, c)
   }
 }
