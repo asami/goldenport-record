@@ -4,7 +4,7 @@ import scalaz._, Scalaz._
 import org.goldenport.RAISE
 import org.goldenport.context.{ValueDomainFault, ValueDomainMultiplicityFault}
 import org.goldenport.record.v2.{DataType, XString}
-import org.goldenport.record.v2.{Multiplicity, MOne, MZeroOne}
+import org.goldenport.record.v2.{Multiplicity, MOne, MZeroOne, MOneMore}
 import org.goldenport.record.v2.{Constraint, CompoundFailure}
 import org.goldenport.record.v2.{ValidationResult, Valid, Invalid, Warning}
 import org.goldenport.record.v2.MultiplicityFailure
@@ -12,7 +12,7 @@ import org.goldenport.record.v2.Validator._
 
 /*
  * @since   Apr. 29, 2021
- * @version Apr. 29, 2021
+ * @version Jun. 19, 2021
  * @author  ASAMI, Tomoharu
  */
 case class ValueDomain(
@@ -23,6 +23,12 @@ case class ValueDomain(
   def isSingle = multiplicity match {
     case MOne => true
     case MZeroOne => true
+    case _ => false
+  }
+
+  def isRequired: Boolean = multiplicity match {
+    case MOne => true
+    case MOneMore => true
     case _ => false
   }
 

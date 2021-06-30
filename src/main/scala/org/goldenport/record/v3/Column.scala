@@ -39,7 +39,8 @@ import org.goldenport.record.v2.{Multiplicity, MOne, MZeroOne}
  *  version Jun.  1, 2020
  *  version Mar. 21, 2021
  *  version Mar. 25, 2021 restart
- * @version Apr. 29, 2021
+ *  version Apr. 29, 2021
+ * @version Jun. 19, 2021
  * @author  ASAMI, Tomoharu
  */
 case class Column(
@@ -50,6 +51,7 @@ case class Column(
   def multiplicity = domain.multiplicity
   def constraints = domain.constraints
   def isSingle = domain.isSingle
+  def isRequired = domain.isRequired
 
   def resolve(p: Any): ValidationNel[ValueDomainFault, Any] = domain.resolve(p)
 }

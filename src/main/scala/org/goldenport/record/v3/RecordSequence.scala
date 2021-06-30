@@ -1,6 +1,7 @@
 package org.goldenport.record.v3
 
 import org.w3c.dom._
+import play.api.libs.json._
 import org.goldenport.i18n.I18NContext
 import org.goldenport.collection.VectorMap
 import org.goldenport.record.v2.Schema
@@ -14,7 +15,8 @@ import org.goldenport.record.v3.sql.RecordIterator
  *  version Sep. 30, 2019
  *  version Oct.  7, 2019
  *  version Mar. 30, 2020
- * @version Mar.  2, 2021
+ *  version Mar.  2, 2021
+ * @version Jun. 25, 2021
  * @author  ASAMI, Tomoharu
  */
 case class RecordSequence(
@@ -24,6 +26,7 @@ case class RecordSequence(
   def toRecords: Vector[Record] = irecords.map(_.toRecord)
   def toTable: Table = Table.create(this)
   def toTable(i18nContext: I18NContext, header: Table.HeaderStrategy) = Table.create(i18nContext, header, schema, this)
+  def toJson: JsArray = JsArray(irecords.map(_.toRecord.toJson))
 
   // Members declared in org.w3c.dom.Node
   def getNodeType(): Short = Node.DOCUMENT_FRAGMENT_NODE
