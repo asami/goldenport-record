@@ -67,7 +67,8 @@ import org.goldenport.values.PathName
  *  version Oct. 14, 2020
  *  version Mar. 28, 2021
  *  version Apr. 22, 2021
- * @version May.  8, 2021
+ *  version May.  8, 2021
+ * @version Sep. 17, 2021
  * @author  ASAMI, Tomoharu
  */
 case class Record(
@@ -134,6 +135,9 @@ case class Record(
   override def getString(key: String): Option[String] = {
     getString(Symbol(key))
   }
+
+  def getStringCaseInsensitive(keys: Seq[String]): Option[String] =
+    fields.find(x => keys.exists(x.name.equalsIgnoreCase)).map(_.asString)
 
   def getStringCaseInsensitive(keys: NonEmptyVector[String]): Option[String] =
     fields.find(x => keys.exists(x.name.equalsIgnoreCase)).map(_.asString)
