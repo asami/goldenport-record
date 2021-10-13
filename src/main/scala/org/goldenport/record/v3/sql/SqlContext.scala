@@ -20,7 +20,8 @@ import org.goldenport.record.query.QueryExpression
  *  version Jul. 26, 2019
  *  version Oct. 31, 2019
  *  version Nov. 19, 2019
- * @version Feb. 28, 2021
+ *  version Feb. 28, 2021
+ * @version Oct.  4, 2021
  * @author  ASAMI, Tomoharu
  */
 class SqlContext(
@@ -216,30 +217,22 @@ object SqlContext {
     def execute[T](db: Symbol)(body: java.sql.Connection => T): T = {
       val conn = openConnection(db)
       try {
-        conn.setAutoCommit(true)
+        // conn.setAutoCommit(true)
         val r = body(conn)
-        // conn.commit() // should not use in auto commit mode.
+        conn.commit() // should not use in auto commit mode.
         r
       } catch {
         case e: Throwable =>
-          // conn.rollback() // should not use in auto commit mode.
+          conn.rollback() // should not use in auto commit mode.
           throw e
       } finally {
         conn.close()
       }
     }
 
-    def commit(): Unit = {
-      RAISE.notImplementedYetDefect
-    }
-
-    def abort(): Unit = {
-      RAISE.notImplementedYetDefect
-    }
-
-    def close(): Unit = {
-      RAISE.notImplementedYetDefect
-    }
+    def commit(): Unit = {}
+    def abort(): Unit = {}
+    def close(): Unit = {}
   }
 
   class AutoCommitTransaction(
@@ -326,6 +319,35 @@ object SqlContext {
     def close(): Unit = {
       RAISE.notImplementedYetDefect
     }
+  }
+
+  def createMemory(p: RichConfig, query: QueryExpression.Context): SqlContext = {
+    val isolation = TransactionReadUncommitted // TODO
+    val db = H2
+    val cf = new PlainCPFactory(p)
+    cf.setDefault("org.h2.Driver", "jdbc:h2:mem:")
+    new SqlContext(
+      p,
+      new AutoCommitTransaction(NonEmptyVector(cf)),
+      isolation,
+      db,
+      query
+    )
+  }
+
+  def createFile(p: RichConfig, query: QueryExpression.Context): SqlContext = {
+    val filename = "./h2.db/file"
+    val isolation = TransactionReadUncommitted // TODO
+    val db = H2
+    val cf = new PlainCPFactory(p)
+    cf.setDefault("org.h2.Driver", s"jdbc:h2:${filename}")
+    new SqlContext(
+      p,
+      new AutoCommitTransaction(NonEmptyVector(cf)),
+      isolation,
+      db,
+      query
+    )
   }
 
   def createEachTime(p: RichConfig, query: QueryExpression.Context): SqlContext = {
@@ -425,5 +447,8 @@ object SqlContext {
   }
   case object Oracale extends SyntaxRule {
     val name = "oracle"
+  }
+  case object H2 extends SyntaxRule {
+    val name = "h2"
   }
 }

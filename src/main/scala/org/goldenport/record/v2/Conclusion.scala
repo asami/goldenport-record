@@ -6,12 +6,15 @@ import play.api.libs.json._
 import org.goldenport.RAISE
 import org.goldenport.i18n.I18NString
 import org.goldenport.collection.NonEmptyVector
+import org.goldenport.context.{Conclusion => LibConclusion, ErrorMessages, WarningMessages, Messages, Faults}
 
 /*
+ * See 
  * @since   Apr. 17, 2020
  *  version May. 26, 2020
  *  version Jun.  8, 2020
- * @version May. 20, 2021
+ *  version May. 20, 2021
+ * @version Oct. 12, 2021
  * @author  ASAMI, Tomoharu
  */
 case class Conclusion(
@@ -174,4 +177,24 @@ object Conclusion {
   private def _missing(p: String) = {
     ValidationSlot(Symbol(p), MissingFieldFailure(p))
   }
+
+  def from(p: LibConclusion): Conclusion =
+    Conclusion(
+      p.code.main,
+      p.code.detail.map(_.code),
+      errors = _messages(p.errors, p.faults),
+      warnings = _messages(p.warnings),
+      p.exception,
+      _validations(p.faults)
+    )
+
+  private def _messages(em: ErrorMessages, f: Faults): Option[NonEmptyVector[I18NString]] = {
+    _messages(em) |+| _messages(f)
+  }
+
+  private def _messages(p: Messages): Option[NonEmptyVector[I18NString]] = p.toI18NStringONev
+
+  private def _messages(p: Faults): Option[NonEmptyVector[I18NString]] = p.toI18NStringONev
+
+  private def _validations(p: Faults): List[Conclusion.ValidationSlot] = Nil
 }

@@ -3,7 +3,8 @@ package org.goldenport.record.store
 /*
  * @since   Mar. 30, 2019
  *  version Apr.  6, 2019
- * @version May.  9, 2019
+ *  version May.  9, 2019
+ * @version Oct.  4, 2021
  * @author  ASAMI, Tomoharu
  */
 trait Id {

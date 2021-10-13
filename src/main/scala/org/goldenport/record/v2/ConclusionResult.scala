@@ -4,6 +4,7 @@ import scalaz._, Scalaz._
 import scala.util.control.NonFatal
 import java.util.Locale
 import org.goldenport.i18n.I18NString
+import org.goldenport.context.Consequence
 import org.goldenport.collection.NonEmptyVector
 import org.goldenport.parser.{ParseResult, ParseSuccess, ParseFailure, EmptyParseResult}
 import org.goldenport.parser.{ParseMessage}
@@ -15,7 +16,8 @@ import org.goldenport.parser.{ParseMessage}
  *  version Oct. 13, 2020
  *  version Jan. 29, 2021
  *  version Feb. 20, 2021
- * @version May. 20, 2021
+ *  version May. 20, 2021
+ * @version Oct.  6, 2021
  * @author  ASAMI, Tomoharu
  */
 sealed trait ConclusionResult[+T] {
@@ -161,4 +163,9 @@ object ConclusionResult {
 
   private def _messages(ps: Vector[ParseMessage]) =
     NonEmptyVector.createOption(ps.map(_.msg))
+
+  def from[A](p: Consequence[A]): ConclusionResult[A] = p match {
+    case m: Consequence.Success[_] => SuccessConclusionResult(m.result, Conclusion.from(m.conclusion))
+    case m: Consequence.Error[_] => ErrorConclusionResult(Conclusion.from(m.conclusion))
+  }
 }
