@@ -21,7 +21,7 @@ import org.goldenport.record.query.QueryExpression
  *  version Oct. 31, 2019
  *  version Nov. 19, 2019
  *  version Feb. 28, 2021
- * @version Oct.  4, 2021
+ * @version Oct. 30, 2021
  * @author  ASAMI, Tomoharu
  */
 class SqlContext(
@@ -80,6 +80,20 @@ class SqlContext(
     var iter: RecordIterator = null
     try {
       iter = selectIterator(database, sql)
+      if (iter.hasNext)
+        Some(iter.next)
+      else
+        None
+    } finally {
+      if (iter != null)
+        iter.close()
+    }
+  }
+
+  def selectHeadOption(database: Symbol, schema: Schema, sql: String): Option[Record] = {
+    var iter: RecordIterator = null
+    try {
+      iter = selectIterator(database, schema, sql)
       if (iter.hasNext)
         Some(iter.next)
       else

@@ -2,6 +2,7 @@ package org.goldenport.record.v3
 
 import scalaz._, Scalaz._
 import org.goldenport.RAISE
+import org.goldenport.context.Consequence
 import org.goldenport.context.{ValueDomainFault, ValueDomainMultiplicityFault}
 import org.goldenport.record.v2.{DataType, XString}
 import org.goldenport.record.v2.{Multiplicity, MOne, MZeroOne, MOneMore}
@@ -12,7 +13,8 @@ import org.goldenport.record.v2.Validator._
 
 /*
  * @since   Apr. 29, 2021
- * @version Jun. 19, 2021
+ *  version Jun. 19, 2021
+ * @version Oct. 25, 2021
  * @author  ASAMI, Tomoharu
  */
 case class ValueDomain(
@@ -77,4 +79,15 @@ case class ValueDomain(
     case m: MultiplicityFailure => ValueDomainMultiplicityFault(m.i18nMessage) // TODO
     case m => ValueDomainFault(m.i18nMessage)
   }
+
+  def verify(p: Any): Consequence[Any] = Consequence.from(resolve(p))
+
+  def verifyField(p: Field): Consequence[Field] =
+    p.getValue.map(verifyField(p.key, _)).getOrElse(Consequence.success(p))
+
+  def verifyField(key: Symbol, p: Any): Consequence[Field] =
+    verify(p).map(Field.create(key, _))
+
+  def verifyField(key: String, p: Any): Consequence[Field] =
+    verify(p).map(Field.create(key, _))
 }

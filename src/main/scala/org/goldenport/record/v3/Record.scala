@@ -10,7 +10,7 @@ import org.goldenport.RAISE
 import org.goldenport.util.VectorUtils
 import org.goldenport.record.util.StringUtils
 import org.goldenport.record.util.AnyUtils
-import org.goldenport.record.v2.{Record => Record2, Field => Field2, Schema}
+import org.goldenport.record.v2.{Record => Record2, Field => Field2, Schema => Schema2}
 import org.goldenport.record.v2.InputFile
 import org.goldenport.record.v2.util.RecordUtils
 import org.goldenport.collection.{NonEmptyVector, VectorMap}
@@ -69,7 +69,7 @@ import org.goldenport.values.PathName
  *  version Apr. 22, 2021
  *  version May.  8, 2021
  *  version Sep. 17, 2021
- * @version Oct.  6, 2021
+ * @version Oct. 31, 2021
  * @author  ASAMI, Tomoharu
  */
 case class Record(
@@ -82,7 +82,7 @@ case class Record(
     with HttpPart with SqlPart
     with CompatibilityPart {
   def toRecord = this
-  def getSchema: Option[Schema] = meta.schema
+  def getSchema: Option[Schema2] = meta.schema
 
   override def toMap = this
 
@@ -297,7 +297,7 @@ object Record {
   val empty = Record(Vector.empty)
 
   case class MetaData(
-    schema: Option[Schema]
+    schema: Option[Schema2]
   ) {
     def columns: Option[List[Field.MetaData]] = schema.map(_.columns.map(x => Field.MetaData(Some(x))).toList)
     def prefix: Option[String] = schema.flatMap(_.xml.prefix)
@@ -573,7 +573,7 @@ object Record {
   private def _create_record_sequence(ps: IndexedSeq[Element]): RecordSequence =
     RecordSequence(ps.map(_create_record).toVector)
 
-  def create(schema: Schema, data: Seq[Any]): Record = {
+  def create(schema: Schema2, data: Seq[Any]): Record = {
     val xs = schema.columns.toVector.zip(data).map {
       case (c, d) => Field.create(c, d)
     }
@@ -587,8 +587,8 @@ object Record {
     Record(xs)
   }
 
-  def makeSchema(p: Record, ps: Record*): Schema = IRecord.makeSchema(p +: ps)
-  def makeSchema(ps: Seq[Record]): Schema = IRecord.makeSchema(ps)
+  def makeSchema(p: Record, ps: Record*): Schema2 = IRecord.makeSchema(p +: ps)
+  def makeSchema(ps: Seq[Record]): Schema2 = IRecord.makeSchema(ps)
 
   // def buildSchema(p: IRecord): Schema = RecordUtils.buildSchema(p.toRecord.toRecord2)
   // def buildSchema(ps: Seq[IRecord]): Schema = {

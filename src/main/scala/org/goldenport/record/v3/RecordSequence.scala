@@ -4,7 +4,7 @@ import org.w3c.dom._
 import play.api.libs.json._
 import org.goldenport.i18n.I18NContext
 import org.goldenport.collection.VectorMap
-import org.goldenport.record.v2.Schema
+import org.goldenport.record.v2.{Schema => Schema2}
 import org.goldenport.record.v3.sql.RecordIterator
 
 /*
@@ -16,12 +16,13 @@ import org.goldenport.record.v3.sql.RecordIterator
  *  version Oct.  7, 2019
  *  version Mar. 30, 2020
  *  version Mar.  2, 2021
- * @version Jun. 25, 2021
+ *  version Jun. 25, 2021
+ * @version Oct. 31, 2021
  * @author  ASAMI, Tomoharu
  */
 case class RecordSequence(
   irecords: Vector[IRecord],
-  schema: Option[Schema] = None
+  schema: Option[Schema2] = None
 ) extends DocumentFragment with DomNodeImpl {
   def toRecords: Vector[Record] = irecords.map(_.toRecord)
   def toTable: Table = Table.create(this)
@@ -37,6 +38,8 @@ case class RecordSequence(
   def domAttributes: Vector[AttributeNode] = Vector.empty
   def domElements: Vector[ElementNode] = toRecords
   def domValues: Vector[ValueNode] = Vector.empty
+
+  def map(f: IRecord => IRecord): RecordSequence = RecordSequence(irecords.map(f))
 }
 
 object RecordSequence {
@@ -51,7 +54,7 @@ object RecordSequence {
     iter.close()
   }
 
-  def createClose(schema: Schema, iter: RecordIterator): RecordSequence = try {
+  def createClose(schema: Schema2, iter: RecordIterator): RecordSequence = try {
     RecordSequence(iter.toVector, Some(schema))
   } finally {
     iter.close()

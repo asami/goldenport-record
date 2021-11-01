@@ -3,14 +3,15 @@ package org.goldenport.record.v3
 import org.goldenport.RAISE
 import org.goldenport.matrix._
 import org.goldenport.util.AnyUtils
-import org.goldenport.record.v2.{Schema, Column => Column2, DisplayFormat}
+import org.goldenport.record.v2.{Schema => Schema2, Column => Column2, DisplayFormat}
 
 /*
  * @since   Jun. 16, 2019
  *  version Aug. 24, 2019
  *  version Oct.  8, 2019
  *  version Nov. 16, 2019
- * @version Mar. 25, 2021
+ *  version Mar. 25, 2021
+ * @version Oct. 31, 2021
  * @author  ASAMI, Tomoharu
  */
 case class TableVisualizer(

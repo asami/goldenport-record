@@ -1,7 +1,7 @@
 package org.goldenport.record.v3
 
 import org.goldenport.RAISE
-import org.goldenport.record.v2.Schema
+import org.goldenport.record.v2.{Schema => Schema2}
 
 /*
  * @since   Oct. 15, 2018
@@ -10,11 +10,12 @@ import org.goldenport.record.v2.Schema
  *  version Jul. 29, 2019
  *  version Aug. 22, 2019
  *  version Sep. 23, 2019
- * @version Oct. 16, 2019
+ *  version Oct. 16, 2019
+ * @version Oct. 31, 2021
  * @author  ASAMI, Tomoharu
  */
 case class DomRecord() extends IRecord {
-  def getSchema: Option[Schema] = None
+  def getSchema: Option[Schema2] = None
   def keySymbols: List[Symbol] = RAISE.notImplementedYetDefect
   def keyNames: List[String] = RAISE.notImplementedYetDefect
   def print: String = RAISE.notImplementedYetDefect

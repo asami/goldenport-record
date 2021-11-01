@@ -1,16 +1,22 @@
 package org.goldenport.record.store
 
+import org.goldenport.extension.Showable
+
 /*
  * @since   Mar. 30, 2019
  *  version Apr.  6, 2019
  *  version May.  9, 2019
- * @version Oct.  4, 2021
+ * @version Oct. 31, 2021
  * @author  ASAMI, Tomoharu
  */
-trait Id {
+trait Id extends Showable {
   def literal: Any = string
   def string: String
   def show: String
+  def print: String = show
+  def display: String = show
+  def embed: String = show
+
 }
 
 object Id {
@@ -30,6 +36,8 @@ object Id {
   }
 
   def apply(p: String): Id = StringId(p)
+  def apply(p: Int): Id = IntId(p)
+  def apply(p: Long): Id = LongId(p)
 
   def create(p: Any): Id = p match {
     case m: String => StringId(m)

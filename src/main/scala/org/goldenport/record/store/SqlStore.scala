@@ -2,8 +2,8 @@ package org.goldenport.record.store
 
 import scala.collection.mutable
 import org.goldenport.RAISE
-import org.goldenport.record.v2.Schema
-import org.goldenport.record.v3._
+import org.goldenport.record.v2.{Schema, Column}
+import org.goldenport.record.v3.{Record, IRecord, RecordSequence, Field}
 import org.goldenport.record.v3.sql.{SqlContext, SqlBuilder}
 import org.goldenport.record.sql.SqlU
 
@@ -16,7 +16,8 @@ import org.goldenport.record.sql.SqlU
  *  version Nov. 27, 2019
  *  version Mar. 31, 2020
  *  version Feb. 20, 2021
- * @version May. 14, 2021
+ *  version May. 14, 2021
+ * @version Oct. 31, 2021
  * @author  ASAMI, Tomoharu
  */
 class SqlStore(
@@ -103,15 +104,41 @@ object SqlStore {
 
     def get(id: Id): Option[Record] = {
       val sql = _sql_builder.get(id)
-      store.sqlContext.selectHeadOption(store_name, sql)
+      val a = getSchema.
+        map(store.sqlContext.selectHeadOption(store_name, _, sql)).
+        getOrElse(store.sqlContext.selectHeadOption(store_name, sql))
+      a.map(_apply_schema)
     }
 
     def select(q: Query): RecordSequence = {
       // TODO SqlBuilder
       val limit = 10
       val sql = s"""SELECT * FROM ${table_name} WHERE ${q.where(getSchema)} LIMIT $limit"""
-      store.sqlContext.selectSequence(store_name, getSchema, sql)
+      store.sqlContext.selectSequence(store_name, getSchema, sql).map(_apply_schema)
     }
+
+    private def _apply_schema(p: IRecord): Record = p.toRecord
+
+    // private def _apply_schema(p: IRecord): Record = getSchema.map(_apply_schema(_, p)).getOrElse(p.toRecord)
+
+    // private def _apply_schema(s: Schema, p: IRecord): Record = {
+    //   // TODO default value
+    //   case class Z(xs: Vector[Field] = Vector.empty) {
+    //     def r = Record(xs)
+
+    //     def +(rhs: Column) = {
+    //       p.fields.find(_.name.equalsIgnoreCase(rhs.name)) match {
+    //         case Some(s) => s.getValue.map { x =>
+    //           val v = rhs.datatype.toInstance(x)
+    //           val a = Field.create(rhs.name, v)
+    //           copy(xs = xs :+ a)
+    //         }.getOrElse(this)
+    //         case None => this
+    //       }
+    //     }
+    //   }
+    //   s.columns./:(Z())(_+_).r
+    // }
 
     def insert(rec: IRecord): Id = {
       val idoption = rec.get('id)

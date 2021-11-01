@@ -9,6 +9,7 @@ import org.goldenport.record.sql.SqlDatatype
 import org.goldenport.record.store
 import org.goldenport.record.v2.{Schema, Column, SqlColumn, DataType}
 import org.goldenport.record.v2.{XDateTime}
+import org.goldenport.record.v2.XStateMachine
 import org.goldenport.record.v3._
 import org.goldenport.record.command.ValueCommand
 import org.goldenport.record.util.DateUtils
@@ -22,7 +23,8 @@ import org.goldenport.record.util.DateUtils
  *  version Mar. 29, 2020
  *  version May. 13, 2020
  *  version Feb. 28, 2021
- * @version Apr. 12, 2021
+ *  version Apr. 12, 2021
+ * @version Oct. 31, 2021
  * @author  ASAMI, Tomoharu
  */
 class SqlBuilder(
@@ -131,7 +133,7 @@ class SqlBuilder(
       case m: XEverforthObjectReference => token
       case m: XPowertype => TINYINT
       case m: XPowertypeReference => token
-      case m: XStateMachine => string
+      case m: XStateMachine => if (true) INT else token
       case m: XStateMachineReference => token
       case m: XExternalDataType => token // XXX
     }
@@ -299,6 +301,7 @@ class SqlBuilder(
       case m: LocalDateTime => literal(_to_timestamp(m))
       case m => literal(datatype.toInstance(p))
     }
+    case m: XStateMachine => if (true) literal(p) else literal(datatype.toInstance(p))
     case m => literal(datatype.toInstance(p))
   }
 

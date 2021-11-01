@@ -49,7 +49,8 @@ import org.goldenport.record.util.AnyUtils
  *  version Nov. 29, 2019
  *  version Sep.  7, 2020
  *  version Mar. 25, 2021
- * @version Apr. 21, 2021
+ *  version Apr. 21, 2021
+ * @version Oct. 24, 2021
  * @author  ASAMI, Tomoharu
  */
 case class Field(
@@ -231,4 +232,6 @@ object Field {
   }
 
   def createEmpty(name: String): Field = Field(name, EmptyValue)
+
+  def createInt(key: String, value: Int): Field = Field(key, SingleValue(value))
 }
