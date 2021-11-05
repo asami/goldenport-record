@@ -1,12 +1,13 @@
 package org.goldenport.record.v3
 
 import org.goldenport.RAISE
-import org.goldenport.record.v2.{Record => Record2, Field => Field2, Schema}
+import org.goldenport.record.v2.{Record => Record2, Field => Field2}
 import org.goldenport.record.v2.InputFile
 
 /*
  * @since   Aug. 23, 2018
- * @version May. 10, 2021
+ *  version May. 10, 2021
+ * @version Nov.  1, 2021
  * @author  ASAMI, Tomoharu
  */
 trait CompatibilityPart { self: Record =>

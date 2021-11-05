@@ -23,7 +23,8 @@ import org.goldenport.util.{AnyUtils => LibAnyUtils}
  *  version Nov. 13, 2017
  *  version Jun. 27, 2018
  *  version Jul. 18, 2018
- * @version Nov. 27, 2019
+ *  version Nov. 27, 2019
+ * @version Nov.  5, 2021
  * @author  ASAMI, Tomoharu
  */
 object AnyUtils {
@@ -103,4 +104,13 @@ object AnyUtils {
     case m: String => org.goldenport.record.v2.util.RecordUtils.fromJsonString(m)
     case m => throw new IllegalArgumentException(s"No record: $x")
   }
+
+  def getByte(p: Any): Option[Byte] = LibAnyUtils.getByte(p)
+  def getShort(p: Any): Option[Short] = LibAnyUtils.getShort(p)
+  def getInt(p: Any): Option[Int] = LibAnyUtils.getInt(p)
+  def getLong(p: Any): Option[Long] = LibAnyUtils.getLong(p)
+  def getFloat(p: Any): Option[Float] = LibAnyUtils.getFloat(p)
+  def getDouble(p: Any): Option[Double] = LibAnyUtils.getDouble(p)
+  def getBigInt(p: Any): Option[BigInt] = LibAnyUtils.getBigInt(p)
+  def getBigDecimal(p: Any): Option[BigDecimal] = LibAnyUtils.getBigDecimal(p)
 }

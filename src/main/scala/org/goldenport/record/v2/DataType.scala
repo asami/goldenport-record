@@ -47,7 +47,8 @@ import org.goldenport.statemachine.{StateMachineClass, StateMachine}
  *  version Feb. 27, 2021
  *  version Mar. 21, 2021
  *  version Apr. 29, 2021
- * @version Oct. 31, 2021
+ *  version Oct. 31, 2021
+ * @version Nov.  5, 2021
  * @author  ASAMI, Tomoharu
  */
 sealed trait DataType {
@@ -1607,6 +1608,9 @@ case class XStateMachine(statemachine: Option[StateMachineClass]) extends DataTy
 
   def validate(d: Any): ValidationResult = Valid
   def label = "ワークフロー"
+}
+object XStateMachine {
+  def apply(): XStateMachine = XStateMachine(None)
 }
 
 case class XStateMachineReference() extends DataType {
