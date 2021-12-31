@@ -1,6 +1,7 @@
 package org.goldenport.record.v2.unitofwork
 
 import scala.language.higherKinds
+import scala.util.control.NonFatal
 import org.goldenport.record.unitofwork._
 import org.goldenport.record.v2.Record
 
@@ -9,7 +10,8 @@ import org.goldenport.record.v2.Record
  *  version May. 31, 2018
  *  version Sep. 12, 2018
  *  version Sep. 13, 2019
- * @version Mar. 19, 2021
+ *  version Mar. 19, 2021
+ * @version Dec. 31, 2021
  * @author  ASAMI, Tomoharu
  */
 trait UnitOfWorkHelper {
@@ -38,6 +40,12 @@ trait UnitOfWorkHelper {
       case Some(x) => UnitOfWork.raise(x)
       case None => UnitOfWork.flush()
     }
+
+  protected def uow_execute[T](p: => T): UnitOfWorkFM[T] = try {
+    uow_lift(p)
+  } catch {
+    case NonFatal(e) => uow_raise(e)
+  }
 
   protected def service_invoke[T <: ServiceResponse](req: ServiceRequest): UnitOfWorkFM[T] =
     UnitOfWork.invoke(req)
