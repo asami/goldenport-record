@@ -28,7 +28,8 @@ import QueryExpression.Context
  *  version Jan. 26, 2020
  *  version Mar. 28, 2020
  *  version Feb. 28, 2021
- * @version Nov.  5, 2021
+ *  version Nov.  5, 2021
+ * @version Jan.  7, 2022
  * @author  ASAMI, Tomoharu
  */
 sealed trait QueryExpression {
@@ -197,6 +198,18 @@ sealed trait QueryExpressionClass {
       (p.substring(0, p.length - 1), false)
     else
       (p, true)
+}
+
+trait ValueQueryExpressionClass {
+  def name: String
+
+  def createValueOption(name: String)(implicit ctx: Context): Option[QueryExpression] =
+    if (this.name == name)
+      Some(createValueExpression(name))
+    else
+      None
+
+  def createValueExpression(name: String): QueryExpression
 }
 
 case object NoneQuery extends QueryExpression {
@@ -650,7 +663,7 @@ object LastMatchQuery extends QueryExpressionClass {
 //   def create(params: List[String], v: FieldValue)(implicit ctx: Context): QueryExpression = FirstLastMatchQuery(v.asString)
 // }
 
-case object IsNullQuery extends QueryExpression with QueryExpressionClass {
+case object IsNullQuery extends QueryExpression with QueryExpressionClass with ValueQueryExpressionClass {
   val name = "is-null"
 
   def expression(column: String) = s"${column} IS NULL"
@@ -659,9 +672,11 @@ case object IsNullQuery extends QueryExpression with QueryExpressionClass {
   def isAccept(p: Any): Boolean = p == null || p == None
 
   def create(params: List[String], v: FieldValue)(implicit ctx: Context): QueryExpression = this
+
+  def createValueExpression(name: String) = this
 }
 
-case object IsNotNullQuery extends QueryExpression with QueryExpressionClass {
+case object IsNotNullQuery extends QueryExpression with QueryExpressionClass with ValueQueryExpressionClass  {
   val name = "is-not-null"
 
   def expression(column: String) = s"${column} IS NOT NULL"
@@ -670,15 +685,45 @@ case object IsNotNullQuery extends QueryExpression with QueryExpressionClass {
   def isAccept(p: Any): Boolean = true
 
   def create(params: List[String], v: FieldValue)(implicit ctx: Context): QueryExpression = this
+
+  def createValueExpression(name: String) = this
 }
 
-case object AllQuery extends QueryExpression with QueryExpressionClass {
+case object IsEmptyQuery extends QueryExpression with QueryExpressionClass with ValueQueryExpressionClass  {
+  val name = "is-empty"
+
+  def expression(column: String) = s"""(${column} IS NULL OR ${column} = """""
+  override def where(column: Column)(implicit ctx: SqlContext): String = 
+    s"${column.name} IS NULL"
+  def isAccept(p: Any): Boolean = (p == null || p == None) || p == ""
+
+  def create(params: List[String], v: FieldValue)(implicit ctx: Context): QueryExpression = this
+
+  def createValueExpression(name: String) = this
+}
+
+case object IsNotEmptyQuery extends QueryExpression with QueryExpressionClass with ValueQueryExpressionClass  {
+  val name = "is-not-empty"
+
+  def expression(column: String) = s"""(${column} IS NOT NULL AND ${column} <> """""
+  override def where(column: Column)(implicit ctx: SqlContext): String = 
+    s"""(${column.name} IS NOT NULL AND ${column} <> """""
+  def isAccept(p: Any): Boolean = true && p != ""
+
+  def create(params: List[String], v: FieldValue)(implicit ctx: Context): QueryExpression = this
+
+  def createValueExpression(name: String) = this
+}
+
+case object AllQuery extends QueryExpression with QueryExpressionClass with ValueQueryExpressionClass {
   val name = "all"
 
   def expression(column: String) = "1 = 1"
   def isAccept(p: Any): Boolean = true
 
   def create(params: List[String], v: FieldValue)(implicit ctx: Context): QueryExpression = this
+
+  def createValueExpression(name: String) = this
 }
 
 object QueryExpression {
@@ -705,9 +750,9 @@ object QueryExpression {
   }
 
   val expressions: Vector[QueryExpressionClass] = Vector(
-    AllQuery,
-    IsNullQuery,
-    IsNotNullQuery,
+    AllQuery, // compatibility
+    IsNullQuery, // compatibility
+    IsNotNullQuery, // compatibility
     EqualQuery,
     NotEqualQuery,
     EnumQuery,
@@ -727,6 +772,14 @@ object QueryExpression {
     FirstMatchQuery,
     LastMatchQuery // ,
 //    FirstLastMatchQuery
+  )
+
+  val valueExpressions: Vector[ValueQueryExpressionClass] = Vector(
+    AllQuery,
+    IsNullQuery,
+    IsNotNullQuery,
+    IsEmptyQuery,
+    IsNotEmptyQuery
   )
 
   sealed trait CompareFunction {
@@ -965,7 +1018,12 @@ object QueryExpression {
       val fv = p.toFieldValue
       val v = expressions.toStream.flatMap(_.createOption(x, adargs.tail, fv)).headOption
       v.map(p.update(path, _))
-    }.getOrElse(RAISE.invalidArgumentFault(s"Invalid query: ${p.key.name}"))
+    }.getOrElse {
+      p.getString.flatMap { x =>
+        val v = valueExpressions.toStream.flatMap(_.createValueOption(x)).headOption
+        v.map(p.update(path, _))
+      }.getOrElse(RAISE.invalidArgumentFault(s"Invalid query: ${p.key.name}"))
+    }
 
   def activate(pt: PowertypeClass, p: Field2)(implicit ctx: Context): Field2 = {
     val key = ParameterKey.parse(p.key)
@@ -991,6 +1049,12 @@ object QueryExpression {
       case xs => MultipleValue(xs)
     }
 
+  def parse(
+    key: String,
+    value: String
+  )(implicit ctx: Context): (ParameterKey, QueryExpression) =
+    parse(Field3.create(key, value))
+
   def parse(p: Field3)(implicit ctx: Context): (ParameterKey, QueryExpression) = {
     val key = ParameterKey.parse(p.key)
     val expr = key.adornment.collect {
@@ -1007,7 +1071,10 @@ object QueryExpression {
     adargs.headOption.flatMap { x =>
       val fv = p.value
       expressions.toStream.flatMap(_.createOption(x, adargs.tail, fv)).headOption
-    }.getOrElse(RAISE.invalidArgumentFault(s"Invalid query: ${p.key.name}"))
+    }.getOrElse {
+      valueExpressions.toStream.flatMap(_.createValueOption(p.asString)).headOption.
+        getOrElse(RAISE.invalidArgumentFault(s"Invalid query: ${p.key.name}"))
+    }
   }
 
   private def _record_to_expression(
