@@ -69,7 +69,8 @@ import org.goldenport.values.PathName
  *  version Apr. 22, 2021
  *  version May.  8, 2021
  *  version Sep. 17, 2021
- * @version Oct. 31, 2021
+ *  version Oct. 31, 2021
+ * @version Jan. 25, 2022
  * @author  ASAMI, Tomoharu
  */
 case class Record(
@@ -79,7 +80,7 @@ case class Record(
   override val parent: Option[Record] = None
 ) extends IRecord with ElementNode with MapPart with ParsePart with ConsequencePart
     with XmlPart with JsonPart with CsvPart with LtsvPart with LxsvPart
-    with HttpPart with SqlPart
+    with HttpPart with SqlPart with HoconPart
     with CompatibilityPart {
   def toRecord = this
   def getSchema: Option[Schema2] = meta.schema

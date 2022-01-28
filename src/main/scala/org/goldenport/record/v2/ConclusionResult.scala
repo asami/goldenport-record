@@ -17,7 +17,8 @@ import org.goldenport.parser.{ParseMessage}
  *  version Jan. 29, 2021
  *  version Feb. 20, 2021
  *  version May. 20, 2021
- * @version Oct.  6, 2021
+ *  version Oct.  6, 2021
+ * @version Jan. 25, 2022
  * @author  ASAMI, Tomoharu
  */
 sealed trait ConclusionResult[+T] {
@@ -27,6 +28,7 @@ sealed trait ConclusionResult[+T] {
   def map[U](f: T => U): ConclusionResult[U]
   // ConclusionResult is not Monad. Just to use 'for' comprehension in Scala syntax suger.
   def flatMap[U](f: T => ConclusionResult[U]): ConclusionResult[U]
+  def forConfig: ConclusionResult[T]
 
   def getMessage: Option[String] = conclusion.getMessage
   def message: String = conclusion.message
@@ -46,6 +48,7 @@ case class SuccessConclusionResult[T](
       case m: SuccessConclusionResult[_] => m.copy(conclusion = conclusion + m.conclusion)
       case m: ErrorConclusionResult[_] => m.copy(conclusion = conclusion + m.conclusion)
     }
+  def forConfig: ConclusionResult[T] = copy(conclusion = conclusion.forConfig)
 }
 
 case class ErrorConclusionResult[T](
@@ -55,6 +58,8 @@ case class ErrorConclusionResult[T](
   def add(p: Conclusion): ConclusionResult[T] = copy(conclusion = conclusion + p)
   def map[U](f: T => U): ConclusionResult[U] = this.asInstanceOf[ErrorConclusionResult[U]]
   def flatMap[U](f: T => ConclusionResult[U]): ConclusionResult[U] = this.asInstanceOf[ConclusionResult[U]]
+
+  def forConfig: ConclusionResult[T] = copy(conclusion = conclusion.forConfig)
 }
 
 object ConclusionResult {

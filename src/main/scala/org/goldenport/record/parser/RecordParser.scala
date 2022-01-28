@@ -13,7 +13,8 @@ import org.goldenport.record.command.{UpdateMode, NeutralMode}
 
 /*
  * @since   Mar. 20, 2021
- * @version Mar. 21, 2021
+ *  version Mar. 21, 2021
+ * @version Jan. 23, 2022
  * @author  ASAMI, Tomoharu
  */
 case class RecordParser(
@@ -29,6 +30,9 @@ case class RecordParser(
     updateMode = config.updateMode,
     isEagerList = config.isEagerList
   )
+
+  def httpQuery(p: Option[String]): ParseResult[Record] =
+    p.map(httpQuery).getOrElse(ParseResult.success(Record.empty))
 
   def httpQuery(p: String): ParseResult[Record] =
     for {
@@ -74,6 +78,9 @@ case class RecordParser(
         parser.query(x)
       }
     } yield Record(xs)
+
+  def httpForm(p: Option[Record]): ParseResult[Record] =
+    p.map(httpForm).getOrElse(ParseResult.success(Record.empty))
 
   def httpForm(p: Record): ParseResult[Record] =
     for {

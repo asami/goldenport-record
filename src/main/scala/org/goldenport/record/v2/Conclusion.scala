@@ -14,7 +14,8 @@ import org.goldenport.context.{Conclusion => LibConclusion, ErrorMessages, Warni
  *  version May. 26, 2020
  *  version Jun.  8, 2020
  *  version May. 20, 2021
- * @version Oct. 12, 2021
+ *  version Oct. 12, 2021
+ * @version Jan. 25, 2022
  * @author  ASAMI, Tomoharu
  */
 case class Conclusion(
@@ -93,6 +94,8 @@ case class Conclusion(
   private def _unify(lhs: List[Conclusion.ValidationSlot], rhs: List[Conclusion.ValidationSlot]) = {
     lhs ++ rhs // TODO merge
   }
+
+  def forConfig: Conclusion = if (code == 200) this else copy(code = 500)
 }
 
 object Conclusion {
