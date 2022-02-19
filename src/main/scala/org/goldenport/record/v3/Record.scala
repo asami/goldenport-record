@@ -70,7 +70,8 @@ import org.goldenport.values.PathName
  *  version May.  8, 2021
  *  version Sep. 17, 2021
  *  version Oct. 31, 2021
- * @version Jan. 25, 2022
+ *  version Jan. 25, 2022
+ * @version Feb. 17, 2022
  * @author  ASAMI, Tomoharu
  */
 case class Record(
@@ -196,6 +197,11 @@ case class Record(
 
   def getBigDecimal(key: Symbol): Option[BigDecimal] = getField(key).map(_.asBigDecimal)
   def getBigDecimal(key: String): Option[BigDecimal] = getField(key).map(_.asBigDecimal)
+
+  def takeBigDecimal(key: Symbol): BigDecimal = getBigDecimal(key) getOrElse {
+    throw new IllegalArgumentException(s"Missing float '$key.name'")
+  }
+  def takeBigDecimal(key: String): BigDecimal = takeBigDecimal(Symbol(key))
 
   // def getTimestamp(key: Symbol): Option[Timestamp] = {
   //   getField(key).map(_.asTimestamp)

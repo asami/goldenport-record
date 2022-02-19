@@ -15,7 +15,8 @@ import org.goldenport.context.{Conclusion => LibConclusion, ErrorMessages, Warni
  *  version Jun.  8, 2020
  *  version May. 20, 2021
  *  version Oct. 12, 2021
- * @version Jan. 25, 2022
+ *  version Jan. 25, 2022
+ * @version Feb. 18, 2022
  * @author  ASAMI, Tomoharu
  */
 case class Conclusion(
@@ -96,6 +97,28 @@ case class Conclusion(
   }
 
   def forConfig: Conclusion = if (code == 200) this else copy(code = 500)
+
+  def toContextConclusion: LibConclusion = {
+    import org.goldenport.context.StatusCode
+    import org.goldenport.context.{ErrorMessage, WarningMessage}
+
+    def _error_(p: I18NString) = ErrorMessage.I18NStringErrorMessage(p)
+    def _warning_(p: I18NString) = WarningMessage.I18NStringWarningMessage(p)
+
+    def es = errors.map(_.list.map(_error_)).getOrElse(Nil)
+    def ws = warnings.map(_.list.map(_warning_)).getOrElse(Nil)
+
+    def _errors_ = ErrorMessages(es)
+    def _warnings_ = WarningMessages(ws)
+
+    LibConclusion(
+      StatusCode(code, None, detail),
+      None,
+      _errors_,
+      _warnings_,
+      exception
+    )
+  }
 }
 
 object Conclusion {
