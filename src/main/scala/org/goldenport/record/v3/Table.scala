@@ -33,7 +33,8 @@ import org.goldenport.record.util.AnyUtils
  *  version Mar. 30, 2020
  *  version Mar. 25, 2021
  *  version Apr. 13, 2021
- * @version Oct. 31, 2021
+ *  version Oct. 31, 2021
+ * @version Feb. 23, 2022
  * @author  ASAMI, Tomoharu
  */
 case class Table(
@@ -308,16 +309,18 @@ object Table {
     height: Option[Int] = None
   ) {
     def text: String = AnyUtils.toString(content)
-    def print(width: Option[Int]): String = width.map(print).getOrElse(print)
-    def print(width: Int): String = AnyUtils.toString(content) // TODO
-    def print: String = AnyUtils.toPrint(content) // TODO
-    def embed(width: Option[Int]): String = width.map(embed).getOrElse(embed)
-    def embed(width: Int): String = AnyUtils.toString(content) // TODO
-    def embed: String = AnyUtils.toEmbed(content) // TODO
+    def print(pwidth: Option[Int]): String = width.map(print).getOrElse(print)
+    def print(pwidth: Int): String = AnyUtils.toPrint(content, _width(pwidth))
+    def print: String = width.map(print).getOrElse(AnyUtils.toPrint(content))
+    def embed(pwidth: Option[Int]): String = width.map(embed).getOrElse(embed)
+    def embed(pwidth: Int): String = AnyUtils.toEmbed(content, _width(pwidth))
+    def embed: String = width.map(embed).getOrElse(AnyUtils.toEmbed(content))
     def trim: Cell = content match {
       case m: String => copy(content = m.trim)
       case _ => this
     }
+
+    private def _width(p: Int) = width.map(x => math.min(x, p)).getOrElse(p)
   }
   object Cell {
     val empty = Cell(Empty)

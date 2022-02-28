@@ -11,13 +11,15 @@ import org.goldenport.record.v2.{Schema => Schema2, Column => Column2, DisplayFo
  *  version Oct.  8, 2019
  *  version Nov. 16, 2019
  *  version Mar. 25, 2021
- * @version Oct. 31, 2021
+ *  version Oct. 31, 2021
+ * @version Feb. 24, 2022
  * @author  ASAMI, Tomoharu
  */
 case class TableVisualizer(
   lineStyle: Option[MatrixVisualizer.LineStyle] = None,
   isCompact: Boolean = false,
-  isEmbed: Boolean = false
+  isEmbed: Boolean = false,
+  embedWidth: Int = 8
 ) {
   private val _console_width = 80
 
@@ -50,7 +52,7 @@ case class TableVisualizer(
     val bodyvis = MatrixVisualizer.bodyEnd(_to_string).withLineStyle(linestyle).withColumnDefs(cdefs).withCompact(isCompact)
     val a = h.matrix appendRows data.matrix
     val columns = _build_columns(bodyvis, a)
-    val rh = headervis.plainText(columns, h.matrix)
+    val rh = headervis.plainTextCenter(columns, h.matrix)
     val rb = bodyvis.plainText(columns, data.matrix)
     rh + rb
   }
@@ -135,9 +137,11 @@ case class TableVisualizer(
 
   private def _to_string(c: MatrixVisualizer.ColumnDef, p: Table.Cell): String = {
     val a = if (isEmbed)
-      AnyUtils.toEmbed(p.embed(c.width))
+      // AnyUtils.toEmbed(p.embed(c.width getOrElse embedWidth))
+      // p.embed(c.width getOrElse embedWidth)
+      p.embed
     else
-      AnyUtils.toPrint(p.print(c.width))
+      p.print
     if (isCompact)
       a
     else

@@ -24,7 +24,8 @@ import org.goldenport.util.{AnyUtils => LibAnyUtils}
  *  version Jun. 27, 2018
  *  version Jul. 18, 2018
  *  version Nov. 27, 2019
- * @version Nov.  5, 2021
+ *  version Nov.  5, 2021
+ * @version Feb. 23, 2022
  * @author  ASAMI, Tomoharu
  */
 object AnyUtils {
@@ -43,6 +44,7 @@ object AnyUtils {
     case m: Showable => m.print
     case m => toString(m)
   }
+//  def toPrint(x: Any, width: Int): String = LibAnyUtils.toPrint(x, width)
   def toDisplay(x: Any): String = x match {
     case m: Showable => m.display
     case m => toString(m)
@@ -55,6 +57,7 @@ object AnyUtils {
     case m: Showable => m.embed
     case m => toString(m)
   }
+  def toEmbed(x: Any, width: Int): String = LibAnyUtils.toEmbed(x, width)
   def toBoolean(x: Any): Boolean = {
     x match {
       case v: Boolean => v
