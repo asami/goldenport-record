@@ -1,15 +1,19 @@
 package org.goldenport.record.v3
 
+import com.typesafe.config.{Config => Hocon}
 import com.asamioffice.goldenport.text.{TextBuilder, StringTextBuilder, UJavaString}
 import org.goldenport.values.PathName
+import org.goldenport.hocon.HoconUtils
 import org.goldenport.util.AnyUtils
 
 /*
  * @since   Jan. 25, 2022
- * @version Jan. 28, 2022
+ *  version Jan. 28, 2022
+ * @version Mar. 10, 2022
  * @author  ASAMI, Tomoharu
  */
 trait HoconPart { self: Record =>
+  def toHocon: Hocon = HoconUtils.createHocon(toMap)
   def toHoconString: String = HoconPart.toHoconString(this)
 }
 
@@ -50,7 +54,7 @@ object HoconPart {
       p.print("[")
       for (x <- array) {
         x.marshall(p)
-        print(",")
+        p.print(",")
       }
       p.indentDown()
       p.print("]")
