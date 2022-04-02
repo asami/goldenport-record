@@ -71,7 +71,8 @@ import org.goldenport.values.PathName
  *  version Sep. 17, 2021
  *  version Oct. 31, 2021
  *  version Jan. 25, 2022
- * @version Feb. 17, 2022
+ *  version Feb. 17, 2022
+ * @version Mar. 30, 2022
  * @author  ASAMI, Tomoharu
  */
 case class Record(
@@ -102,9 +103,8 @@ case class Record(
   lazy val keyNames: List[String] = fields.map(_.name).toList
 
   def print: String = toLxsv.print
-  def display: String = print // TODO
+  def display: String = display.replace('\t', ' ')
   def show: String = print // TODO
-  def embed: String = display.replace('\t', ' ')
 
   def get(key: String): Option[Any] = getField(key).flatMap(_.value.getValue)
 
@@ -433,6 +433,9 @@ object Record {
     import scala.collection.JavaConverters._
     createAnyMap(p.asScala.toMap)
   }
+
+  def createHttpArray(data: Map[String, Array[String]]): Record =
+    create(data).http.request.normalize
 
   def createHttp(data: Map[String, List[String]]): Record =
     create(data).http.request.normalize

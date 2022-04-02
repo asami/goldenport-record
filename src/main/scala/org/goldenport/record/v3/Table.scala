@@ -34,7 +34,8 @@ import org.goldenport.record.util.AnyUtils
  *  version Mar. 25, 2021
  *  version Apr. 13, 2021
  *  version Oct. 31, 2021
- * @version Feb. 23, 2022
+ *  version Feb. 23, 2022
+ * @version Mar. 19, 2022
  * @author  ASAMI, Tomoharu
  */
 case class Table(
@@ -91,7 +92,6 @@ case class Table(
     val tv = TableVisualizer(isCompact = true, isEmbed = true)
     tv.plainText(this)
   }
-  def embed: String = display
 
   lazy val data: Table.Data = { // TODO unify schema
     case class Z(

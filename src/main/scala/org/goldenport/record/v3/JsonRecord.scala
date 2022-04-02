@@ -11,7 +11,8 @@ import org.goldenport.record.v2.{Schema => Schema2}
  *  version Aug. 22, 2019
  *  version Sep. 23, 2019
  *  version Oct. 16, 2019
- * @version Oct. 31, 2021
+ *  version Oct. 31, 2021
+ * @version Mar. 19, 2022
  * @author  ASAMI, Tomoharu
  */
 case class JsonRecord() extends IRecord {
@@ -21,7 +22,6 @@ case class JsonRecord() extends IRecord {
   def print: String = RAISE.notImplementedYetDefect
   def display: String = RAISE.notImplementedYetDefect
   def show: String = RAISE.notImplementedYetDefect
-  def embed: String = display
   def fields: Seq[Field] = RAISE.notImplementedYetDefect
   def get(key: Symbol): Option[Any] = RAISE.notImplementedYetDefect
   def get(key: String): Option[Any] = RAISE.notImplementedYetDefect

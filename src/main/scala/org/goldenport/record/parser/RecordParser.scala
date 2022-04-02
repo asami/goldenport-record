@@ -1,6 +1,7 @@
 package org.goldenport.record.parser
 
 import scalaz._, Scalaz._
+import scala.collection.mutable
 import java.nio.charset.Charset
 import java.net.URLDecoder
 import org.goldenport.RAISE
@@ -14,7 +15,8 @@ import org.goldenport.record.command.{UpdateMode, NeutralMode}
 /*
  * @since   Mar. 20, 2021
  *  version Mar. 21, 2021
- * @version Jan. 23, 2022
+ *  version Jan. 23, 2022
+ * @version Mar. 30, 2022
  * @author  ASAMI, Tomoharu
  */
 case class RecordParser(
@@ -78,6 +80,12 @@ case class RecordParser(
         parser.query(x)
       }
     } yield Record(xs)
+
+  def httpForm(p: mutable.Map[String, Array[String]]): ParseResult[Record] =
+    httpForm(p.toMap)
+
+  def httpForm(p: Map[String, Array[String]]): ParseResult[Record] =
+    httpForm(Record.createHttpArray(p))
 
   def httpForm(p: Option[Record]): ParseResult[Record] =
     p.map(httpForm).getOrElse(ParseResult.success(Record.empty))

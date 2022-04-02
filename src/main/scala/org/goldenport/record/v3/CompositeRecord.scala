@@ -10,7 +10,8 @@ import org.goldenport.record.v2.{Schema => Schema2}
  *  version Aug. 22, 2019
  *  version Sep. 23, 2019
  *  version Oct. 16, 2019
- * @version Oct. 31, 2021
+ *  version Oct. 31, 2021
+ * @version Mar. 19, 2022
  * @author  ASAMI, Tomoharu
  */
 case class CompositeRecord(records: NonEmptyVector[IRecord]) extends IRecord {
@@ -22,7 +23,7 @@ case class CompositeRecord(records: NonEmptyVector[IRecord]) extends IRecord {
   def print: String = toRecord.print
   def display: String = toRecord.display
   def show: String = toRecord.show
-  def embed: String = toRecord.embed
+  override def embed: String = toRecord.embed
   lazy val toRecord: Record = {
     case class Z(xs: Vector[Field] = Vector.empty) {
       def r = Record(xs)

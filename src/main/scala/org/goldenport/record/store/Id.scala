@@ -6,7 +6,8 @@ import org.goldenport.extension.Showable
  * @since   Mar. 30, 2019
  *  version Apr.  6, 2019
  *  version May.  9, 2019
- * @version Oct. 31, 2021
+ *  version Oct. 31, 2021
+ * @version Mar. 19, 2022
  * @author  ASAMI, Tomoharu
  */
 trait Id extends Showable {
@@ -15,8 +16,6 @@ trait Id extends Showable {
   def show: String
   def print: String = show
   def display: String = show
-  def embed: String = show
-
 }
 
 object Id {

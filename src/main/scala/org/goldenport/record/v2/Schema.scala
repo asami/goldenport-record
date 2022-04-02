@@ -58,7 +58,8 @@ import org.goldenport.record.v3.IRecord
  *  version Jan. 12, 2020
  *  version Apr. 17, 2020
  *  version Jun.  8, 2020
- * @version Mar. 17, 2021
+ *  version Mar. 17, 2021
+ * @version Mar. 19, 2022
  * @author  ASAMI, Tomoharu
  */
 case class Schema(
@@ -92,7 +93,6 @@ case class Schema(
     s"""Schema(${columns.map(_.show).mkString(";")})"""
 
   def display = toString // TODO
-  def embed = toString // TODO
   def print = toString // TODO
 
   def show = {
