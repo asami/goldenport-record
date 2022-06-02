@@ -9,6 +9,7 @@ import org.goldenport.matrix.{IMatrix, VectorRowColumnMatrixBase, VectorRowColum
 import org.goldenport.xsv.{Xsv, Lxsv}
 import org.goldenport.parser.LogicalToken
 import org.goldenport.i18n._
+import org.goldenport.xml.dom.DomUtils
 import org.goldenport.values.NumberRange
 import org.goldenport.value._
 import org.goldenport.util.{StringUtils, AnyUtils => LAnyUtils}
@@ -35,7 +36,8 @@ import org.goldenport.record.util.AnyUtils
  *  version Apr. 13, 2021
  *  version Oct. 31, 2021
  *  version Feb. 23, 2022
- * @version Mar. 19, 2022
+ *  version Mar. 19, 2022
+ * @version May.  7, 2022
  * @author  ASAMI, Tomoharu
  */
 case class Table(
@@ -605,7 +607,7 @@ object Table {
   }
 
   private def _create_element_html(p: Element): Option[Table] =
-    Option(p.getLocalName()).map(_.toLowerCase).collect {
+    Option(DomUtils.localName(p)).map(_.toLowerCase).collect {
       case "table" => _create_table_html(p)
     }
 
@@ -613,10 +615,11 @@ object Table {
     val head = p.getElementByLocalNameIC("thead").flatMap(_create_head)
     val foot = p.getElementByLocalNameIC("tfoot").flatMap(_create_foot)
     val meta = _make_meta(head)
-    val rs = p.getElementByLocalNameIC("tbody").
-      map(_create_body(meta, _)).
-      getOrElse(_create_body(meta, p))
-    Table(rs, meta, head, foot)
+    val tb = p.getElementByLocalNameIC("tbody")
+    tb match {
+      case Some(s) => _create_table_simple(s)
+      case None => _create_table_simple(p)
+    }
   }
 
   private def _create_head(p: Element): Option[Head] = {
@@ -642,8 +645,33 @@ object Table {
     }
   }
 
-  private def _create_body(meta: MetaData, p: Element): Vector[Record] = {
-    for (tr <- p.elementsVectorByLocalNameIC("tr")) yield {
+  private def _create_table_simple(p: Element): Table = {
+    val trs = p.elementsVectorByLocalNameIC("tr")
+    trs.length match {
+      case 0 => Table.empty
+      case x => _get_natural_header(trs.head) match {
+        case Some(s) => _create_table(s, trs.tail)
+        case None => _create_table(MetaData.empty, trs)
+      }
+    }
+  }
+
+  private def _create_table(meta: MetaData, p: Element): Table =
+    _create_table(meta, p.elementsVectorByLocalNameIC("tr"))
+
+  private def _create_table(meta: MetaData, trs: Vector[Element]): Table = {
+    val rs = _create_records(meta, trs)
+    val head = meta.schema.map { s =>
+      val trs = for (c <- s.columns) yield {
+        Cell(c.name)
+      }
+      Head(trs.toList)
+    }
+    Table(rs, meta, head, None)
+  }
+
+  private def _create_records(meta: MetaData, ps: Vector[Element]): Vector[Record] = {
+    for (tr <- ps) yield {
       val fs = for ((td, i) <- tr.elementsVectorByLocalNameIC("th", "td").zipWithIndex) yield {
         val key: Symbol = meta.getKey(i).getOrElse(Symbol(s"${i + 1}"))
         val data = td.getTextContent
@@ -660,6 +688,29 @@ object Table {
     val a = p.names.map(x => Column2(_to_string(x.content))) // TODO width
     val s = Schema2(a)
     MetaData(Some(s))
+  }
+
+  private def _get_natural_header(p: Element): Option[MetaData] = {
+    val xs = p.elementsVectorByLocalNameIC("th", "td")
+    if (xs.exists(_is_th))
+      Some(_make_meta(xs))
+    else
+      None
+  }
+
+  private def _is_th(p: Element) = p.localName == "th"
+
+  private def _make_meta(ps: Seq[Element]) = {
+    val xs = ps.filter(_is_th_or_td)
+    val a = xs.map(x => Column2(_to_string(x.text))) // TODO width
+    val s = Schema2(a)
+    MetaData(Some(s))
+  }
+
+  private def _is_th_or_td(p: Element) = p.localName match {
+    case "td" => true
+    case "th" => true
+    case _ => false
   }
 
   private def _to_string(p: Any): String = AnyUtils.toString(p).trim
