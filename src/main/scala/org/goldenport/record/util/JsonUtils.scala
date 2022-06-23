@@ -4,6 +4,7 @@ import java.sql.Timestamp
 import org.joda.time.DateTime
 import org.goldenport.extension.{IRecord => LIRecord}
 import org.goldenport.record.v3.Record
+import org.goldenport.record.v2.{Record => Record2}
 
 /*
  * @since   May. 23, 2014
@@ -11,7 +12,8 @@ import org.goldenport.record.v3.Record
  *  version Dec. 28, 2014
  *  version Jan.  1, 2015
  *  version Mar. 28, 2021
- * @version Apr. 22, 2021
+ *  version Apr. 22, 2021
+ * @version Jun. 23, 2022
  * @author  ASAMI, Tomoharu
  */
 object JsonUtils {
@@ -42,8 +44,10 @@ object JsonUtils {
       case dt: DateTime => appendstring(DateTimeUtils.toIsoDateTimeStringJst(dt))
 //      case d: Date => buf.append(DateTimeUtils.toString(ts))
       case rec: Record => rec.buildJsonString(buf)
+      case rec: Record2 => Record.create(rec).buildJsonString(buf)
       case Some(s) => data2json(buf, s)
       case None => buf.append("null")
+      case null => buf.append("null")
       case xs: Seq[_] => {
         buf.append("[")
         xs.headOption.map(x => {

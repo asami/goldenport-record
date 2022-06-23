@@ -8,7 +8,8 @@ import org.goldenport.exception.RAISE
 
 /*
  * @since   Jul. 19, 2018
- * @version Jul. 23, 2018
+ *  version Jul. 23, 2018
+ * @version Jun. 17, 2022
  * @author  ASAMI, Tomoharu
  */
 trait Converter {
@@ -47,7 +48,7 @@ case object YYYYMMDDConverter extends Converter {
       val a = Try(
         DateUtils.parse2(m)
       ).toOption.getOrElse(
-        DateTimeUtils.parseIsoDateTimeJst(m)
+        DateTimeUtils.parseDateTimeJst(m)
       )
       apply(a)
     case m: DateTime => yyyymmddFormatter.print(m)

@@ -20,7 +20,8 @@ import org.goldenport.record.v2._
  *  version Apr. 19, 2014
  *  version Aug.  5, 2014
  *  version Nov. 15, 2016
- * @version Sep.  1, 2017
+ *  version Sep.  1, 2017
+ * @version Jun. 17, 2022
  * @author  ASAMI, Tomoharu
  */
 object JsValueUtils {
@@ -144,7 +145,7 @@ object JsValueUtils {
     implicit object TimestampReads extends Reads[Timestamp] {
       def reads(json: JsValue): JsResult[Timestamp] = json match {
         case JsString(s) => {
-          val dt = DateTimeUtils.parseIsoDateTimeJst(s)
+          val dt = DateTimeUtils.parseDateTimeJst(s)
           JsSuccess(new Timestamp(dt.getMillis))
         }
         case _: JsUndefined => JsError()

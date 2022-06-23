@@ -29,7 +29,8 @@ import QueryExpression.Context
  *  version Mar. 28, 2020
  *  version Feb. 28, 2021
  *  version Nov.  5, 2021
- * @version Jan.  7, 2022
+ *  version Jan.  7, 2022
+ * @version Jun. 17, 2022
  * @author  ASAMI, Tomoharu
  */
 sealed trait QueryExpression {
@@ -649,19 +650,19 @@ object LastMatchQuery extends QueryExpressionClass {
   def create(params: List[String], v: FieldValue)(implicit ctx: Context): QueryExpression = LastMatchQuery(v.asString)
 }
 
-// case class FirstLastMatchQuery(value: String) extends QueryExpression {
-//   private lazy val _matcher = QueryExpression.LikeFunction(s"%${value}%")
+case class FirstLastMatchQuery(value: String) extends QueryExpression {
+  private lazy val _matcher = QueryExpression.LikeFunction(s"%${value}%")
 
-//   def expression(column: String) = s"""${column} LIKE ${to_literal("%" + value + "%")}"""
-//   override def where(column: Column)(implicit ctx: SqlContext): String = 
-//     s"""${column.name} LIKE ${to_literal(column, "%" + value + "%")}"""
-//   def isAccept(p: Any): Boolean = _matcher(p)
-// }
-// object FirstLastMatchQuery extends QueryExpressionClass {
-//   val name = "first-last-match"
+  def expression(column: String) = s"""${column} LIKE ${to_literal("%" + value + "%")}"""
+  override def where(column: Column)(implicit ctx: SqlContext): String = 
+    s"""${column.name} LIKE ${to_literal(column, "%" + value + "%")}"""
+  def isAccept(p: Any): Boolean = _matcher(p)
+}
+object FirstLastMatchQuery extends QueryExpressionClass {
+  val name = "first-last-match"
 
-//   def create(params: List[String], v: FieldValue)(implicit ctx: Context): QueryExpression = FirstLastMatchQuery(v.asString)
-// }
+  def create(params: List[String], v: FieldValue)(implicit ctx: Context): QueryExpression = FirstLastMatchQuery(v.asString)
+}
 
 case object IsNullQuery extends QueryExpression with QueryExpressionClass with ValueQueryExpressionClass {
   val name = "is-null"
@@ -770,8 +771,8 @@ object QueryExpression {
     LikeQuery,
     RegexQuery,
     FirstMatchQuery,
-    LastMatchQuery // ,
-//    FirstLastMatchQuery
+    LastMatchQuery,
+    FirstLastMatchQuery
   )
 
   val valueExpressions: Vector[ValueQueryExpressionClass] = Vector(
