@@ -8,7 +8,8 @@ import org.goldenport.record.v3.{Record, Field}
 
 /*
  * @since   Jun.  9, 2020
- * @version Jun.  9, 2020
+ *  version Jun.  9, 2020
+ * @version Jun. 29, 2022
  * @author  ASAMI, Tomoharu
  */
 object HoconUtils {
@@ -23,4 +24,6 @@ object HoconUtils {
     })
     Record(xs)
   }
+
+  def toJsonString(p: Config): String = toRecord(p).toJsonString
 }

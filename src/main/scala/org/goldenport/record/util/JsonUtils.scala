@@ -13,7 +13,8 @@ import org.goldenport.record.v2.{Record => Record2}
  *  version Jan.  1, 2015
  *  version Mar. 28, 2021
  *  version Apr. 22, 2021
- * @version Jun. 23, 2022
+ *  version Jun. 23, 2022
+ * @version Jul.  2, 2022
  * @author  ASAMI, Tomoharu
  */
 object JsonUtils {
@@ -70,17 +71,39 @@ object JsonUtils {
   }
 
   def escape(s: String): String = {
-    if ((s.indexOf('"') == -1) && (s.indexOf('\\') == -1)) s
-    else {
+    if ((s.indexOf('"') == -1) && (s.indexOf('\\') == -1) &&
+      (s.indexOf('\n') == -1) && (s.indexOf('\r') == -1) &&
+      (s.indexOf('\t') == -1)
+    ) {
+      s
+    } else {
       val buf = new StringBuilder
       for (x: Char <- s) {
         x match {
-          case '"' => buf.append("""\u0022""") // TODO same as escape_extjs
-          case '\\' => buf.append("""\u005C""")
+          case '"' => buf.append("""\"""")
+          case '\\' => buf.append("""\\""")
+          case '\n' => buf.append("""\n""")
+          case '\r' => buf.append("""\r""")
+          case '\t' => buf.append("""\t""")
           case _ => buf.append(x)
         }
       }
       buf.toString
     }
   }
+
+  // def escape(s: String): String = {
+  //   if ((s.indexOf('"') == -1) && (s.indexOf('\\') == -1)) s
+  //   else {
+  //     val buf = new StringBuilder
+  //     for (x: Char <- s) {
+  //       x match {
+  //         case '"' => buf.append("""\u0022""") // TODO same as escape_extjs
+  //         case '\\' => buf.append("""\u005C""")
+  //         case _ => buf.append(x)
+  //       }
+  //     }
+  //     buf.toString
+  //   }
+  // }
 }
