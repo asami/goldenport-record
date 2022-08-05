@@ -18,7 +18,8 @@ import org.goldenport.parser.{ParseMessage}
  *  version Feb. 20, 2021
  *  version May. 20, 2021
  *  version Oct.  6, 2021
- * @version Jan. 25, 2022
+ *  version Jan. 25, 2022
+ * @version Aug.  3, 2022
  * @author  ASAMI, Tomoharu
  */
 sealed trait ConclusionResult[+T] {
@@ -34,6 +35,7 @@ sealed trait ConclusionResult[+T] {
   def message: String = conclusion.message
   def getMessage(locale: Locale): Option[String] = conclusion.getMessage(locale)
   def message(locale: Locale): String = conclusion.message(locale)
+  def toConsequence: Consequence[T]
 }
 case class SuccessConclusionResult[T](
   result: T,
@@ -49,6 +51,8 @@ case class SuccessConclusionResult[T](
       case m: ErrorConclusionResult[_] => m.copy(conclusion = conclusion + m.conclusion)
     }
   def forConfig: ConclusionResult[T] = copy(conclusion = conclusion.forConfig)
+
+  def toConsequence: Consequence[T] = Consequence.Success(result, conclusion.toContextConclusion)
 }
 
 case class ErrorConclusionResult[T](
@@ -60,6 +64,8 @@ case class ErrorConclusionResult[T](
   def flatMap[U](f: T => ConclusionResult[U]): ConclusionResult[U] = this.asInstanceOf[ConclusionResult[U]]
 
   def forConfig: ConclusionResult[T] = copy(conclusion = conclusion.forConfig)
+
+  def toConsequence: Consequence[T] = Consequence.Error(conclusion.toContextConclusion)
 }
 
 object ConclusionResult {
