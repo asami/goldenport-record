@@ -72,7 +72,9 @@ import org.goldenport.values.PathName
  *  version Oct. 31, 2021
  *  version Jan. 25, 2022
  *  version Feb. 17, 2022
- * @version Mar. 30, 2022
+ *  version Mar. 30, 2022
+ *  version Aug. 29, 2022
+ * @version Sep.  7, 2022
  * @author  ASAMI, Tomoharu
  */
 case class Record(
@@ -103,7 +105,7 @@ case class Record(
   lazy val keyNames: List[String] = fields.map(_.name).toList
 
   def print: String = toLxsv.print
-  def display: String = display.replace('\t', ' ')
+  def display: String = print.replace('\t', ' ')
   def show: String = print // TODO
 
   def get(key: String): Option[Any] = getField(key).flatMap(_.value.getValue)
@@ -123,11 +125,19 @@ case class Record(
   //   fields.find(_.key == s)
   // }
 
-  def getValue(key: Symbol): Option[FieldValue] = {
+  def getValue(key: Symbol): Option[Any] = {
     getField(key).map(_.value)
   }
 
-  def getValue(key: String): Option[FieldValue] = {
+  def getValue(key: String): Option[Any] = {
+    getField(key).map(_.value)
+  }
+
+  def getFieldValue(key: Symbol): Option[FieldValue] = {
+    getField(key).map(_.value)
+  }
+
+  def getFieldValue(key: String): Option[FieldValue] = {
     getField(key).map(_.value)
   }
 
@@ -217,8 +227,10 @@ case class Record(
   //   }
   // }
 
-  def getRecord(key: Symbol): Option[Record] = getField(key).map(_.asRecord)
-  def getRecord(key: String): Option[Record] = getField(key).map(_.asRecord)
+  def getAsRecord(key: Symbol): Option[Record] = getField(key).map(_.asRecord)
+  def getAsRecord(key: String): Option[Record] = getField(key).map(_.asRecord)
+  def getRecord(key: Symbol): Option[Record] = getField(key).flatMap(_.getRecord)
+  def getRecord(key: String): Option[Record] = getField(key).flatMap(_.getRecord)
 
   def takeRecordList(key: Symbol): List[Record] = getField(key).map(_.asRecordList).getOrElse(Nil)
   def takeRecordList(key: String): List[Record] = getField(key).map(_.asRecordList).getOrElse(Nil)

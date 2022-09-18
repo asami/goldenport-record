@@ -45,7 +45,8 @@ import org.goldenport.record.v2.{Record => Record2, RecordRecord}
  *  version Oct.  7, 2019
  *  version Nov. 29, 2019
  *  version Jan. 11, 2020
- * @version Apr. 21, 2021
+ *  version Apr. 21, 2021
+ * @version Aug. 30, 2022
  * @author  ASAMI, Tomoharu
  */
 sealed abstract class FieldValue {
@@ -64,6 +65,7 @@ sealed abstract class FieldValue {
   def getValue: Option[Any]
   def getList: Option[List[Any]]
   def getVector: Option[Vector[Any]]
+  def getRecord: Option[Record]
   def asList: List[Any]
   def asListEager: List[Any] = asList.flatMap(x => Strings.totokens(AnyUtils.toString(x), ","))
   def asVector: Vector[Any]
@@ -90,6 +92,10 @@ case class SingleValue(value: Any) extends FieldValue {
   def getValue = Some(value)
   def getList = Some(List(value))
   def getVector = Some(Vector(value))
+  def getRecord = value match {
+    case m: IRecord => Some(m.toRecord)
+    case _ => None
+  }
   def asList = List(value)
   def asVector = Vector(value)
   // override def asTimestamp = value match {
@@ -161,6 +167,7 @@ case class MultipleValue(values: Seq[Any]) extends FieldValue {
   def getValue = Some(values)
   def getList = Some(asList)
   def getVector = Some(asVector)
+  def getRecord = None
   def asList = values.toList
   def asVector = values.toVector
   override def asString: String = as_string_sequence
@@ -201,6 +208,7 @@ case object EmptyValue extends FieldValue {
   def getValue = None
   def getList = None
   def getVector = None
+  def getRecord = None
   def asList = Nil
   def asVector = Vector.empty
   def asRecord: Record = Record.empty
