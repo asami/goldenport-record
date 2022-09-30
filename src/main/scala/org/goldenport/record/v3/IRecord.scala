@@ -1,5 +1,6 @@
 package org.goldenport.record.v3
 
+import scala.util.control.NonFatal
 import java.util.Date
 import java.net.{URL, URI}
 import java.sql.Timestamp
@@ -26,11 +27,17 @@ import org.goldenport.record.util.AnyUtils
  *  version Jan.  9, 2020
  *  version Oct. 15, 2020
  *  version Mar. 28, 2021
- * @version Oct. 31, 2021
+ *  version Oct. 31, 2021
+ * @version Sep. 27, 2022
  * @author  ASAMI, Tomoharu
  */
 trait IRecord extends org.goldenport.record.IRecord
     with org.w3c.dom.Element with DomPart {
+  override def toString() = try {
+    super.toString()
+  } catch {
+    case NonFatal(e) => s"IRecord: $e"
+  }
   def parent: Option[IRecord] = None
   def toRecord: Record
   override def toMap: Map[String, Any] = toRecord.toMap

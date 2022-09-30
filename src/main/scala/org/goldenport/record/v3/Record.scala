@@ -1,5 +1,6 @@
 package org.goldenport.record.v3
 
+import scala.util.control.NonFatal
 import scalaz._, Scalaz._
 import java.sql.Timestamp
 import org.w3c.dom.{Element, Attr}
@@ -74,7 +75,7 @@ import org.goldenport.values.PathName
  *  version Feb. 17, 2022
  *  version Mar. 30, 2022
  *  version Aug. 29, 2022
- * @version Sep.  7, 2022
+ * @version Sep. 27, 2022
  * @author  ASAMI, Tomoharu
  */
 case class Record(
@@ -92,7 +93,7 @@ case class Record(
   override def toMap = this
 
   override def isEmpty: Boolean = fields.isEmpty
-  override def toString(): String = s"Record($show)"
+  override def toString(): String = s"Record(${fields.length})" // s"""Record(${fields.map(_.toString).mkString(",")})"""
 
   def isDefined(key: Symbol): Boolean = fields.exists(_.key == key)
   def isDefined(key: String): Boolean = isDefined(Symbol(key))
@@ -104,7 +105,12 @@ case class Record(
   lazy val keySymbols: List[Symbol] = fields.map(_.key).toList
   lazy val keyNames: List[String] = fields.map(_.name).toList
 
-  def print: String = toLxsv.print
+  private lazy val _print = try {
+    toLxsv.print
+  } catch {
+    case NonFatal(e) => s"Record: $e"
+  }
+  def print: String = _print
   def display: String = print.replace('\t', ' ')
   def show: String = print // TODO
 

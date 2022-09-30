@@ -5,7 +5,6 @@ import java.sql.Timestamp
 import java.net.{URL, URI}
 import java.io.File
 import org.joda.time.LocalTime
-import play.api.libs.json.JsValue
 import com.asamioffice.goldenport.io.UURL
 import org.goldenport.record.v2.Record
 import org.goldenport.record.v2.util.RecordUtils
@@ -25,18 +24,20 @@ import org.goldenport.util.{AnyUtils => LibAnyUtils}
  *  version Jul. 18, 2018
  *  version Nov. 27, 2019
  *  version Nov.  5, 2021
- * @version Feb. 23, 2022
+ *  version Feb. 23, 2022
+ * @version Sep. 27, 2022
  * @author  ASAMI, Tomoharu
  */
 object AnyUtils {
   def toString(x: Any): String = {
     x match {
-      case v: Timestamp => DateTimeUtils.toIsoDateTimeStringJst(v)
-      case v: Symbol => v.name
-      case m: Seq[_] => m.map(toString(_)).mkString(",")
-      case m: Array[_] => m.map(toString(_)).mkString(",")
+      // case m: String => m
+      // case v: Timestamp => DateTimeUtils.toIsoDateTimeStringJst(v)
+      // case v: Symbol => v.name
+      // case m: NodeSeq => m.toString
+      // case m: Seq[_] => m.map(toString(_)).mkString(",")
+      // case m: Array[_] => m.map(toString(_)).mkString(",")
       case m: Record => RecordUtils.toJsonString(m)
-      case m: JsValue => m.toString
       case _ => LibAnyUtils.toString(x)
     }
   }
