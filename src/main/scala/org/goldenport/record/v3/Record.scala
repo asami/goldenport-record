@@ -75,7 +75,8 @@ import org.goldenport.values.PathName
  *  version Feb. 17, 2022
  *  version Mar. 30, 2022
  *  version Aug. 29, 2022
- * @version Sep. 27, 2022
+ *  version Sep. 27, 2022
+ * @version Oct. 10, 2022
  * @author  ASAMI, Tomoharu
  */
 case class Record(
@@ -238,8 +239,15 @@ case class Record(
   def getRecord(key: Symbol): Option[Record] = getField(key).flatMap(_.getRecord)
   def getRecord(key: String): Option[Record] = getField(key).flatMap(_.getRecord)
 
-  def takeRecordList(key: Symbol): List[Record] = getField(key).map(_.asRecordList).getOrElse(Nil)
-  def takeRecordList(key: String): List[Record] = getField(key).map(_.asRecordList).getOrElse(Nil)
+  def takeRecordList(key: Symbol): List[Record] = getField(key).map(_.asRecordList) getOrElse {
+    throw new IllegalArgumentException(s"Missing record list '$key.name'")
+  }
+  def takeRecordList(key: String): List[Record] = getField(key).map(_.asRecordList) getOrElse {
+    throw new IllegalArgumentException(s"Missing record list '$key.name'")
+  }
+
+  def takeinRecordList(key: Symbol): List[Record] = getField(key).map(_.asRecordList).getOrElse(Nil)
+  def takeinRecordList(key: String): List[Record] = getField(key).map(_.asRecordList).getOrElse(Nil)
 
   def keyValues: Seq[(Symbol, Any)] = fields.flatMap(_.keyValue)
   def nameValues: Seq[(String, Any)] = fields.flatMap(_.nameValue)

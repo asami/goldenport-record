@@ -11,7 +11,8 @@ import org.goldenport.record.v3.{Record, Field}
  * @since   Jun.  9, 2020
  *  version Jun.  9, 2020
  *  version Jun. 29, 2022
- * @version Sep.  7, 2022
+ *  version Sep.  7, 2022
+ * @version Oct. 10, 2022
  * @author  ASAMI, Tomoharu
  */
 object HoconUtils {
@@ -31,14 +32,15 @@ object HoconUtils {
     def _go_(k: String, ks: List[String]): Record = {
       val a = ks match {
         case Nil => Field.create(k, v)
-        case x :: xs => Field.create(x, _go_(x, xs))
+        case x :: Nil => Field.create(x, v)
+        case x :: x2 :: xs => Field.create(x, _go_(x2, xs))
       }
       Record(Vector(a))
     }
 
     Strings.totokens(key, ".") match {
       case Nil => Field.create(key, v)
-      case x :: Nil => Field.create(x, x)
+      case x :: Nil => Field.create(x, v)
       case x :: x2 :: xs => Field.create(x, _go_(x2, xs))
     }
   }
