@@ -17,7 +17,8 @@ import org.goldenport.context.{Conclusion => LibConclusion, ErrorMessages, Warni
  *  version Oct. 12, 2021
  *  version Jan. 25, 2022
  *  version Feb. 18, 2022
- * @version Mar.  6, 2022
+ *  version Mar.  6, 2022
+ * @version Oct. 22, 2022
  * @author  ASAMI, Tomoharu
  */
 case class Conclusion(
@@ -207,8 +208,8 @@ object Conclusion {
 
   def from(p: LibConclusion): Conclusion =
     Conclusion(
-      p.code.code,
-      p.code.detail.map(_.code),
+      p.code,
+      p.status.detail.map(_.code),
       errors = _messages(p.errors, p.faults),
       warnings = _messages(p.warnings),
       p.exception,

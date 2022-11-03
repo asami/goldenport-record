@@ -46,7 +46,8 @@ import org.goldenport.record.v2.{Record => Record2, RecordRecord}
  *  version Nov. 29, 2019
  *  version Jan. 11, 2020
  *  version Apr. 21, 2021
- * @version Aug. 30, 2022
+ *  version Aug. 30, 2022
+ * @version Oct. 30, 2022
  * @author  ASAMI, Tomoharu
  */
 sealed abstract class FieldValue {
@@ -82,7 +83,8 @@ sealed abstract class FieldValue {
   def asRecordVector: Vector[Record]
   def asTable: Table
   def getJson: Option[JsValue]
-  def normalizeHttp: FieldValue
+  def normalizeHttp: FieldValue // legacy
+  def normalizeHttpPlain: FieldValue
   def +(p: FieldValue): FieldValue
   def toMulti: MultipleValue
   def mapContent(p: Any => Any): FieldValue
@@ -134,7 +136,8 @@ case class SingleValue(value: Any) extends FieldValue {
     case m => RAISE.noReachDefect
   }
   def getJson: Option[JsValue] = Some(JsonUtils.anyToJsValue(value))
-  def normalizeHttp: FieldValue = value match {
+  def normalizeHttp: FieldValue = normalizeHttpEeagerTokens
+  def normalizeHttpEeagerTokens: FieldValue = value match {
     case None => EmptyValue
     case m: String =>
       if (Strings.blankp(m))
@@ -145,6 +148,20 @@ case class SingleValue(value: Any) extends FieldValue {
           case x :: Nil => SingleValue(x)
           case xs => MultipleValue(xs)
         }
+    case _ => this
+  }
+  def normalizeHttpPlain: FieldValue = value match {
+    case None => EmptyValue
+    case m: Array[_] => m.length match {
+      case 0 => EmptyValue
+      case 1 => SingleValue(m(0))
+      case _ => this
+    }
+    case m: Seq[_] => m.length match {
+      case 0 => EmptyValue
+      case 1 => SingleValue(m(0))
+      case _ => this
+    }
     case _ => this
   }
   def +(p: FieldValue): FieldValue = MultipleValue(value +: p.asVector)
@@ -199,6 +216,7 @@ case class MultipleValue(values: Seq[Any]) extends FieldValue {
       case xs => MultipleValue(xs)
     }
   }
+  def normalizeHttpPlain: FieldValue = this
   def +(p: FieldValue): FieldValue = MultipleValue(values ++ p.asVector)
   def toMulti = this
   def mapContent(p: Any => Any): FieldValue = copy(values = values.map(p))
@@ -217,6 +235,7 @@ case object EmptyValue extends FieldValue {
   def asTable: Table = Table.empty
   def getJson: Option[JsValue] = None
   def normalizeHttp: FieldValue = this
+  def normalizeHttpPlain: FieldValue = this
   def +(p: FieldValue): FieldValue = p
   def toMulti = MultipleValue(Vector.empty)
   def mapContent(p: Any => Any): FieldValue = this

@@ -8,6 +8,7 @@ import org.joda.time.LocalTime
 import com.asamioffice.goldenport.io.UURL
 import org.goldenport.record.v2.Record
 import org.goldenport.record.v2.util.RecordUtils
+import org.goldenport.record.v3.{Record => Record3}
 import org.goldenport.extension.Showable
 import org.goldenport.util.{AnyUtils => LibAnyUtils}
 
@@ -25,7 +26,8 @@ import org.goldenport.util.{AnyUtils => LibAnyUtils}
  *  version Nov. 27, 2019
  *  version Nov.  5, 2021
  *  version Feb. 23, 2022
- * @version Sep. 27, 2022
+ *  version Sep. 27, 2022
+ * @version Oct. 29, 2022
  * @author  ASAMI, Tomoharu
  */
 object AnyUtils {
@@ -105,8 +107,19 @@ object AnyUtils {
   // V2
   def toRecord(x: Any): Record = x match {
     case m: Record => m
+    case m: Record3 => m.toRecord2
     case m: String => org.goldenport.record.v2.util.RecordUtils.fromJsonString(m)
-    case m => throw new IllegalArgumentException(s"No record: $x")
+    case m => Record.create(LibAnyUtils.toRecord(m))
+//    case m => throw new IllegalArgumentException(s"No record: $x")
+  }
+  def toRecord3(x: Any): Record3 = x match {
+    case m: Record => Record3.create(m)
+    case m: Record3 => m
+    case m: String => Record3.fromJson(m) match {
+      case Right(r) => r
+      case Left(l) => throw new IllegalArgumentException(s"Json Array: $l")
+    }
+    case m => Record3.create(LibAnyUtils.toRecord(m))
   }
 
   def getByte(p: Any): Option[Byte] = LibAnyUtils.getByte(p)

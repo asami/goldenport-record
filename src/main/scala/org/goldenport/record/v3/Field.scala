@@ -51,7 +51,8 @@ import org.goldenport.record.util.AnyUtils
  *  version Mar. 25, 2021
  *  version Apr. 21, 2021
  *  version Oct. 24, 2021
- * @version Aug. 30, 2022
+ *  version Aug. 30, 2022
+ * @version Oct. 30, 2022
  * @author  ASAMI, Tomoharu
  */
 case class Field(
@@ -137,6 +138,7 @@ case class Field(
   }
 
   def normalizeHttp: Field = copy(value = value.normalizeHttp)
+  def normalizeHttpPlain: Field = copy(value = value.normalizeHttpPlain)
 }
 
 object Field {
