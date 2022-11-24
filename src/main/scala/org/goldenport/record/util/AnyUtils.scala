@@ -27,7 +27,8 @@ import org.goldenport.util.{AnyUtils => LibAnyUtils}
  *  version Nov.  5, 2021
  *  version Feb. 23, 2022
  *  version Sep. 27, 2022
- * @version Oct. 29, 2022
+ *  version Oct. 29, 2022
+ * @version Nov. 23, 2022
  * @author  ASAMI, Tomoharu
  */
 object AnyUtils {
@@ -85,6 +86,7 @@ object AnyUtils {
       case v: Timestamp => v
       case v: Long => new Timestamp(v)
       case s: String => TimestampUtils.parse(s)
+      case m => LibAnyUtils.toTimestamp(m)
     }
   }
   def toDate(x: Any): Date = {
@@ -92,6 +94,7 @@ object AnyUtils {
       case v: Date => v
       case v: Long => new Date(v)
       case s: String => DateUtils.parse(s)
+      case m => LibAnyUtils.toDate(m)
     }
   }
   def toLocalTime(x: Any): LocalTime = org.goldenport.util.AnyUtils.toLocalTime(x)
@@ -101,6 +104,7 @@ object AnyUtils {
       case m: URI => m.toURL
       case m: File => m.toURI.toURL
       case s: String => UURL.getURLFromFileOrURLName(s)
+      case m => LibAnyUtils.toUrl(m)
     }
   }
   def toUri(x: Any): URI = LibAnyUtils.toUri(x)

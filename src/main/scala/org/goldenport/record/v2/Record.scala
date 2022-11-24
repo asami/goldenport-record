@@ -64,7 +64,8 @@ import org.goldenport.util.{TimestampUtils, DateUtils}
  *  version Jul. 31, 2019
  *  version Jan. 28, 2020
  *  version Mar. 27, 2020
- * @version Jun.  2, 2022
+ *  version Jun.  2, 2022
+ * @version Nov. 23, 2022
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -232,6 +233,7 @@ case class Record(
       case x: Timestamp => x
       case l: Long => new Timestamp(l)
       case s: String => TimestampUtils.parse(s)
+      case m => AnyUtils.toTimestamp(m)
     }
   }
 
