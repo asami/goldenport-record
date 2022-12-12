@@ -65,7 +65,8 @@ import org.goldenport.util.{TimestampUtils, DateUtils}
  *  version Jan. 28, 2020
  *  version Mar. 27, 2020
  *  version Jun.  2, 2022
- * @version Nov. 23, 2022
+ *  version Nov. 23, 2022
+ * @version Dec. 12, 2022
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -100,7 +101,8 @@ case class Record(
   opaque: AnyRef = null,
   source: Option[Record] = None,
   useKeyMatchLeaf: Boolean = false
-) extends CommandPart with EagerListPart with HtmlFormPart with JsonPart {
+) extends CommandPart with EagerListPart with HtmlFormPart with JsonPart
+    with PathNamePart {
   protected def is_match_key(key: Symbol)(f: Field): Boolean =
     if (useKeyMatchLeaf)
       f.isMatchKey(key)

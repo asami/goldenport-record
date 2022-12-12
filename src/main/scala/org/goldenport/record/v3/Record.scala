@@ -76,7 +76,8 @@ import org.goldenport.values.PathName
  *  version Mar. 30, 2022
  *  version Aug. 29, 2022
  *  version Sep. 27, 2022
- * @version Oct. 10, 2022
+ *  version Oct. 10, 2022
+ * @version Dec. 12, 2022
  * @author  ASAMI, Tomoharu
  */
 case class Record(
@@ -86,13 +87,17 @@ case class Record(
   override val parent: Option[Record] = None
 ) extends IRecord with ElementNode with MapPart with ParsePart with ConsequencePart
     with XmlPart with JsonPart with CsvPart with LtsvPart with LxsvPart
-    with HttpPart with SqlPart with HoconPart
+    with HttpPart with SqlPart with HoconPart with PathNamePart
     with CompatibilityPart {
   def toRecord = this
   def getSchema: Option[Schema2] = meta.schema
 
   override def toMap = this
 
+  override def isDefinedAt(key: String): Boolean = isDefined(key)
+  override def apply(key: String): Any = get(key) getOrElse {
+    throw new IllegalArgumentException(s"Missing string '$key.name'")
+  }
   override def isEmpty: Boolean = fields.isEmpty
   override def toString(): String = s"Record(${fields.length})" // s"""Record(${fields.map(_.toString).mkString(",")})"""
 

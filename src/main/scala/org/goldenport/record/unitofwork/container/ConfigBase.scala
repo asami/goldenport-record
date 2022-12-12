@@ -9,7 +9,8 @@ import org.goldenport.util.DateTimeUtils
 /*
  * @since   Feb. 11, 2020
  *  version Feb. 11, 2020
- * @version Feb. 20, 2021
+ *  version Feb. 20, 2021
+ * @version Dec. 12, 2022
  * @author  ASAMI, Tomoharu
  */
 trait ConfigBase {
@@ -29,7 +30,7 @@ trait ConfigBase {
   def properties = cliConfig.properties
   def i18nContext = cliConfig.i18n
   def createQueryContext() = QueryExpression.Context(
-    DateTimeUtils.toDateTime(System.currentTimeMillis, i18nContext.datetimezone)
+    DateTimeUtils.toDateTime(System.currentTimeMillis, i18nContext.dateTimeZone)
   )
   def logConfig = cliConfig.log
   def charset = cliConfig.charset
