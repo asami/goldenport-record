@@ -10,14 +10,14 @@ import org.goldenport.record.v3.Record
 
 /*
  * @since   Sep.  7, 2022
- * @version Sep.  7, 2022
+ * @version Dec. 16, 2022
  * @author  ASAMI, Tomoharu
  */
 @RunWith(classOf[JUnitRunner])
 class HoconUtilsSpec extends WordSpec with Matchers {
   "toRecord" should {
     "toRecord" which {
-      "toRecord" in {
+      "toRecord" ignore {
         val s = """
 organization={
   member=[{
@@ -56,6 +56,32 @@ organization={
         // }
         v.nonEmpty should be(true)
         v.get.takeRecordList("member").nonEmpty should be(true)
+      }
+
+      "tree" in {
+        val s = """http.baseurl="http://localhost:9000/2.1/MyColorWeb"
+http.header="Authorization: Bearer snkvnVcBKNCPVzVovwaTtwzQRgjdqvGS"
+db.default.driver=com.mysql.jdbc.Driver
+db.default.url="jdbc:mysql://develop-master.everforth.com/crossbird?zeroDateTimeBehavior=convertToNull&useUnicode=true&characterEncoding=utf8"
+db.default.user="yujikosuga"
+db.default.password="3qWb3r8wO56JVsL"
+db.default.connectionTestStatement="SELECT 1"
+
+appid="SDKSampleApp-API-4008"
+accesstoken="JJnRJwHYUCbYhEQvnizArZDOqTsHhQcl"
+productid=""
+contactid=""
+sessionid="aadd867516aff9877e6ff68c4021a4eff1868c4f20132"
+userid="mycolorweb-mycolorweb-1647914068479-user-c7e420ad-cb74-4512-837e-cf032d1ff9e9"
+"""
+//         val s = """http.baseurl="http://localhost:9000/2.1/MyColorWeb"
+// http.header="Authorization: Bearer snkvnVcBKNCPVzVovwaTtwzQRgjdqvGS"
+// """
+//         val s = """appid="SDKSampleApp-API-4008"
+// """
+        val c = ConfigFactory.parseString(s)
+        val r = HoconUtils.toRecord(c)
+        println(r.toJsonString)
       }
     }
   }

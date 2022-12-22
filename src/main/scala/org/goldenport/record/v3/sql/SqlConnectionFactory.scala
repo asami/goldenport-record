@@ -5,6 +5,7 @@ import org.goldenport.RAISE
 import org.goldenport.Strings.totokens
 import org.goldenport.hocon.RichConfig
 import org.goldenport.record.v3.{IRecord, Record, Field}
+import org.goldenport.record.v3.FieldValue
 import SqlContext._
 
 /*
@@ -12,7 +13,8 @@ import SqlContext._
  *  version Mar. 30, 2019
  *  version Apr.  6, 2019
  *  version May. 29, 2020
- * @version Oct.  3, 2021
+ *  version Oct.  3, 2021
+ * @version Dec. 15, 2022
  * @author  ASAMI, Tomoharu
  */
 trait SqlConnectionFactory {
@@ -65,12 +67,26 @@ trait SqlConnectionFactory {
           case "db" :: Nil =>
             // println(s"SqlConnectionFactory in: ${rhs.value}")
             // rhs.value
-            RAISE.notImplementedYetDefect
+            val r = _db(rhs.value)
+            Z(xs |+| r)
           case "db" :: db :: prop :: Nil =>
             // println(s"SqlConnectionFactory match: $db, $prop")
             // println(s"SqlConnectionFactory match2: ${xs |+| Map(Symbol(db) -> Record.data(prop -> rhs.value))}")
             Z(xs |+| Map(Symbol(db) -> Record.data(prop -> rhs.value)))
           case _ => this
+        }
+      }
+
+      private def _db(p: FieldValue): Map[Symbol, Record] = {
+        p.getRecord match {
+          case Some(s) =>
+            s.fields.toVector.foldMap { x =>
+              x.getRecord match {
+                case Some(ss) => Map(x.key -> ss)
+                case None => Map.empty
+              }
+            }
+          case None => Map.empty
         }
       }
     }

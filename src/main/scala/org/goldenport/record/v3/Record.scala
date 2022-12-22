@@ -77,7 +77,7 @@ import org.goldenport.values.PathName
  *  version Aug. 29, 2022
  *  version Sep. 27, 2022
  *  version Oct. 10, 2022
- * @version Dec. 12, 2022
+ * @version Dec. 16, 2022
  * @author  ASAMI, Tomoharu
  */
 case class Record(
@@ -118,7 +118,10 @@ case class Record(
   }
   def print: String = _print
   def display: String = print.replace('\t', ' ')
-  def show: String = print // TODO
+  def show: String = {
+    val a = fields.map(_.show).mkString(",")
+    s"Record($a)"
+  }
 
   def get(key: String): Option[Any] = getField(key).flatMap(_.value.getValue)
 

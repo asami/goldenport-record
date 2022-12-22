@@ -52,7 +52,8 @@ import org.goldenport.record.util.AnyUtils
  *  version Apr. 21, 2021
  *  version Oct. 24, 2021
  *  version Aug. 30, 2022
- * @version Oct. 30, 2022
+ *  version Oct. 30, 2022
+ * @version Dec. 16, 2022
  * @author  ASAMI, Tomoharu
  */
 case class Field(
@@ -61,10 +62,12 @@ case class Field(
   meta: Field.MetaData = Field.MetaData.empty
 ) {
   override def toString() = try {
-    s"Field($key: ${value.asString})"
+    s"Field($name: ${value})"
   } catch {
-    case NonFatal(e) => s"Field#toString($key, ): $e"
+    case NonFatal(e) => s"Field#toString($name, ): $e"
   }
+
+  def show: String = s"$name -> ${value.show}"
 
   def name: String = key.name
   def getValue: Option[Any] = value.getValue // Object or Seq

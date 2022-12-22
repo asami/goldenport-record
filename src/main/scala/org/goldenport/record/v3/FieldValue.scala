@@ -47,19 +47,19 @@ import org.goldenport.record.v2.{Record => Record2, RecordRecord}
  *  version Jan. 11, 2020
  *  version Apr. 21, 2021
  *  version Aug. 30, 2022
- * @version Oct. 30, 2022
+ *  version Oct. 30, 2022
+ * @version Dec. 16, 2022
  * @author  ASAMI, Tomoharu
  */
 sealed abstract class FieldValue {
   override def toString() = try {
-    s"${getClass.getSimpleName}(${as_string})"
+//      s"""${getClass.getSimpleName}(${getValue.map(_.getClass.getSimpleName).getOrElse("#Empty")})"""
+    s"""${getClass.getSimpleName}(${getValue.map(AnyUtils.toShow).getOrElse("#Empty")})"""
   } catch {
-    case NonFatal(e) => try {
-      s"""${getClass.getSimpleName}#toString(${getValue.map(_.getClass.getSimpleName).getOrElse("#Empty")}): $e"""
-    } catch {
-      case NonFatal(ee) => s"""FieldValue#toString: $e"""
-    }
+    case NonFatal(e) => s"""FieldValue#toString: $e"""
   }
+
+  def show: String
 
   protected lazy val as_string = getValue.map(AnyUtils.toString).getOrElse("")
 
@@ -91,6 +91,8 @@ sealed abstract class FieldValue {
 }
 
 case class SingleValue(value: Any) extends FieldValue {
+  def show = s"${AnyUtils.toShow(value)}"
+
   def getValue = Some(value)
   def getList = Some(List(value))
   def getVector = Some(Vector(value))
@@ -181,6 +183,8 @@ case class SingleValue(value: Any) extends FieldValue {
 case class MultipleValue(values: Seq[Any]) extends FieldValue {
   protected lazy val as_string_sequence = values.map(AnyUtils.toString).mkString(",")
 
+  def show = values.map(AnyUtils.toEmbed).mkString(",")
+
   def getValue = Some(values)
   def getList = Some(asList)
   def getVector = Some(asVector)
@@ -223,6 +227,7 @@ case class MultipleValue(values: Seq[Any]) extends FieldValue {
 }
 
 case object EmptyValue extends FieldValue {
+  def show = "#EMPTY"
   def getValue = None
   def getList = None
   def getVector = None
