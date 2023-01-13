@@ -73,6 +73,18 @@ productid=""
 contactid=""
 sessionid="aadd867516aff9877e6ff68c4021a4eff1868c4f20132"
 userid="mycolorweb-mycolorweb-1647914068479-user-c7e420ad-cb74-4512-837e-cf032d1ff9e9"
+payment.fee.rule {
+  provider=[{
+    name="np-postpay"
+    interval="2022-09-01T00:00:00~"
+    fee=187
+    tax.kind=none
+  },{
+    name="np-postpay"
+    fee=209
+    tax.kind=none
+  }]
+}
 """
 //         val s = """http.baseurl="http://localhost:9000/2.1/MyColorWeb"
 // http.header="Authorization: Bearer snkvnVcBKNCPVzVovwaTtwzQRgjdqvGS"
@@ -82,6 +94,9 @@ userid="mycolorweb-mycolorweb-1647914068479-user-c7e420ad-cb74-4512-837e-cf032d1
         val c = ConfigFactory.parseString(s)
         val r = HoconUtils.toRecord(c)
         println(r.toJsonString)
+        val c2 = c.getConfig("payment.fee.rule")
+        val r2 = HoconUtils.toRecord(c2)
+        println(r2.toJsonString)
       }
     }
   }

@@ -4,7 +4,6 @@ import scala.collection.mutable
 import scala.collection.JavaConverters._
 import com.typesafe.config._
 import org.goldenport.Strings
-import org.goldenport.RAISE
 import org.goldenport.collection.VectorMap
 import org.goldenport.hocon.{HoconUtils => LibHoconUtils}
 import org.goldenport.record.v3.{Record, Field}
@@ -106,7 +105,7 @@ object HoconUtils {
               copy(xs = xs |+| a)
             case _ => copy(vs = vs :+ rhs)
           }
-          case MultipleValue(vs) => RAISE.notImplementedYetDefect
+          case MultipleValue(vs) => copy(vs = this.vs ++ vs.toVector.map(SingleValue(_)))
           case EmptyValue => this
         }
       }
