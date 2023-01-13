@@ -21,7 +21,8 @@ import org.goldenport.record.v2._
  *  version Aug.  5, 2014
  *  version Nov. 15, 2016
  *  version Sep.  1, 2017
- * @version Jun. 17, 2022
+ *  version Jun. 17, 2022
+ * @version Jan.  5, 2023
  * @author  ASAMI, Tomoharu
  */
 object JsValueUtils {
@@ -67,13 +68,13 @@ object JsValueUtils {
       case x: java.sql.Timestamp => JsString(DateTimeUtils.toIsoDateTimeStringJst(x))
       case x: java.sql.Date => JsString(DateUtils.toIsoDateString(x))
       case x: java.util.Date => JsString(DateUtils.toIsoDateString(x))
-      case x: DateTime => JsString(DateTimeUtils.toIsoDateTimeStringJst(x))
+//      case x: DateTime => JsString(DateTimeUtils.toIsoDateTimeStringJst(x))
       case x: java.math.BigInteger => JsNumber(BigDecimal(x.toString))
       case x: Record => toJsValue(x)
       case x: RecordSet => toJsValue(x)
       case xs: Seq[_] => JsArray(xs.map(anyToJsValue))
       case x: JsValue => x
-      case x => JsString(x.toString)
+      case x => JsString(AnyUtils.toPrint(x))
     }
   }
 
