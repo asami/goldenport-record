@@ -37,7 +37,8 @@ import org.goldenport.record.util.AnyUtils
  *  version Oct. 31, 2021
  *  version Feb. 23, 2022
  *  version Mar. 19, 2022
- * @version May.  7, 2022
+ *  version May.  7, 2022
+ * @version Jan. 22, 2023
  * @author  ASAMI, Tomoharu
  */
 case class Table(
@@ -509,6 +510,8 @@ object Table {
     val rs = p.fields.map(x => Record.data(name -> x.name, value -> x.getValue.getOrElse("")))
     create(schema, rs)
   }
+
+  def create(p: ITable): Table = p.toTable
 
   def createDouble(p: IMatrix[Double]): Table = {
     val cs = for (i <- 1 to p.width) yield Column2(s"$i", XDouble)

@@ -77,7 +77,8 @@ import org.goldenport.values.PathName
  *  version Aug. 29, 2022
  *  version Sep. 27, 2022
  *  version Oct. 10, 2022
- * @version Dec. 16, 2022
+ *  version Dec. 16, 2022
+ * @version Jan. 20, 2023
  * @author  ASAMI, Tomoharu
  */
 case class Record(
@@ -493,6 +494,10 @@ object Record {
 
   def fromJson(p: String): Either[RecordSequence, Record] = createRecordOrSequence(Json.parse(p))
 
+  def fromJsonObject(p: String): Record = fromJson(p).right.get
+
+  def fromJsonArray(p: String): RecordSequence = fromJson(p).left.get
+ 
   def fromXml(p: String): Record = RAISE.notImplementedYetDefect
 
   // def fromDom(p: org.w3c.dom.Node): Either[RecordSequence, Record] = create(p)
