@@ -11,7 +11,8 @@ import org.goldenport.record.v2.Record
  *  version Sep. 12, 2018
  *  version Sep. 13, 2019
  *  version Mar. 19, 2021
- * @version Dec. 31, 2021
+ *  version Dec. 31, 2021
+ * @version Sep. 14, 2023
  * @author  ASAMI, Tomoharu
  */
 trait UnitOfWorkHelper {
@@ -43,6 +44,12 @@ trait UnitOfWorkHelper {
 
   protected def uow_execute[T](p: => T): UnitOfWorkFM[T] = try {
     uow_lift(p)
+  } catch {
+    case NonFatal(e) => uow_raise(e)
+  }
+
+  protected def uow_run[T](p: => UnitOfWorkFM[T]): UnitOfWorkFM[T] = try {
+    p
   } catch {
     case NonFatal(e) => uow_raise(e)
   }
