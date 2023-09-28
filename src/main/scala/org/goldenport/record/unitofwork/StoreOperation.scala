@@ -13,7 +13,8 @@ import org.goldenport.record.v2._
  *  version Apr.  7, 2018
  *  version May. 31, 2018
  *  version Sep. 13, 2019
- * @version Jun. 26, 2020
+ *  version Jun. 26, 2020
+ * @version Sep. 25, 2023
  * @author  ASAMI, Tomoharu
  */
 sealed trait StoreOperation[+A] extends ExtensionUnitOfWork[A] {
@@ -84,7 +85,7 @@ object CommitResult {
 }
 case class CommitSuccess(log: String) extends CommitResult {
 }
-case class CommitFailure(log: String) extends CommitResult {
+case class CommitFailure(log: String, e: Option[Throwable] = None) extends CommitResult {
 }
 
 object StoreOperation {
