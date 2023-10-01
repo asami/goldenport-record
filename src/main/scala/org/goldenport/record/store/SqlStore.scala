@@ -17,7 +17,9 @@ import org.goldenport.record.sql.SqlU
  *  version Mar. 31, 2020
  *  version Feb. 20, 2021
  *  version May. 14, 2021
- * @version Oct. 31, 2021
+ *  version Oct. 31, 2021
+ *  version Sep. 30, 2023
+ * @version Oct.  1, 2023
  * @author  ASAMI, Tomoharu
  */
 class SqlStore(
@@ -100,7 +102,7 @@ object SqlStore {
     protected final def store_name = store.name
     protected lazy val table_name = tableName orElse getSchema.flatMap(_.sql.tableName) getOrElse name.name
 
-    private lazy val _sql_builder = SqlBuilder(table_name, id_column, getSchema)
+    private lazy val _sql_builder = SqlBuilder.create(store.sqlContext, table_name, id_column, getSchema)
 
     def get(id: Id): Option[Record] = {
       val sql = _sql_builder.get(id)
@@ -111,10 +113,53 @@ object SqlStore {
     }
 
     def select(q: Query): RecordSequence = {
-      // TODO SqlBuilder
-      val limit = 10
-      val sql = s"""SELECT * FROM ${table_name} WHERE ${q.where(getSchema)} LIMIT $limit"""
-      store.sqlContext.selectSequence(store_name, getSchema, sql).map(_apply_schema)
+      val builder = _sql_builder.withQuery(q)
+      val sql = builder.select()
+      store.sqlContext.selectSequence(store_name, sql).map(_apply_schema)
+    }
+
+    def select0(q: Query): RecordSequence = {
+      // Future SqlBuilder
+      val offset = q.offset
+      val limitclause = q.limitClause
+      val columns = q.columnsClause
+      val schema = _make_schema(getSchema, q.projection)
+      val sql = s"""SELECT $columns FROM ${table_name} WHERE ${q.where(getSchema)}  $limitclause OFFSET $offset"""
+      store.sqlContext.selectSequence(store_name, schema, sql).map(_apply_schema)
+    }
+
+    private def _make_schema(ps: Option[Schema], p: Query.Projection): Option[Schema] = {
+      ps match {
+        case Some(s) => p match {
+          case Query.Projection.All => ps
+          case Query.Projection.Columns(cs) =>
+            case class Z(columns: Vector[Column] = Vector.empty) {
+              def r = Some(Schema(columns))
+
+              def +(rhs: String) = {
+                s.getColumn(rhs) match {
+                  case Some(ss) => _add(ss)
+                  case None => _add(Column(rhs))
+                }
+              }
+
+              private def _add(c: Column) = copy(columns = columns :+ c)
+            }
+            cs./:(Z())(_+_).r
+        }
+        case None => p match {
+          case Query.Projection.All => None
+          case Query.Projection.Columns(cs) =>
+            case class Z(columns: Vector[Column] = Vector.empty) {
+              def r = Some(Schema(columns))
+
+              def +(rhs: String) = _add(Column(rhs))
+
+              private def _add(c: Column) = copy(columns = columns :+ c)
+            }
+            cs./:(Z())(_+_).r
+        }
+      }
     }
 
     private def _apply_schema(p: IRecord): Record = p.toRecord

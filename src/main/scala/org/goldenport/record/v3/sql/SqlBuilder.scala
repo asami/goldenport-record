@@ -12,6 +12,7 @@ import org.goldenport.record.v2.{XDateTime}
 import org.goldenport.record.v2.XStateMachine
 import org.goldenport.record.v3._
 import org.goldenport.record.command.ValueCommand
+import org.goldenport.record.store.{Query => StoreQuery}
 import org.goldenport.record.util.DateUtils
 
 /*
@@ -24,14 +25,16 @@ import org.goldenport.record.util.DateUtils
  *  version May. 13, 2020
  *  version Feb. 28, 2021
  *  version Apr. 12, 2021
- * @version Oct. 31, 2021
+ *  version Oct. 31, 2021
+ * @version Oct.  1, 2023
  * @author  ASAMI, Tomoharu
  */
-class SqlBuilder(
+case class SqlBuilder(
+  sqlContext: SqlContext, // Database variation point.
   tableName: String,
-  idColumn: Option[String],
-  schema: Option[Schema],
-  sqlContext: SqlContext // Database variation point.
+  idColumn: Option[String] = None,
+  schema: Option[Schema] = None,
+  storeQuery: Option[StoreQuery] = None
 ) {
   import SqlBuilder._
 
@@ -40,6 +43,10 @@ class SqlBuilder(
   protected def id_column = idColumn orElse schema.flatMap(_.columns.find(_.sql.isId).map(_.name)) getOrElse("id")
 
   protected def column_name_literal(p: String) = sqlContext.syntax.columnNameLiteral(p)
+  protected def offset_keyword = sqlContext.syntax.offsetKeyword
+  protected def limit_keyword = sqlContext.syntax.limitKeyword
+
+  def withQuery(p: StoreQuery) = copy(storeQuery = Some(p))
 
   def createTable(): String = s"""CREATE TABLE $table_name_literal ${createSchema}"""
 
@@ -186,22 +193,83 @@ class SqlBuilder(
 
   def dropTable(): String = s"""DROP TABLE $table_name_literal"""
 
+  protected lazy val query_schema = _make_schema(schema, storeQuery.map(_.projection))
+
+  private def _make_schema(so: Option[Schema], po: Option[StoreQuery.Projection]): Option[Schema] =
+    po match {
+      case Some(s) => _make_schema(so, s)
+      case None => so
+    }
+
+  private def _make_schema(so: Option[Schema], p: StoreQuery.Projection): Option[Schema] =
+    so match {
+      case Some(s) => p match {
+        case StoreQuery.Projection.All => so
+        case StoreQuery.Projection.Columns(cs) =>
+          case class Z(columns: Vector[Column] = Vector.empty) {
+            def r = Some(Schema(columns))
+
+            def +(rhs: String) = {
+              s.getColumn(rhs) match {
+                case Some(ss) => _add(ss)
+                case None => _add(Column(rhs))
+              }
+            }
+
+            private def _add(c: Column) = copy(columns = columns :+ c)
+          }
+          cs./:(Z())(_+_).r
+      }
+      case None => p match {
+        case StoreQuery.Projection.All => None
+        case StoreQuery.Projection.Columns(cs) =>
+          case class Z(columns: Vector[Column] = Vector.empty) {
+            def r = Some(Schema(columns))
+
+            def +(rhs: String) = _add(Column(rhs))
+
+            private def _add(c: Column) = copy(columns = columns :+ c)
+          }
+          cs./:(Z())(_+_).r
+      }
+    }
+
   // TODO derived attribute
-  private def _select_columns = schema.
+  protected final def select_columns = query_schema.
     map(_.columns.filterNot(_.sql.isDerived).
       map(x => column_name_literal(x.sqlColumnName)).mkString(", ")).
     getOrElse("*")
+
+  protected final def limit_clause = storeQuery.fold("") { q =>
+    q.transfer.limit match {
+      case StoreQuery.Transfer.Limit.All => ""
+      case StoreQuery.Transfer.Limit.Value(n) => s"$limit_keyword $n"
+    }
+  }
+
+  protected final def offset_clause = storeQuery.fold("") { q =>
+    s"$offset_keyword ${q.offset}"
+  }
+
+  protected final def where_expression = storeQuery.fold("1 = 1")(_.where(query_schema)(sqlContext))
 
   def get(id: Any): String = {
     val idliteral = id match {
       case m: store.Id => m.literal
       case m => m
     }
-    s"""SELECT ${_select_columns} FROM ${table_name_literal} WHERE ${id_column} = ${literal(idliteral)}"""
+    s"""SELECT ${select_columns} FROM ${table_name_literal} WHERE ${id_column} = ${literal(idliteral)}"""
   }
 
   def query(q: String): String = {
-    s"""SELECT ${_select_columns} FROM ${table_name_literal} WHERE ${q}"""
+    s"""SELECT ${select_columns} FROM ${table_name_literal} WHERE ${q}"""
+  }
+
+  def select(): String = {
+    s"""SELECT ${select_columns}
+FROM ${table_name_literal}
+WHERE ${where_expression}
+$limit_clause $offset_clause"""
   }
 
   def insert(p: IRecord): String = {
@@ -341,16 +409,24 @@ class SqlBuilder(
 
 object SqlBuilder {
   def apply(tablename: String): SqlBuilder =
-    new SqlBuilder(tablename, None, None, SqlContext.now())
+    new SqlBuilder(SqlContext.now(), tablename, None, None)
 
   def apply(tablename: String, idcolumn: String): SqlBuilder =
-    new SqlBuilder(tablename, Some(idcolumn), None, SqlContext.now())
+    new SqlBuilder(SqlContext.now(), tablename, Some(idcolumn), None)
 
   def apply(tablename: String, idcolumn: String, schema: Option[Schema]): SqlBuilder =
-    new SqlBuilder(tablename, Some(idcolumn), schema, SqlContext.now())
+    new SqlBuilder(SqlContext.now(), tablename, Some(idcolumn), schema)
 
   def create(tablename: String, schema: Schema): SqlBuilder = {
-    new SqlBuilder(tablename, None, Some(schema), SqlContext.now())
+    new SqlBuilder(SqlContext.now(), tablename, None, Some(schema))
+  }
+
+  def create(sqlcontext: SqlContext, tablename: String, idcolumn: String, schema: Option[Schema]): SqlBuilder = {
+    new SqlBuilder(sqlcontext, tablename, Some(idcolumn), schema = schema)
+  }
+
+  def create(sqlcontext: SqlContext, tablename: String, schema: Option[Schema], q: StoreQuery): SqlBuilder = {
+    new SqlBuilder(sqlcontext, tablename, schema = schema, storeQuery = Some(q))
   }
 
   def escape(s: String): String = 

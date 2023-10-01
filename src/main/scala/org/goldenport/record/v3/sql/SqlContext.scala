@@ -11,6 +11,7 @@ import org.goldenport.collection.NonEmptyVector
 import org.goldenport.value._
 import org.goldenport.record.v3.{IRecord, Record, RecordSequence}
 import org.goldenport.record.v2.Schema
+import org.goldenport.record.store.Query
 import org.goldenport.record.query.QueryExpression
 
 /*
@@ -21,7 +22,9 @@ import org.goldenport.record.query.QueryExpression
  *  version Oct. 31, 2019
  *  version Nov. 19, 2019
  *  version Feb. 28, 2021
- * @version Oct. 30, 2021
+ *  version Oct. 30, 2021
+ *  version Sep. 30, 2023
+ * @version Oct.  1, 2023
  * @author  ASAMI, Tomoharu
  */
 class SqlContext(
@@ -30,7 +33,7 @@ class SqlContext(
   val transaction: SqlContext.TransactionStrategy,
   val isolation: SqlContext.IsolationLevel,
   val syntax: SqlContext.SyntaxRule,
-  val queryContext: QueryExpression.Context
+  val queryContext: Query.Context
 ) {
   import SqlContext._
 
@@ -129,9 +132,9 @@ class SqlContext(
 
   def close(): Unit = transaction.close()
 
-  def dateTimeZone = queryContext.dateTimeZone
+  def dateTimeZone = queryContext.expression.dateTimeZone
 
-  def toTimestamp(p: LocalDateTime): Timestamp = queryContext.toTimestamp(p)
+  def toTimestamp(p: LocalDateTime): Timestamp = queryContext.expression.toTimestamp(p)
 }
 
 object SqlContext {
@@ -142,7 +145,7 @@ object SqlContext {
     new AutoCommitTransaction(NonEmptyVector(new PlainCPFactory(RichConfig.empty))),
     TransactionReadUncommitted,
     MySql,
-    QueryExpression.Context.now()
+    Query.Context.now()
   )
 
   case class DatabaseConfig(
@@ -335,7 +338,7 @@ object SqlContext {
     }
   }
 
-  def createMemory(p: RichConfig, query: QueryExpression.Context): SqlContext = {
+  def createMemory(p: RichConfig, query: Query.Context): SqlContext = {
     val isolation = TransactionReadUncommitted // TODO
     val db = H2
     val cf = new PlainCPFactory(p)
@@ -349,7 +352,7 @@ object SqlContext {
     )
   }
 
-  def createFile(p: RichConfig, query: QueryExpression.Context): SqlContext = {
+  def createFile(p: RichConfig, query: Query.Context): SqlContext = {
     val filename = "./h2.db/file"
     val isolation = TransactionReadUncommitted // TODO
     val db = H2
@@ -364,7 +367,7 @@ object SqlContext {
     )
   }
 
-  def createEachTime(p: RichConfig, query: QueryExpression.Context): SqlContext = {
+  def createEachTime(p: RichConfig, query: Query.Context): SqlContext = {
     val isolation = TransactionReadUncommitted // TODO
     val db = MySql
     new SqlContext(
@@ -376,7 +379,7 @@ object SqlContext {
     )
   }
 
-  def createAutoCommit(p: RichConfig, query: QueryExpression.Context): SqlContext = {
+  def createAutoCommit(p: RichConfig, query: Query.Context): SqlContext = {
     val isolation = TransactionReadUncommitted // TODO
     val db = MySql
     new SqlContext(
@@ -388,9 +391,9 @@ object SqlContext {
     )
   }
 
-  def createConnectionPool(p: RichConfig, query: QueryExpression.Context): SqlContext = createHikari(p, query)
+  def createConnectionPool(p: RichConfig, query: Query.Context): SqlContext = createHikari(p, query)
 
-  def createHikari(p: RichConfig, query: QueryExpression.Context): SqlContext = {
+  def createHikari(p: RichConfig, query: Query.Context): SqlContext = {
     val isolation = TransactionReadUncommitted // TODO
     val db = MySql
     new SqlContext(
@@ -438,13 +441,16 @@ object SqlContext {
   sealed trait SyntaxRule extends NamedValueInstance {
     def tableNameLiteral(p: String): String = '"' + p + '"'
     def columnNameLiteral(p: String): String = '"' + p + '"'
+    def offsetKeyword: String = "OFFSET"
+    def limitKeyword: String = "LIMIT"
   }
   object SyntaxRule extends EnumerationClass[SyntaxRule] {
     val elements = Vector(
       Ansi,
       MySql,
       PostgreSql,
-      Oracale
+      Oracale,
+      H2
     )
   }
   case object Ansi extends SyntaxRule {
