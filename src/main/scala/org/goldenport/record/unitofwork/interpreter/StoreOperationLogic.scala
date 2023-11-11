@@ -11,7 +11,9 @@ import org.goldenport.record.unitofwork._
  *  version Apr. 28, 2016
  *  version Mar. 28, 2018
  *  version May. 31, 2018
- * @version Sep. 13, 2019
+ *  version Sep. 13, 2019
+ *  version Oct. 28, 2023
+ * @version Nov.  4, 2023
  * @author  ASAMI, Tomoharu
  */
 trait StoreOperationLogic extends LogicBase {
@@ -30,6 +32,10 @@ trait StoreOperationLogic extends LogicBase {
   def insert(store: Store, rec: Record): InsertResult
   def inserts(store: Store, rs: RecordSet): InsertsResult
   def update(store: Store, id: Store.Id, rec: Record): UpdateResult
+  def update(op: Update): UpdateResult = {
+    op.emulation.apply()
+    update(op.store, op.id, op.rec)
+  }
   def updates(store: Store, rs: Map[Store.Id, Record]): UpdatesResult
   def delete(store: Store, id: Store.Id): DeleteResult
   def deletes(store: Store, ids: Seq[Store.Id]): DeletesResult

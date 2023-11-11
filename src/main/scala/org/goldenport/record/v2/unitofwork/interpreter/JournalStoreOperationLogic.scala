@@ -10,7 +10,8 @@ import org.goldenport.record.unitofwork.UnitOfWork._
 
 /*
  * @since   Sep.  9, 2018
- * @version Sep. 15, 2018
+ *  version Sep. 15, 2018
+ * @version Oct. 28, 2023
  * @author  ASAMI, Tomoharu
  */
 trait JournalStoreOperationLogic extends StoreOperationLogic {

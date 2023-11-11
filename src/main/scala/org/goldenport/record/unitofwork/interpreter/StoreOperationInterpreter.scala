@@ -11,7 +11,8 @@ import org.goldenport.record.unitofwork._
  *  version Dec.  3, 2015
  *  version Apr. 28, 2016
  *  version Mar. 28, 2018
- * @version Sep. 13, 2019
+ *  version Sep. 13, 2019
+ * @version Oct. 28, 2023
  * @author  ASAMI, Tomoharu
  */
 trait StoreOperationInterpreter[+F[_]] extends NaturalTransformation[StoreOperation, F] {
@@ -41,7 +42,11 @@ trait StoreOperationInterpreter[+F[_]] extends NaturalTransformation[StoreOperat
       case SelectExclusive(store, query) => selectExclusive(store, query)
       case Insert(store, rec) => insert(store, rec)
       case Inserts(store, rs) => inserts(store, rs)
-      case Update(store, id, rec) => update(store, id, rec)
+      case m: Update =>
+        if (m.emulation.isEmpty)
+          update(m.store, m.id, m.rec)
+        else
+          update(m)
       case Updates(store, rs) => updates(store, rs)
       case Delete(store, id) => delete(store, id)
       case Deletes(store, ids) => deletes(store, ids)
@@ -64,6 +69,7 @@ trait StoreOperationInterpreter[+F[_]] extends NaturalTransformation[StoreOperat
   def insert[T](store: Store, rec: Record): F[T]
   def inserts[T](store: Store, rs: RecordSet): F[T]
   def update[T](store: Store, id: Store.Id, rec: Record): F[T]
+  def update[T](op: Update): F[T]
   def updates[T](store: Store, rs: Map[Store.Id, Record]): F[T]
   def delete[T](store: Store, id: Store.Id): F[T]
   def deletes[T](store: Store, ids: Seq[Store.Id]): F[T]
@@ -130,6 +136,10 @@ class IdStoreOperationInterpreter(
 
   def inserts[T](store: Store, rs: RecordSet): T = {
     logic.inserts(store, rs).asInstanceOf[T]
+  }
+
+  def update[T](op: Update): T = {
+    logic.update(op).asInstanceOf[T]
   }
 
   def update[T](store: Store, id: Store.Id, rec: Record): T = {
@@ -214,6 +224,10 @@ trait StoreOperationInterpreterBase[F[_]] extends StoreOperationInterpreter[F] {
 
   def inserts[T](store: Store, rs: RecordSet): F[T] = {
     typeclass.point(logic.inserts(store, rs).asInstanceOf[T])
+  }
+
+  def update[T](op: Update): F[T] = {
+    typeclass.point(logic.update(op).asInstanceOf[T])
   }
 
   def update[T](store: Store, id: Store.Id, rec: Record): F[T] = {

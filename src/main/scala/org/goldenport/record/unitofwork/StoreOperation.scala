@@ -14,7 +14,8 @@ import org.goldenport.record.v2._
  *  version May. 31, 2018
  *  version Sep. 13, 2019
  *  version Jun. 26, 2020
- * @version Sep. 25, 2023
+ *  version Sep. 25, 2023
+ * @version Oct. 28, 2023
  * @author  ASAMI, Tomoharu
  */
 sealed trait StoreOperation[+A] extends ExtensionUnitOfWork[A] {
@@ -48,7 +49,12 @@ case class Insert(store: Store, rec: Record) extends StoreOperation[InsertResult
 
 case class Inserts(store: Store, rs: RecordSet) extends StoreOperation[IndexedSeq[InsertResult]]
 
-case class Update(store: Store, id: Store.Id, rec: Record) extends StoreOperation[UpdateResult]
+case class Update(
+  store: Store,
+  id: Store.Id,
+  rec: Record,
+  emulation: Emulation = Emulation.empty
+) extends StoreOperation[UpdateResult]
 
 case class Updates(store: Store, rs: Map[Store.Id, Record]) extends StoreOperation[IndexedSeq[UpdateResult]]
 
@@ -121,6 +127,8 @@ object StoreOperation {
     store: Store,
     rs: RecordSet
   ): StoreOperationFM[IndexedSeq[InsertResult]] = Free.liftFC(Inserts(store, rs))
+
+  def update(cmd: Update): StoreOperationFM[UpdateResult] = Free.liftFC(cmd)
 
   def update(store: Store, id: Store.Id, rec: Record) = Free.liftFC(Update(store, id, rec))
 

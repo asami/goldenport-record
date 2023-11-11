@@ -22,7 +22,8 @@ import org.goldenport.record.v2._
  *  version Sep. 12, 2018
  *  version Sep. 13, 2019
  *  version Jun. 26, 2020
- * @version Sep. 27, 2023
+ *  version Sep. 27, 2023
+ * @version Oct. 28, 2023
  * @author  ASAMI, Tomoharu
  */
 sealed trait UnitOfWork[+A] {
@@ -175,6 +176,10 @@ object UnitOfWork {
       store: Store,
       rs: RecordSet
     ): UnitOfWorkFM[IndexedSeq[InsertResult]] = StoreOperation.inserts(store, rs).asInstanceOf[UnitOfWorkFM[IndexedSeq[InsertResult]]]
+
+    def update(
+      cmd: Update
+    ): UnitOfWorkFM[UpdateResult] = StoreOperation.update(cmd).asInstanceOf[UnitOfWorkFM[UpdateResult]]
 
     def update(
       store: Store,
