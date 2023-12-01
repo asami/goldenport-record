@@ -78,7 +78,9 @@ import org.goldenport.values.PathName
  *  version Sep. 27, 2022
  *  version Oct. 10, 2022
  *  version Dec. 16, 2022
- * @version Jan. 20, 2023
+ *  version Jan. 20, 2023
+ *  version Nov. 29, 2023
+ * @version Dec.  2, 2023
  * @author  ASAMI, Tomoharu
  */
 case class Record(
@@ -165,11 +167,29 @@ case class Record(
     getString(Symbol(key))
   }
 
+  def getString(keys: Seq[String]): Option[String] = 
+    fields.find(x => keys.contains(x.name)).map(_.asString)
+
+  def getString(keys: NonEmptyVector[String]): Option[String] = 
+    fields.find(x => keys.contains(x.name)).map(_.asString)
+
+  def getStringBySymbol(keys: Seq[Symbol]): Option[String] =
+    getString(keys.map(_.name))
+
+  def getStringBySymbol(keys: NonEmptyVector[Symbol]): Option[String] = 
+    getString(keys.map(_.name))
+
   def getStringCaseInsensitive(keys: Seq[String]): Option[String] =
     fields.find(x => keys.exists(x.name.equalsIgnoreCase)).map(_.asString)
 
   def getStringCaseInsensitive(keys: NonEmptyVector[String]): Option[String] =
     fields.find(x => keys.exists(x.name.equalsIgnoreCase)).map(_.asString)
+
+  def getStringCaseInsensitiveBySymbol(keys: Seq[Symbol]): Option[String] =
+    getStringCaseInsensitive(keys.map(_.name))
+
+  def getStringCaseInsensitiveBySymbol(keys: NonEmptyVector[Symbol]): Option[String] =
+    getStringCaseInsensitive(keys.map(_.name))
 
   def takeString(key: Symbol): String = {
     getString(key) getOrElse {
