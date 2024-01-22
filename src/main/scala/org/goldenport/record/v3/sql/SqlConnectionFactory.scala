@@ -5,13 +5,16 @@ import org.goldenport.RAISE
 import org.goldenport.Strings.totokens
 import org.goldenport.hocon.RichConfig
 import org.goldenport.record.v3.{IRecord, Record, Field}
+import org.goldenport.record.v3.FieldValue
 import SqlContext._
 
 /*
  * @since   Mar. 23, 2019
  *  version Mar. 30, 2019
  *  version Apr.  6, 2019
- * @version May. 29, 2020
+ *  version May. 29, 2020
+ *  version Oct.  3, 2021
+ * @version Dec. 15, 2022
  * @author  ASAMI, Tomoharu
  */
 trait SqlConnectionFactory {
@@ -33,6 +36,12 @@ trait SqlConnectionFactory {
     ).map(_.map(x => x.key -> x).toMap).getOrElse(Map.empty)
 
   private var _additional_database_configs: Map[Symbol, SqlContext.DatabaseConfig] = Map.empty
+
+  private var _default_database_configs: Map[Symbol, SqlContext.DatabaseConfig] = Map.empty
+
+  def setDefault(driver: String, url: String): Unit = synchronized {
+    _default_database_configs = Map('default -> SqlContext.DatabaseConfig('default, url, Some(driver), None, None))
+  }
 
   def addProperties(p: IRecord) = synchronized {
     // println(s"SqlConnectionFactory#addProperties $p")
@@ -58,12 +67,26 @@ trait SqlConnectionFactory {
           case "db" :: Nil =>
             // println(s"SqlConnectionFactory in: ${rhs.value}")
             // rhs.value
-            RAISE.notImplementedYetDefect
+            val r = _db(rhs.value)
+            Z(xs |+| r)
           case "db" :: db :: prop :: Nil =>
             // println(s"SqlConnectionFactory match: $db, $prop")
             // println(s"SqlConnectionFactory match2: ${xs |+| Map(Symbol(db) -> Record.data(prop -> rhs.value))}")
             Z(xs |+| Map(Symbol(db) -> Record.data(prop -> rhs.value)))
           case _ => this
+        }
+      }
+
+      private def _db(p: FieldValue): Map[Symbol, Record] = {
+        p.getRecord match {
+          case Some(s) =>
+            s.fields.toVector.foldMap { x =>
+              x.getRecord match {
+                case Some(ss) => Map(x.key -> ss)
+                case None => Map.empty
+              }
+            }
+          case None => Map.empty
         }
       }
     }
@@ -78,13 +101,14 @@ trait SqlConnectionFactory {
 
   private def _config(key: Symbol): DatabaseConfig = {
     // println(s"_config: ${_additional_database_configs}")
-    _additional_database_configs.get(key) orElse _initial_database_configs.get(key) getOrElse RAISE.noSuchElementFault(s"Database not found: ${key.name}")
+    _additional_database_configs.get(key) orElse _initial_database_configs.get(key) orElse _default_database_configs.get(key) getOrElse RAISE.noSuchElementFault(s"Database not found: ${key.name}")
   }
 
   def databaseNames: List[Symbol] = {
     val a = _additional_database_configs.map(_._2.key)
     val b = _initial_database_configs.map(_._2.key)
-    (a ++ b).toList
+    val c = _default_database_configs.map(_._2.key)
+    (a ++ b ++ c).toList.distinct
   }
 
   protected def open_Connection(slot: DatabaseConfig): java.sql.Connection

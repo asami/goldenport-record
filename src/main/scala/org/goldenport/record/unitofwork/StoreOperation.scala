@@ -14,7 +14,9 @@ import org.goldenport.record.v2._
  *  version May. 31, 2018
  *  version Oct. 16, 2018
  *  version Sep. 13, 2019
- * @version Jun. 26, 2020
+ *  version Jun. 26, 2020
+ *  version Sep. 25, 2023
+ * @version Oct. 28, 2023
  * @author  ASAMI, Tomoharu
  */
 sealed trait StoreOperation[+A] extends ExtensionUnitOfWork[A] {
@@ -48,7 +50,12 @@ case class Insert(store: Store, rec: Record) extends StoreOperation[InsertResult
 
 case class Inserts(store: Store, rs: RecordSet) extends StoreOperation[IndexedSeq[InsertResult]]
 
-case class Update(store: Store, id: Store.Id, rec: Record) extends StoreOperation[UpdateResult]
+case class Update(
+  store: Store,
+  id: Store.Id,
+  rec: Record,
+  emulation: Emulation = Emulation.empty
+) extends StoreOperation[UpdateResult]
 
 case class Updates(store: Store, rs: Map[Store.Id, Record]) extends StoreOperation[IndexedSeq[UpdateResult]]
 
@@ -85,7 +92,7 @@ object CommitResult {
 }
 case class CommitSuccess(log: String) extends CommitResult {
 }
-case class CommitFailure(log: String) extends CommitResult {
+case class CommitFailure(log: String, e: Option[Throwable] = None) extends CommitResult {
 }
 
 object StoreOperation {
@@ -122,7 +129,13 @@ object StoreOperation {
     rs: RecordSet
   ): StoreOperationFM[IndexedSeq[InsertResult]] = Free.liftF(Inserts(store, rs))
 
-  def update(store: Store, id: Store.Id, rec: Record) = Free.liftF(Update(store, id, rec))
+// <<<<<<< HEAD
+//   def update(store: Store, id: Store.Id, rec: Record) = Free.liftF(Update(store, id, rec))
+// =======
+  def update(cmd: Update): StoreOperationFM[UpdateResult] = Free.liftFC(cmd)
+
+  def update(store: Store, id: Store.Id, rec: Record) = Free.liftFC(Update(store, id, rec))
+// >>>>>>> master
 
   def update(store: Store, id: String, rec: Record) = Free.liftF(Update(store, Store.StringId(id), rec))
 

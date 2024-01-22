@@ -9,10 +9,11 @@ import org.goldenport.matrix.{IMatrix, VectorRowColumnMatrixBase, VectorRowColum
 import org.goldenport.xsv.{Xsv, Lxsv}
 import org.goldenport.parser.LogicalToken
 import org.goldenport.i18n._
+import org.goldenport.xml.dom.DomUtils
 import org.goldenport.values.NumberRange
 import org.goldenport.value._
 import org.goldenport.util.{StringUtils, AnyUtils => LAnyUtils}
-import org.goldenport.record.v2.{Schema, Column => Column2, XString, XDouble}
+import org.goldenport.record.v2.{Schema => Schema2, Column => Column2, XString, XDouble}
 import org.goldenport.record.v2.XObject
 import org.goldenport.record.util.AnyUtils
 
@@ -32,7 +33,12 @@ import org.goldenport.record.util.AnyUtils
  *  version Feb. 28, 2020
  *  version Mar. 30, 2020
  *  version Mar. 25, 2021
- * @version Apr. 13, 2021
+ *  version Apr. 13, 2021
+ *  version Oct. 31, 2021
+ *  version Feb. 23, 2022
+ *  version Mar. 19, 2022
+ *  version May.  7, 2022
+ * @version Jan. 22, 2023
  * @author  ASAMI, Tomoharu
  */
 case class Table(
@@ -89,7 +95,6 @@ case class Table(
     val tv = TableVisualizer(isCompact = true, isEmbed = true)
     tv.plainText(this)
   }
-  def embed: String = display
 
   lazy val data: Table.Data = { // TODO unify schema
     case class Z(
@@ -228,7 +233,7 @@ object Table {
   }
 
   case class MetaData(
-    schema: Option[Schema]
+    schema: Option[Schema2]
   ) {
     def getWidth: Option[Int] = schema.map(_.columns.length)
 
@@ -244,7 +249,7 @@ object Table {
   object MetaData {
     val empty = MetaData(None)
 
-    def apply(schema: Schema): MetaData = MetaData(Some(schema))
+    def apply(schema: Schema2): MetaData = MetaData(Some(schema))
   }
 
   case class Data(
@@ -307,16 +312,18 @@ object Table {
     height: Option[Int] = None
   ) {
     def text: String = AnyUtils.toString(content)
-    def print(width: Option[Int]): String = width.map(print).getOrElse(print)
-    def print(width: Int): String = AnyUtils.toString(content) // TODO
-    def print: String = AnyUtils.toPrint(content) // TODO
-    def embed(width: Option[Int]): String = width.map(embed).getOrElse(embed)
-    def embed(width: Int): String = AnyUtils.toString(content) // TODO
-    def embed: String = AnyUtils.toEmbed(content) // TODO
+    def print(pwidth: Option[Int]): String = width.map(print).getOrElse(print)
+    def print(pwidth: Int): String = AnyUtils.toPrint(content, _width(pwidth))
+    def print: String = width.map(print).getOrElse(AnyUtils.toPrint(content))
+    def embed(pwidth: Option[Int]): String = width.map(embed).getOrElse(embed)
+    def embed(pwidth: Int): String = AnyUtils.toEmbed(content, _width(pwidth))
+    def embed: String = width.map(embed).getOrElse(AnyUtils.toEmbed(content))
     def trim: Cell = content match {
       case m: String => copy(content = m.trim)
       case _ => this
     }
+
+    private def _width(p: Int) = width.map(x => math.min(x, p)).getOrElse(p)
   }
   object Cell {
     val empty = Cell(Empty)
@@ -407,31 +414,31 @@ object Table {
   def create(
     i18nContext: I18NContext,
     header: Table.HeaderStrategy,
-    schema: Option[Schema],
+    schema: Option[Schema2],
     p: RecordSequence
   ): Table = schema.map(create(i18nContext, header, _, p)).getOrElse(create(p))
 
   def create(
     i18nContext: I18NContext,
     header: Table.HeaderStrategy,
-    schema: Schema,
+    schema: Schema2,
     p: RecordSequence
   ): Table = {
     val builder = Builder(i18nContext, header, schema)
     builder.build(p)
   }
 
-  def create(schema: Schema, p: RecordSequence): Table = create(schema, p.irecords)
+  def create(schema: Schema2, p: RecordSequence): Table = create(schema, p.irecords)
 
-  def create(schema: Schema, ps: Seq[IRecord]): Table = {
+  def create(schema: Schema2, ps: Seq[IRecord]): Table = {
     val head = _create_head(schema)
     Table(ps.map(_.toRecord).toVector, MetaData(schema), Some(head))
   }
 
-  def create(schema: Option[Schema], ps: Seq[IRecord]): Table =
+  def create(schema: Option[Schema2], ps: Seq[IRecord]): Table =
     schema.map(create(_, ps)).getOrElse(create(ps))
 
-  def create(schema: Option[Schema], ps: RecordSequence): Table =
+  def create(schema: Option[Schema2], ps: RecordSequence): Table =
     create(schema orElse ps.schema, ps.irecords)
 
   def create(ps: Seq[IRecord]): Table = create(IRecord.makeSchema(ps), ps)
@@ -440,7 +447,7 @@ object Table {
 
   // def createSeqSeq(schema: Schema, ps: Seq[Seq[Any]]): Table =
 
-  private def _create_head(schema: Schema): Head = {
+  private def _create_head(schema: Schema2): Head = {
     val xs = schema.columns.map(_to_cell)
     Head(xs.toList)
   }
@@ -455,7 +462,7 @@ object Table {
   private def _create(head: Vector[LogicalToken], tail: Vector[Vector[LogicalToken]]): Table = {
     val names = head.map(_.raw)
     val columns = names.map(Column2(_))
-    val schema = Schema(columns)
+    val schema = Schema2(columns)
     case class Z(
       records: Vector[Record] = Vector.empty
     ) {
@@ -499,14 +506,16 @@ object Table {
   def create(p: IRecord): Table = {
     val name = "Name"
     val value = "Value"
-    val schema = Schema(List(Column2(name, XObject), Column2(value, XObject)))
+    val schema = Schema2(List(Column2(name, XObject), Column2(value, XObject)))
     val rs = p.fields.map(x => Record.data(name -> x.name, value -> x.getValue.getOrElse("")))
     create(schema, rs)
   }
 
+  def create(p: ITable): Table = p.toTable
+
   def createDouble(p: IMatrix[Double]): Table = {
     val cs = for (i <- 1 to p.width) yield Column2(s"$i", XDouble)
-    val schema = Schema(cs)
+    val schema = Schema2(cs)
     create(schema, p.asInstanceOf[IMatrix[Any]])
   }
 
@@ -528,7 +537,7 @@ object Table {
       ns: Vector[Column2] = Vector.empty,
       xs: Vector[Vector[Any]] = Vector.empty
     ) {
-      def r = create(Schema(ns), VectorColumnRowMatrix(xs))
+      def r = create(Schema2(ns), VectorColumnRowMatrix(xs))
 
       def +(rhs: Int) = {
         if (_is_numberable_column(matrix, rhs))
@@ -562,11 +571,11 @@ object Table {
       val datatype = XString // TODO
       Column2(s"$i", datatype)
     }
-    val schema = Schema(cs)
+    val schema = Schema2(cs)
     create(schema, p)
   }
 
-  def create(schema: Schema, p: IMatrix[Any]): Table = {
+  def create(schema: Schema2, p: IMatrix[Any]): Table = {
     val head = _create_head(schema)
     val rs = for (x <- p.rowIterator.toVector) yield {
       val xs = schema.columns.zip(x).map {
@@ -601,7 +610,7 @@ object Table {
   }
 
   private def _create_element_html(p: Element): Option[Table] =
-    Option(p.getLocalName()).map(_.toLowerCase).collect {
+    Option(DomUtils.localName(p)).map(_.toLowerCase).collect {
       case "table" => _create_table_html(p)
     }
 
@@ -609,10 +618,11 @@ object Table {
     val head = p.getElementByLocalNameIC("thead").flatMap(_create_head)
     val foot = p.getElementByLocalNameIC("tfoot").flatMap(_create_foot)
     val meta = _make_meta(head)
-    val rs = p.getElementByLocalNameIC("tbody").
-      map(_create_body(meta, _)).
-      getOrElse(_create_body(meta, p))
-    Table(rs, meta, head, foot)
+    val tb = p.getElementByLocalNameIC("tbody")
+    tb match {
+      case Some(s) => _create_table_simple(s)
+      case None => _create_table_simple(p)
+    }
   }
 
   private def _create_head(p: Element): Option[Head] = {
@@ -638,8 +648,33 @@ object Table {
     }
   }
 
-  private def _create_body(meta: MetaData, p: Element): Vector[Record] = {
-    for (tr <- p.elementsVectorByLocalNameIC("tr")) yield {
+  private def _create_table_simple(p: Element): Table = {
+    val trs = p.elementsVectorByLocalNameIC("tr")
+    trs.length match {
+      case 0 => Table.empty
+      case x => _get_natural_header(trs.head) match {
+        case Some(s) => _create_table(s, trs.tail)
+        case None => _create_table(MetaData.empty, trs)
+      }
+    }
+  }
+
+  private def _create_table(meta: MetaData, p: Element): Table =
+    _create_table(meta, p.elementsVectorByLocalNameIC("tr"))
+
+  private def _create_table(meta: MetaData, trs: Vector[Element]): Table = {
+    val rs = _create_records(meta, trs)
+    val head = meta.schema.map { s =>
+      val trs = for (c <- s.columns) yield {
+        Cell(c.name)
+      }
+      Head(trs.toList)
+    }
+    Table(rs, meta, head, None)
+  }
+
+  private def _create_records(meta: MetaData, ps: Vector[Element]): Vector[Record] = {
+    for (tr <- ps) yield {
       val fs = for ((td, i) <- tr.elementsVectorByLocalNameIC("th", "td").zipWithIndex) yield {
         val key: Symbol = meta.getKey(i).getOrElse(Symbol(s"${i + 1}"))
         val data = td.getTextContent
@@ -654,8 +689,31 @@ object Table {
 
   private def _make_meta(p: Head): MetaData = {
     val a = p.names.map(x => Column2(_to_string(x.content))) // TODO width
-    val s = Schema(a)
+    val s = Schema2(a)
     MetaData(Some(s))
+  }
+
+  private def _get_natural_header(p: Element): Option[MetaData] = {
+    val xs = p.elementsVectorByLocalNameIC("th", "td")
+    if (xs.exists(_is_th))
+      Some(_make_meta(xs))
+    else
+      None
+  }
+
+  private def _is_th(p: Element) = p.localName == "th"
+
+  private def _make_meta(ps: Seq[Element]) = {
+    val xs = ps.filter(_is_th_or_td)
+    val a = xs.map(x => Column2(_to_string(x.text))) // TODO width
+    val s = Schema2(a)
+    MetaData(Some(s))
+  }
+
+  private def _is_th_or_td(p: Element) = p.localName match {
+    case "td" => true
+    case "th" => true
+    case _ => false
   }
 
   private def _to_string(p: Any): String = AnyUtils.toString(p).trim
@@ -685,7 +743,7 @@ object Table {
   case class Builder(
     i18n: I18NContext,
     header: HeaderStrategy,
-    schema: Schema
+    schema: Schema2
   ) {
     def build(ps: RecordSequence): Table = build(ps.irecords)
 

@@ -1,14 +1,16 @@
 package org.goldenport.record.v3
 
 import org.goldenport.RAISE
-import org.goldenport.record.v2.{Record => Record2, Field => Field2, Schema}
+import org.goldenport.record.v2.{Record => Record2, Field => Field2}
 import org.goldenport.record.v2.InputFile
 
 /*
  * @since   Aug. 23, 2018
  *  version Oct. 16, 2018
  *  version Apr. 15, 2019
- * @version May. 20, 2021
+ *  version May. 20, 2021
+ *  version Nov.  1, 2021
+ * @version Jul.  8, 2022
  * @author  ASAMI, Tomoharu
  */
 trait CompatibilityPart { self: Record =>
@@ -33,10 +35,10 @@ trait CompatibilityPart { self: Record =>
           case _ => copy(fs = fs :+ rhs.toField2)
         }
         case MultipleValue(vs) =>
-          val xs = vs.map {
-            case m: Record => _record2(m)
+          val xs = vs.flatMap {
+            case m: Record => Some(_record2(m))
             case m: InputFile => None
-            case m => m
+            case m => Some(m)
           }
           val xis = vs.collect {
             case m: InputFile => m // .withKey('file) : Not image record

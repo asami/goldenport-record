@@ -7,7 +7,8 @@ import scalaz.concurrent.Task
  * @since   Jun. 13, 2014
  *  version Jul. 25, 2014
  *  version Oct. 15, 2014
- * @version Sep.  4, 2017
+ *  version Sep.  4, 2017
+ * @version Nov. 16, 2022
  * @author  ASAMI, Tomoharu
  */
 class TokensBag(private val csv: CsvBag) {
@@ -17,7 +18,12 @@ class TokensBag(private val csv: CsvBag) {
     ???
   }
 
+  // deprecated
   def toIndexSeq: IndexedSeq[String] = {
+    tokensR.runLog.run
+  }
+
+  def toIndexedSeq: IndexedSeq[String] = {
     tokensR.runLog.run
   }
 

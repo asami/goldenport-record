@@ -4,6 +4,7 @@ import scalaz._, Scalaz._
 import org.goldenport.RAISE
 import org.goldenport.values.Designation
 import org.goldenport.context.ValueDomainFault
+import org.goldenport.record.v2.{Column => V2Column}
 import org.goldenport.record.v2.{DataType, XString}
 import org.goldenport.record.v2.{Multiplicity, MOne, MZeroOne}
 
@@ -39,17 +40,21 @@ import org.goldenport.record.v2.{Multiplicity, MOne, MZeroOne}
  *  version Jun.  1, 2020
  *  version Mar. 21, 2021
  *  version Mar. 25, 2021 restart
- * @version Apr. 29, 2021
+ *  version Apr. 29, 2021
+ *  version Jun. 19, 2021
+ * @version Oct. 31, 2021
  * @author  ASAMI, Tomoharu
  */
 case class Column(
   designation: Designation,
-  domain: ValueDomain
+  domain: ValueDomain,
+  aliases: List[String]
 ) extends Designation.Holder {
   def datatype = domain.datatype
   def multiplicity = domain.multiplicity
   def constraints = domain.constraints
   def isSingle = domain.isSingle
+  def isRequired = domain.isRequired
 
   def resolve(p: Any): ValidationNel[ValueDomainFault, Any] = domain.resolve(p)
 }
@@ -63,6 +68,9 @@ object Column {
   def apply(name: String, datatype: DataType): Column = apply(name, datatype, MOne)
 
   def apply(name: String, datatype: DataType, multiplicity: Multiplicity): Column = {
-    Column(Designation(name), ValueDomain(datatype, multiplicity))
+    Column(Designation(name), ValueDomain(datatype, multiplicity), Nil)
   }
+
+  def from(p: V2Column): Column =
+    Column(Designation(p.name), ValueDomain(p.datatype, p.multiplicity), p.aliases)
 }

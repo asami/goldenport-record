@@ -8,6 +8,7 @@ import scala.math.{BigInt, BigDecimal}
 import org.goldenport.RAISE
 import org.goldenport.Strings
 import org.goldenport.Strings.notblankp
+import org.goldenport.extension.{IRecord => LibIRecord}
 import org.goldenport.record.command.NullValue
 import org.goldenport.record.query.QueryExpression
 import org.goldenport.record.util.AnyUtils
@@ -62,7 +63,10 @@ import org.goldenport.util.{TimestampUtils, DateUtils}
  *  version May. 10, 2019
  *  version Jul. 31, 2019
  *  version Jan. 28, 2020
- * @version Mar. 27, 2020
+ *  version Mar. 27, 2020
+ *  version Jun.  2, 2022
+ *  version Nov. 23, 2022
+ * @version Dec. 12, 2022
  * @author  ASAMI, Tomoharu
  */
 case class RecordSet(records: Seq[Record],
@@ -97,7 +101,8 @@ case class Record(
   opaque: AnyRef = null,
   source: Option[Record] = None,
   useKeyMatchLeaf: Boolean = false
-) extends CommandPart with EagerListPart with HtmlFormPart with JsonPart {
+) extends CommandPart with EagerListPart with HtmlFormPart with JsonPart
+    with PathNamePart {
   protected def is_match_key(key: Symbol)(f: Field): Boolean =
     if (useKeyMatchLeaf)
       f.isMatchKey(key)
@@ -230,6 +235,7 @@ case class Record(
       case x: Timestamp => x
       case l: Long => new Timestamp(l)
       case s: String => TimestampUtils.parse(s)
+      case m => AnyUtils.toTimestamp(m)
     }
   }
 
@@ -1381,6 +1387,11 @@ object Record {
   val groupRegex = """__G_""".r
 
   def create(p: IRecord): Record = p.toRecord.toRecord2
+
+  def create(p: LibIRecord): Record = p match {
+    case m: IRecord => m.toRecord.toRecord2
+    case m => createS(m.asListS)
+  }
 
   def create(map: scala.collection.Map[String, Any]): Record = {
     create(map.toList)

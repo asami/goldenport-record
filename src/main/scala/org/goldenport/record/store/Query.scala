@@ -11,33 +11,84 @@ import org.goldenport.record.v2.Schema
  *  version Apr. 20, 2019
  *  version May.  8, 2019
  *  version Jul. 29, 2019
- * @version Nov. 15, 2019
+ *  version Nov. 15, 2019
+ * @version Sep. 30, 2023
  * @author  ASAMI, Tomoharu
  */
 case class Query(
-  stringExpression: Option[String],
-  expressions: Option[Query.AndExpression]
+  selection: Query.Selection = Query.Selection.all,
+  projection: Query.Projection = Query.Projection.all,
+  transfer: Query.Transfer = Query.Transfer.default
 ) {
-  def where(implicit ctx: SqlContext): String =
-    List(stringExpression, expressions.map(_.where)).flatten match {
-      case Nil => "1 = 1"
-      case x :: Nil => x
-      case xs => xs.mkString("(", " AND ", ")")
-    }
+  import Query._
+
+  def withExpression(ps: Seq[Expression]) = copy(selection = selection.withExpression(ps))
+  def withOffsetLimit(offset: Int, limit: Transfer.Limit) = copy(transfer = transfer.withOffsetLimit(offset, limit))
+  def withProjectionColumns(cs: Seq[String]): Query = copy(projection = Projection.columns(cs))
+
+  def withProjectionColumns(cs: Option[Seq[String]]): Query =
+    cs.fold(this)(withProjectionColumns)
+
+  def offset: Int = transfer.offset
+  def limitClause: String = transfer.limit match {
+    case Transfer.Limit.All => ""
+    case Transfer.Limit.Value(n) => s" LIMIT $n "
+  }
+  def columnsClause: String = projection.columnsCluase
+
+  def where(implicit ctx: SqlContext): String = selection.where
 
   def where(schema: Option[Schema])(implicit ctx: SqlContext): String =
     schema.map(where(_)).getOrElse(where)
 
-  def where(schema: Schema)(implicit ctx: SqlContext): String =
-    List(stringExpression, expressions.map(_.where(schema))).flatten match {
-      case Nil => "1 = 1"
-      case x :: Nil => x
-      case xs => xs.mkString("(", " AND ", ")")
-    }
+  def where(schema: Schema)(implicit ctx: SqlContext): String = selection.where(schema)
 }
 
 object Query {
-  val all = Query(None, None)
+  val default = Query(Selection.all, Projection.all, Transfer.default)
+  val all = Query(Selection.all, Projection.all, Transfer.all)
+
+  case class Context(
+    default: Context.Default = Context.Default.default,
+    expression: QueryExpression.Context
+  ) {
+  }
+  object Context {
+    case class Default(
+      transferLimit: Transfer.Limit = Transfer.Limit.default
+    )
+    object Default {
+      val default = Default()
+    }
+    def now(): Context = Context(expression = QueryExpression.Context.now())
+  }
+
+  case class Selection(
+    stringExpression: Option[String],
+    expressions: Option[Query.AndExpression]
+  ) {
+    def withExpression(ps: Seq[Expression]) = {
+      val a = if (ps.isEmpty) None else Some(AndExpression(ps.toVector))
+      copy(expressions = a)
+    }
+
+    def where(implicit ctx: SqlContext): String =
+      List(stringExpression, expressions.map(_.where)).flatten match {
+        case Nil => "1 = 1"
+        case x :: Nil => x
+        case xs => xs.mkString("(", " AND ", ")")
+      }
+
+    def where(schema: Schema)(implicit ctx: SqlContext): String =
+      List(stringExpression, expressions.map(_.where(schema))).flatten match {
+        case Nil => "1 = 1"
+        case x :: Nil => x
+        case xs => xs.mkString("(", " AND ", ")")
+      }
+  }
+  object Selection {
+    val all = Selection(None, None)
+  }
 
   sealed trait Expression {
     def where(implicit ctx: SqlContext): String
@@ -105,24 +156,59 @@ object Query {
     }
   }
 
-  def apply(ps: Seq[Expression]): Query = {
-    val a = if (ps.isEmpty) None else Some(AndExpression(ps.toVector))
-    Query(None, a)
+  sealed trait Projection {
+    def columnsCluase: String
   }
+  object Projection {
+    val all: Projection = All
+
+    case object All extends Projection {
+      def columnsCluase = "*"
+    }
+    case class Columns(columns: List[String]) extends Projection {
+      // def columnsCluase = columns.map(x => s"'$x'").mkString(", ")
+      def columnsCluase = columns.map(x => column_literal(x)).mkString(", ")
+
+      protected def column_literal(p: String) = p // H2
+    }
+
+    def columns(ps: Seq[String]): Projection = Columns(ps.toList)
+  }
+
+  case class Transfer(offset: Int, limit: Transfer.Limit) {
+    def withOffsetLimit(offset: Int, limit: Transfer.Limit) =
+      copy(offset = offset, limit = limit)
+  }
+  object Transfer {
+    val default = Transfer(0, Limit.default)
+    val all = Transfer(0, Limit.All)
+
+    sealed trait Limit
+    object Limit {
+      case object All extends Limit
+      case class Value(limit: Int) extends Limit
+
+      val default = Value(1000)
+
+      def apply(p: Int): Limit = Value(p)
+    }
+  }
+
+  def apply(ps: Seq[Expression]): Query = Query.default.withExpression(ps)
 
   def create(
     p: String
-  )(implicit context: QueryExpression.Context): Query = create(Record.fromLxsv(p)) // XXX : more flexible
+  )(implicit context: Query.Context): Query = create(Record.fromLxsv(p)) // XXX : more flexible
 
   def create(
     p: IRecord
-  )(implicit context: QueryExpression.Context): Query = create(p.toRecord)
+  )(implicit context: Query.Context): Query = create(p.toRecord)
 
   def create(
     p: Record
-  )(implicit context: QueryExpression.Context): Query = {
+  )(implicit context: Query.Context): Query = {
     val xs: Seq[Expression] = p.fields.map { x =>
-      val (key, expr) = QueryExpression.parse(x)
+      val (key, expr) = QueryExpression.parse(x)(context.expression)
       QueryExpressionExpression(key.path, expr)
     }
     apply(xs)

@@ -11,6 +11,7 @@ import org.goldenport.collection.NonEmptyVector
 import org.goldenport.value._
 import org.goldenport.record.v3.{IRecord, Record, RecordSequence}
 import org.goldenport.record.v2.Schema
+import org.goldenport.record.store.Query
 import org.goldenport.record.query.QueryExpression
 
 /*
@@ -20,7 +21,10 @@ import org.goldenport.record.query.QueryExpression
  *  version Jul. 26, 2019
  *  version Oct. 31, 2019
  *  version Nov. 19, 2019
- * @version Feb. 28, 2021
+ *  version Feb. 28, 2021
+ *  version Oct. 30, 2021
+ *  version Sep. 30, 2023
+ * @version Oct.  1, 2023
  * @author  ASAMI, Tomoharu
  */
 class SqlContext(
@@ -29,7 +33,7 @@ class SqlContext(
   val transaction: SqlContext.TransactionStrategy,
   val isolation: SqlContext.IsolationLevel,
   val syntax: SqlContext.SyntaxRule,
-  val queryContext: QueryExpression.Context
+  val queryContext: Query.Context
 ) {
   import SqlContext._
 
@@ -89,6 +93,20 @@ class SqlContext(
     }
   }
 
+  def selectHeadOption(database: Symbol, schema: Schema, sql: String): Option[Record] = {
+    var iter: RecordIterator = null
+    try {
+      iter = selectIterator(database, schema, sql)
+      if (iter.hasNext)
+        Some(iter.next)
+      else
+        None
+    } finally {
+      if (iter != null)
+        iter.close()
+    }
+  }
+
   def mutate(sql: String): Int = mutate(KEY_DEFAULT, sql)
 
   def mutate(database: Symbol, sql: String): Int = transaction.execute(database) { conn => 
@@ -114,9 +132,9 @@ class SqlContext(
 
   def close(): Unit = transaction.close()
 
-  def dateTimeZone = queryContext.dateTimeZone
+  def dateTimeZone = queryContext.expression.dateTimeZone
 
-  def toTimestamp(p: LocalDateTime): Timestamp = queryContext.toTimestamp(p)
+  def toTimestamp(p: LocalDateTime): Timestamp = queryContext.expression.toTimestamp(p)
 }
 
 object SqlContext {
@@ -127,7 +145,7 @@ object SqlContext {
     new AutoCommitTransaction(NonEmptyVector(new PlainCPFactory(RichConfig.empty))),
     TransactionReadUncommitted,
     MySql,
-    QueryExpression.Context.now()
+    Query.Context.now()
   )
 
   case class DatabaseConfig(
@@ -216,30 +234,22 @@ object SqlContext {
     def execute[T](db: Symbol)(body: java.sql.Connection => T): T = {
       val conn = openConnection(db)
       try {
-        conn.setAutoCommit(true)
+        // conn.setAutoCommit(true)
         val r = body(conn)
-        // conn.commit() // should not use in auto commit mode.
+        conn.commit() // should not use in auto commit mode.
         r
       } catch {
         case e: Throwable =>
-          // conn.rollback() // should not use in auto commit mode.
+          conn.rollback() // should not use in auto commit mode.
           throw e
       } finally {
         conn.close()
       }
     }
 
-    def commit(): Unit = {
-      RAISE.notImplementedYetDefect
-    }
-
-    def abort(): Unit = {
-      RAISE.notImplementedYetDefect
-    }
-
-    def close(): Unit = {
-      RAISE.notImplementedYetDefect
-    }
+    def commit(): Unit = {}
+    def abort(): Unit = {}
+    def close(): Unit = {}
   }
 
   class AutoCommitTransaction(
@@ -328,7 +338,36 @@ object SqlContext {
     }
   }
 
-  def createEachTime(p: RichConfig, query: QueryExpression.Context): SqlContext = {
+  def createMemory(p: RichConfig, query: Query.Context): SqlContext = {
+    val isolation = TransactionReadUncommitted // TODO
+    val db = H2
+    val cf = new PlainCPFactory(p)
+    cf.setDefault("org.h2.Driver", "jdbc:h2:mem:")
+    new SqlContext(
+      p,
+      new AutoCommitTransaction(NonEmptyVector(cf)),
+      isolation,
+      db,
+      query
+    )
+  }
+
+  def createFile(p: RichConfig, query: Query.Context): SqlContext = {
+    val filename = "./h2.db/file"
+    val isolation = TransactionReadUncommitted // TODO
+    val db = H2
+    val cf = new PlainCPFactory(p)
+    cf.setDefault("org.h2.Driver", s"jdbc:h2:${filename}")
+    new SqlContext(
+      p,
+      new AutoCommitTransaction(NonEmptyVector(cf)),
+      isolation,
+      db,
+      query
+    )
+  }
+
+  def createEachTime(p: RichConfig, query: Query.Context): SqlContext = {
     val isolation = TransactionReadUncommitted // TODO
     val db = MySql
     new SqlContext(
@@ -340,7 +379,7 @@ object SqlContext {
     )
   }
 
-  def createAutoCommit(p: RichConfig, query: QueryExpression.Context): SqlContext = {
+  def createAutoCommit(p: RichConfig, query: Query.Context): SqlContext = {
     val isolation = TransactionReadUncommitted // TODO
     val db = MySql
     new SqlContext(
@@ -352,9 +391,9 @@ object SqlContext {
     )
   }
 
-  def createConnectionPool(p: RichConfig, query: QueryExpression.Context): SqlContext = createHikari(p, query)
+  def createConnectionPool(p: RichConfig, query: Query.Context): SqlContext = createHikari(p, query)
 
-  def createHikari(p: RichConfig, query: QueryExpression.Context): SqlContext = {
+  def createHikari(p: RichConfig, query: Query.Context): SqlContext = {
     val isolation = TransactionReadUncommitted // TODO
     val db = MySql
     new SqlContext(
@@ -402,13 +441,16 @@ object SqlContext {
   sealed trait SyntaxRule extends NamedValueInstance {
     def tableNameLiteral(p: String): String = '"' + p + '"'
     def columnNameLiteral(p: String): String = '"' + p + '"'
+    def offsetKeyword: String = "OFFSET"
+    def limitKeyword: String = "LIMIT"
   }
   object SyntaxRule extends EnumerationClass[SyntaxRule] {
     val elements = Vector(
       Ansi,
       MySql,
       PostgreSql,
-      Oracale
+      Oracale,
+      H2
     )
   }
   case object Ansi extends SyntaxRule {
@@ -425,5 +467,8 @@ object SqlContext {
   }
   case object Oracale extends SyntaxRule {
     val name = "oracle"
+  }
+  case object H2 extends SyntaxRule {
+    val name = "h2"
   }
 }

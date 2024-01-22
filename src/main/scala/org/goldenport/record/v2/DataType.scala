@@ -19,6 +19,7 @@ import org.goldenport.values.DateTimePeriod
 import org.goldenport.record.query._
 import org.goldenport.record.util.{
   DateUtils, TimeUtils, TimestampUtils, DateTimeUtils, AnyUtils}
+import org.goldenport.statemachine.{StateMachineClass, StateMachine}
 
 /*
  * @since   Nov. 23, 2012
@@ -45,7 +46,9 @@ import org.goldenport.record.util.{
  *  version Jan.  9, 2020
  *  version Feb. 27, 2021
  *  version Mar. 21, 2021
- * @version Apr. 29, 2021
+ *  version Apr. 29, 2021
+ *  version Oct. 31, 2021
+ * @version Nov.  5, 2021
  * @author  ASAMI, Tomoharu
  */
 sealed trait DataType {
@@ -253,7 +256,7 @@ object DataType {
 
   def get(p: String): Option[DataType] = _datatypes.find(_.name.equalsIgnoreCase(p)) orElse {
     val pf: PartialFunction[String, DataType] = {
-      case "statemachine" => XStateMachine()
+      case "statemachine" => XStateMachine(None)
     }
     pf.lift(p)
   }
@@ -1596,14 +1599,17 @@ case class XPowertypeReference() extends DataType {
   def label = "区分"
 }
 
-case class XStateMachine() extends DataType {
-  type InstanceType = String
+case class XStateMachine(statemachine: Option[StateMachineClass]) extends DataType {
+  type InstanceType = Any
   def toInstance(x: Any): InstanceType = {
-    x.toString
+    statemachine.map(sm => sm.reconstitute(x)).getOrElse(x)
   }
 
   def validate(d: Any): ValidationResult = Valid
   def label = "ワークフロー"
+}
+object XStateMachine {
+  def apply(): XStateMachine = XStateMachine(None)
 }
 
 case class XStateMachineReference() extends DataType {

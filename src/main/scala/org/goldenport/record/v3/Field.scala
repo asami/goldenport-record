@@ -52,7 +52,11 @@ import org.goldenport.record.util.AnyUtils
  *  version Nov. 29, 2019
  *  version Sep.  7, 2020
  *  version Mar. 25, 2021
- * @version Apr. 21, 2021
+ *  version Apr. 21, 2021
+ *  version Oct. 24, 2021
+ *  version Aug. 30, 2022
+ *  version Oct. 30, 2022
+ * @version Dec. 16, 2022
  * @author  ASAMI, Tomoharu
  */
 case class Field(
@@ -62,13 +66,16 @@ case class Field(
 //  validation: ValidationResult = Valid
 ) {
   override def toString() = try {
-    s"Field($key: ${value.asString})"
+    s"Field($name: ${value})"
   } catch {
-    case NonFatal(e) => s"Field#toString($key, ): $e"
+    case NonFatal(e) => s"Field#toString($name, ): $e"
   }
+
+  def show: String = s"$name -> ${value.show}"
 
   def name: String = key.name
   def getValue: Option[Any] = value.getValue // Object or Seq
+  def getRecord: Option[Record] = value.getRecord
   def asString: String = value.asString
   def asStringList: List[String] = RAISE.unsupportedOperationFault
   def asBoolean: Boolean = value.asBoolean
@@ -144,6 +151,7 @@ case class Field(
   }
 
   def normalizeHttp: Field = copy(value = value.normalizeHttp)
+  def normalizeHttpPlain: Field = copy(value = value.normalizeHttpPlain)
 }
 
 object Field {
@@ -241,4 +249,6 @@ object Field {
   }
 
   def createEmpty(name: String): Field = Field(name, EmptyValue)
+
+  def createInt(key: String, value: Int): Field = Field(key, SingleValue(value))
 }

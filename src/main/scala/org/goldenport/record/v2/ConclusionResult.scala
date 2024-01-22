@@ -4,6 +4,7 @@ import scalaz._, Scalaz._
 import scala.util.control.NonFatal
 import java.util.Locale
 import org.goldenport.i18n.I18NString
+import org.goldenport.context.Consequence
 import org.goldenport.collection.NonEmptyVector
 import org.goldenport.parser.{ParseResult, ParseSuccess, ParseFailure, EmptyParseResult}
 import org.goldenport.parser.{ParseMessage}
@@ -15,7 +16,10 @@ import org.goldenport.parser.{ParseMessage}
  *  version Oct. 13, 2020
  *  version Jan. 29, 2021
  *  version Feb. 20, 2021
- * @version May. 20, 2021
+ *  version May. 20, 2021
+ *  version Oct.  6, 2021
+ *  version Jan. 25, 2022
+ * @version Aug.  3, 2022
  * @author  ASAMI, Tomoharu
  */
 sealed trait ConclusionResult[+T] {
@@ -25,11 +29,13 @@ sealed trait ConclusionResult[+T] {
   def map[U](f: T => U): ConclusionResult[U]
   // ConclusionResult is not Monad. Just to use 'for' comprehension in Scala syntax suger.
   def flatMap[U](f: T => ConclusionResult[U]): ConclusionResult[U]
+  def forConfig: ConclusionResult[T]
 
   def getMessage: Option[String] = conclusion.getMessage
   def message: String = conclusion.message
   def getMessage(locale: Locale): Option[String] = conclusion.getMessage(locale)
   def message(locale: Locale): String = conclusion.message(locale)
+  def toConsequence: Consequence[T]
 }
 case class SuccessConclusionResult[T](
   result: T,
@@ -44,6 +50,9 @@ case class SuccessConclusionResult[T](
       case m: SuccessConclusionResult[_] => m.copy(conclusion = conclusion + m.conclusion)
       case m: ErrorConclusionResult[_] => m.copy(conclusion = conclusion + m.conclusion)
     }
+  def forConfig: ConclusionResult[T] = copy(conclusion = conclusion.forConfig)
+
+  def toConsequence: Consequence[T] = Consequence.Success(result, conclusion.toContextConclusion)
 }
 
 case class ErrorConclusionResult[T](
@@ -53,6 +62,10 @@ case class ErrorConclusionResult[T](
   def add(p: Conclusion): ConclusionResult[T] = copy(conclusion = conclusion + p)
   def map[U](f: T => U): ConclusionResult[U] = this.asInstanceOf[ErrorConclusionResult[U]]
   def flatMap[U](f: T => ConclusionResult[U]): ConclusionResult[U] = this.asInstanceOf[ConclusionResult[U]]
+
+  def forConfig: ConclusionResult[T] = copy(conclusion = conclusion.forConfig)
+
+  def toConsequence: Consequence[T] = Consequence.Error(conclusion.toContextConclusion)
 }
 
 object ConclusionResult {
@@ -161,4 +174,9 @@ object ConclusionResult {
 
   private def _messages(ps: Vector[ParseMessage]) =
     NonEmptyVector.createOption(ps.map(_.msg))
+
+  def from[A](p: Consequence[A]): ConclusionResult[A] = p match {
+    case m: Consequence.Success[_] => SuccessConclusionResult(m.result, Conclusion.from(m.conclusion))
+    case m: Consequence.Error[_] => ErrorConclusionResult(Conclusion.from(m.conclusion))
+  }
 }

@@ -5,6 +5,8 @@ import scalaz._, Scalaz._
 import scalaz.concurrent.Task
 import scala.util.Try
 import scala.util.control.NonFatal
+import org.goldenport.context.Consequence
+import org.goldenport.context.Conclusion
 import org.goldenport.record.v2._
 
 /*
@@ -20,7 +22,9 @@ import org.goldenport.record.v2._
  *  version Sep. 12, 2018
  *  version Oct. 16, 2018
  *  version Sep. 13, 2019
- * @version Jun. 26, 2020
+ *  version Jun. 26, 2020
+ *  version Sep. 27, 2023
+ * @version Oct. 28, 2023
  * @author  ASAMI, Tomoharu
  */
 sealed trait UnitOfWork[+A] {
@@ -37,14 +41,41 @@ case class InvokeService(request: UnitOfWork.ServiceRequest) extends UnitOfWork[
 
 case class Raise(e: Throwable) extends UnitOfWork[Throwable]
 
-case class UnitOfWorkResult[T](
-  result: T,
-  commit: CommitResult
-) {
-  def map[B](f: T => B): UnitOfWorkResult[B] = copy(result = f(result))
+sealed trait UnitOfWorkResult[T] {
+  def result: T
+  def toConsequence: Consequence[T]
 }
 object UnitOfWorkResult {
-  def apply[T](p: T): UnitOfWorkResult[T] = UnitOfWorkResult(p, CommitResult.empty)
+  case class Success[T](
+    result: T,
+    commit: CommitResult
+  ) extends UnitOfWorkResult[T] {
+    def map[B](f: T => B): UnitOfWorkResult[B] = copy(result = f(result))
+
+    def toConsequence: Consequence[T] = Consequence(result).mapConclusion(_.withData(commit))
+  }
+
+  case class Failure[T](
+    commit: CommitResult
+  ) extends UnitOfWorkResult[T] {
+    def map[B](f: T => B): UnitOfWorkResult[B] = this.asInstanceOf[UnitOfWorkResult[B]]
+
+    def result: T = _to_consequence.RAISE
+    def toConsequence: Consequence[T] = _to_consequence
+
+    private def _to_consequence: Consequence.Error[T] = commit match {
+      case CommitFailure(log, Some(e)) => _create_consequence.withException(e)
+      case _ => _create_consequence
+    }
+
+    private def _create_consequence = Consequence.Error[T](Conclusion.InternalServerError.withData(commit))
+  }
+
+  def apply[T](p: T): UnitOfWorkResult[T] = UnitOfWorkResult.Success(p, CommitResult.empty)
+  def apply[T](p: T, c: CommitResult): UnitOfWorkResult[T] = c match {
+    case m: CommitSuccess => UnitOfWorkResult.Success(p, m)
+    case m: CommitFailure => UnitOfWorkResult.Failure(m)
+  }
 }
 
 object UnitOfWork {
@@ -146,6 +177,10 @@ object UnitOfWork {
       store: Store,
       rs: RecordSet
     ): UnitOfWorkFM[IndexedSeq[InsertResult]] = StoreOperation.inserts(store, rs).asInstanceOf[UnitOfWorkFM[IndexedSeq[InsertResult]]]
+
+    def update(
+      cmd: Update
+    ): UnitOfWorkFM[UpdateResult] = StoreOperation.update(cmd).asInstanceOf[UnitOfWorkFM[UpdateResult]]
 
     def update(
       store: Store,

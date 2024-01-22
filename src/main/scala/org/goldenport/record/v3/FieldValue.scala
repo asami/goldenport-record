@@ -47,25 +47,28 @@ import org.goldenport.record.v2.{Record => Record2, RecordRecord}
  *  version Nov. 29, 2019
  *  version Jan. 11, 2020
  *  version Apr. 21, 2021
- * @version May. 20, 2021
+ *  version May. 20, 2021
+ *  version Aug. 30, 2022
+ *  version Oct. 30, 2022
+ * @version Dec. 16, 2022
  * @author  ASAMI, Tomoharu
  */
 sealed abstract class FieldValue {
   override def toString() = try {
-    s"${getClass.getSimpleName}(${as_string})"
+//      s"""${getClass.getSimpleName}(${getValue.map(_.getClass.getSimpleName).getOrElse("#Empty")})"""
+    s"""${getClass.getSimpleName}(${getValue.map(AnyUtils.toShow).getOrElse("#Empty")})"""
   } catch {
-    case NonFatal(e) => try {
-      s"""${getClass.getSimpleName}#toString(${getValue.map(_.getClass.getSimpleName).getOrElse("#Empty")}): $e"""
-    } catch {
-      case NonFatal(ee) => s"""FieldValue#toString: $e"""
-    }
+    case NonFatal(e) => s"""FieldValue#toString: $e"""
   }
+
+  def show: String
 
   protected lazy val as_string = getValue.map(AnyUtils.toString).getOrElse("")
 
   def getValue: Option[Any]
   def getList: Option[List[Any]]
   def getVector: Option[Vector[Any]]
+  def getRecord: Option[Record]
   def asList: List[Any]
   def asListEager: List[Any] = asList.flatMap(x => Strings.totokens(AnyUtils.toString(x), ","))
   def asVector: Vector[Any]
@@ -82,16 +85,23 @@ sealed abstract class FieldValue {
   def asRecordVector: Vector[Record]
   def asTable: Table
   def getJson: Option[JsValue]
-  def normalizeHttp: FieldValue
+  def normalizeHttp: FieldValue // legacy
+  def normalizeHttpPlain: FieldValue
   def +(p: FieldValue): FieldValue
   def toMulti: MultipleValue
   def mapContent(p: Any => Any): FieldValue
 }
 
 case class SingleValue(value: Any) extends FieldValue {
+  def show = s"${AnyUtils.toShow(value)}"
+
   def getValue = Some(value)
   def getList = Some(List(value))
   def getVector = Some(Vector(value))
+  def getRecord = value match {
+    case m: IRecord => Some(m.toRecord)
+    case _ => None
+  }
   def asList = List(value)
   def asVector = Vector(value)
   // override def asTimestamp = value match {
@@ -130,7 +140,8 @@ case class SingleValue(value: Any) extends FieldValue {
     case m => RAISE.noReachDefect
   }
   def getJson: Option[JsValue] = Some(JsonUtils.anyToJsValue(value))
-  def normalizeHttp: FieldValue = value match {
+  def normalizeHttp: FieldValue = normalizeHttpEeagerTokens
+  def normalizeHttpEeagerTokens: FieldValue = value match {
     case None => EmptyValue
     case m: String =>
       if (Strings.blankp(m))
@@ -141,6 +152,20 @@ case class SingleValue(value: Any) extends FieldValue {
           case x :: Nil => SingleValue(x)
           case xs => MultipleValue(xs)
         }
+    case _ => this
+  }
+  def normalizeHttpPlain: FieldValue = value match {
+    case None => EmptyValue
+    case m: Array[_] => m.length match {
+      case 0 => EmptyValue
+      case 1 => SingleValue(m(0))
+      case _ => this
+    }
+    case m: Seq[_] => m.length match {
+      case 0 => EmptyValue
+      case 1 => SingleValue(m(0))
+      case _ => this
+    }
     case _ => this
   }
   def +(p: FieldValue): FieldValue = MultipleValue(value +: p.asVector)
@@ -160,9 +185,12 @@ case class SingleValue(value: Any) extends FieldValue {
 case class MultipleValue(values: Seq[Any]) extends FieldValue {
   protected lazy val as_string_sequence = values.map(AnyUtils.toString).mkString(",")
 
+  def show = values.map(AnyUtils.toEmbed).mkString(",")
+
   def getValue = Some(values)
   def getList = Some(asList)
   def getVector = Some(asVector)
+  def getRecord = None
   def asList = values.toList
   def asVector = values.toVector
   override def asString: String = as_string_sequence
@@ -194,15 +222,18 @@ case class MultipleValue(values: Seq[Any]) extends FieldValue {
       case xs => MultipleValue(xs)
     }
   }
+  def normalizeHttpPlain: FieldValue = this
   def +(p: FieldValue): FieldValue = MultipleValue(values ++ p.asVector)
   def toMulti = this
   def mapContent(p: Any => Any): FieldValue = copy(values = values.map(p))
 }
 
 case object EmptyValue extends FieldValue {
+  def show = "#EMPTY"
   def getValue = None
   def getList = None
   def getVector = None
+  def getRecord = None
   def asList = Nil
   def asVector = Vector.empty
   def asRecord: Record = Record.empty
@@ -211,6 +242,7 @@ case object EmptyValue extends FieldValue {
   def asTable: Table = Table.empty
   def getJson: Option[JsValue] = None
   def normalizeHttp: FieldValue = this
+  def normalizeHttpPlain: FieldValue = this
   def +(p: FieldValue): FieldValue = p
   def toMulti = MultipleValue(Vector.empty)
   def mapContent(p: Any => Any): FieldValue = this

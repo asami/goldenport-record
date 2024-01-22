@@ -22,7 +22,8 @@ import com.asamioffice.goldenport.text.UString
  *  version Aug. 30, 2017
  *  version Jul. 18, 2018
  *  version Nov.  7, 2018
- * @version Jan. 28, 2020
+ *  version Jan. 28, 2020
+ * @version Jun. 16, 2021
  * @author  ASAMI, Tomoharu
  */
 object CsvUtils {
@@ -324,8 +325,8 @@ object CsvUtils {
       case x: java.sql.Date => DateUtils.toIsoDateString(x)
       case x: java.util.Date => DateUtils.toIsoDateString(x)
       case x: DateTime => DateTimeUtils.toIsoDateTimeString(x, tz)
-//      case x: Record => toJsValue(x)
-//      case x: RecordSet => toJsValue(x)
+      case x: Record => x.toJsonString
+      case x: RecordSet => x.records.map(_.toJsonString).mkString("[", ",", "]")
 //      case xs: Seq[_] => JsArray(xs.map(anyToJsValue))
       case Nil => ""
       case x :: Nil => _to_csv_value(x)

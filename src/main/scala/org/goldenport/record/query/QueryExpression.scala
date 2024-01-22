@@ -15,6 +15,7 @@ import org.goldenport.record.sql.SqlU
 import org.goldenport.record.util.{DateUtils, AnyUtils}
 import org.goldenport.values.{DateTimePeriod, ParameterKey}
 import org.goldenport.values.{NumberInterval, LocalDateTimeInterval}
+import org.goldenport.util.NumberUtils
 import QueryExpression.Context
 
 /*
@@ -26,10 +27,15 @@ import QueryExpression.Context
  *  version Nov. 29, 2019
  *  version Jan. 26, 2020
  *  version Mar. 28, 2020
- * @version Feb. 28, 2021
+ *  version Feb. 28, 2021
+ *  version Nov.  5, 2021
+ *  version Jan.  7, 2022
+ * @version Jun. 17, 2022
  * @author  ASAMI, Tomoharu
  */
 sealed trait QueryExpression {
+  import QueryExpression._
+
   def expression(column: String): String // XXX legacy?
   def where(schema: Schema, columnname: String)(implicit ctx: SqlContext): String =
     schema.getColumn(columnname).map(where(_)).getOrElse {
@@ -195,9 +201,21 @@ sealed trait QueryExpressionClass {
       (p, true)
 }
 
+trait ValueQueryExpressionClass {
+  def name: String
+
+  def createValueOption(name: String)(implicit ctx: Context): Option[QueryExpression] =
+    if (this.name == name)
+      Some(createValueExpression(name))
+    else
+      None
+
+  def createValueExpression(name: String): QueryExpression
+}
+
 case object NoneQuery extends QueryExpression {
   def expression(column: String) = "1 = 1"
-  def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
+  def isAccept(p: Any): Boolean = true
 
   def create(params: List[String], v: FieldValue)(implicit ctx: Context): QueryExpression = this
 }
@@ -226,7 +244,7 @@ case class EqualQuery(value: Any) extends QueryExpression {
       q.where(column)
     case _ => s"${column.name} = ${to_literal_ctx(column, value)}"
   }
-  def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
+  def isAccept(p: Any): Boolean = p == value
 
   override def mapPowertypeOrException(pt: PowertypeClass) = {
     map_powertype_value_eager(pt, value).right.map(x => copy(x))
@@ -252,7 +270,7 @@ case class NotEqualQuery(value: Any) extends QueryExpression {
     case m: Seq[_] => s"""${column.name} NOT IN (${to_literal_list(column, m)})"""
     case _ => s"${column.name} <> ${to_literal(column, value)}"
   }
-  def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
+  def isAccept(p: Any): Boolean = p != value
 
   override def mapPowertypeOrException(pt: PowertypeClass) = {
     map_powertype_value_eager(pt, value).right.map(x => copy(x))
@@ -273,7 +291,7 @@ case class EnumQuery(values: List[Any]) extends QueryExpression {
   def expression(column: String) = s"""${column} IN (${to_literal_list(values)})"""
   override def where(column: Column)(implicit ctx: SqlContext): String =
     s"""${column.name} IN (${to_literal_list(column, values)})"""
-  def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
+  def isAccept(p: Any): Boolean = values.contains(p)
 
   override def mapPowertypeOrException(pt: PowertypeClass) =
     map_powertype_values(pt, values).right.map(xs => copy(xs.toList))
@@ -304,7 +322,7 @@ case class EnumOrNullQuery(values: List[Any]) extends QueryExpression {
     s"""(${column} IN (${to_literal_list(values)}) OR ${column} IS NULL)"""
   override def where(column: Column)(implicit ctx: SqlContext): String = 
     s"""(${column.name} IN (${to_literal_list(column, values)}) OR ${column.name} IS NULL)"""
-  def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
+  def isAccept(p: Any): Boolean = p == null || p == None || values.contains(p)
 
   override def mapPowertypeOrException(pt: PowertypeClass) =
     map_powertype_values(pt, values).right.map(xs => copy(xs.toList))
@@ -331,11 +349,13 @@ object EnumOrNullQuery extends QueryExpressionClass {
 }
 
 case class GreaterQuery(value: Any) extends QueryExpression {
+  private lazy val _matcher = QueryExpression.CompareFunction.GreaterThan(value)
+
   def expression(column: String) = s"${column} > ${to_literal(value)}"
   override def where(column: Column)(implicit ctx: SqlContext): String = 
     s"${column.name} > ${to_literal(column, value)}"
-  def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
-
+  def isAccept(p: Any): Boolean = _matcher(p)
+    
   override def mapPowertypeOrException(pt: PowertypeClass) = {
     map_powertype_value(pt, value).right.map(x => copy(x))
   }
@@ -347,10 +367,12 @@ object GreaterQuery extends QueryExpressionClass {
 }
 
 case class GreaterEqualQuery(value: Any) extends QueryExpression {
+  private lazy val _matcher = QueryExpression.CompareFunction.GreaterEqualThan(value)
+
   def expression(column: String) = s"${column} >= ${to_literal(value)}"
   override def where(column: Column)(implicit ctx: SqlContext): String = 
     s"${column.name} >= ${to_literal(column, value)}"
-  def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
+  def isAccept(p: Any): Boolean = _matcher(p)
 
   override def mapPowertypeOrException(pt: PowertypeClass) = {
     map_powertype_value(pt, value).right.map(x => copy(x))
@@ -363,10 +385,12 @@ object GreaterEqualQuery extends QueryExpressionClass {
 }
 
 case class LesserQuery(value: Any) extends QueryExpression {
+  private lazy val _matcher = QueryExpression.CompareFunction.LesserThan(value)
+
   def expression(column: String) = s"${column} < ${to_literal(value)}"
   override def where(column: Column)(implicit ctx: SqlContext): String = 
     s"${column.name} < ${to_literal(column, value)}"
-  def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
+  def isAccept(p: Any): Boolean = _matcher(p)
 
   override def mapPowertypeOrException(pt: PowertypeClass) = {
     map_powertype_value(pt, value).right.map(x => copy(x))
@@ -379,10 +403,12 @@ object LesserQuery extends QueryExpressionClass {
 }
 
 case class LesserEqualQuery(value: Any) extends QueryExpression {
+  private lazy val _matcher = QueryExpression.CompareFunction.LesserEqualThan(value)
+
   def expression(column: String) = s"${column} <= ${to_literal(value)}"
   override def where(column: Column)(implicit ctx: SqlContext): String = 
     s"${column.name} <= ${to_literal(column, value)}"
-  def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
+  def isAccept(p: Any): Boolean = _matcher(p)
 
   override def mapPowertypeOrException(pt: PowertypeClass) = {
     map_powertype_value(pt, value).right.map(x => copy(x))
@@ -395,6 +421,8 @@ object LesserEqualQuery extends QueryExpressionClass {
 }
 
 case class RangeQuery(start: Option[Any], end: Option[Any], low: Boolean, high: Boolean) extends QueryExpression {
+  private lazy val _matcher = QueryExpression.IntervalFunction(start, end, low, high)
+
   def expression(column: String) = {
     val l = start.map { x =>
       val operator = if (low) "<=" else "<"
@@ -422,7 +450,7 @@ case class RangeQuery(start: Option[Any], end: Option[Any], low: Boolean, high: 
       case (None, None) => "1 = 1"
     }
   }
-  def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
+  def isAccept(p: Any): Boolean = _matcher(p)
 
   override def mapPowertypeOrException(pt: PowertypeClass) = {
     map_powertype_value_option(pt, start, end).right.map {
@@ -440,10 +468,12 @@ object RangeQuery extends QueryExpressionClass {
 }
 
 case class RangeInclusiveQuery(start: Any, end: Any) extends QueryExpression {
+  private lazy val _matcher = QueryExpression.IntervalFunction(Some(start), Some(end), true, true)
+
   def expression(column: String) = s"(${to_literal(start)} <= ${column} AND ${column} <= ${to_literal(end)})"
   override def where(column: Column)(implicit ctx: SqlContext): String =
     s"(${to_literal(column, start)} <= ${column.name} AND ${column.name} <= ${to_literal(column, end)})"
-  def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
+  def isAccept(p: Any): Boolean = _matcher(p)
 
   override def mapPowertypeOrException(pt: PowertypeClass) = {
     map_powertype_value(pt, start, end).right.map {
@@ -461,10 +491,12 @@ object RangeInclusiveQuery extends QueryExpressionClass {
 }
 
 case class RangeExclusiveQuery(start: Any, end: Any) extends QueryExpression {
+  private lazy val _matcher = QueryExpression.IntervalFunction(Some(start), Some(end), false, false)
+
   def expression(column: String) = s"(${to_literal(start)} < ${column} AND ${column} < ${to_literal(end)})"
   override def where(column: Column)(implicit ctx: SqlContext): String =
     s"(${to_literal(column, start)} < ${column.name} AND ${column.name} < ${to_literal(column, end)})"
-  def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
+  def isAccept(p: Any): Boolean = _matcher(p)
 
   override def mapPowertypeOrException(pt: PowertypeClass) = {
     map_powertype_value(pt, start, end).right.map {
@@ -482,10 +514,12 @@ object RangeExclusiveQuery extends QueryExpressionClass {
 }
 
 case class RangeInclusiveExclusiveQuery(start: Any, end: Any) extends QueryExpression {
+  private lazy val _matcher = QueryExpression.IntervalFunction(Some(start), Some(end), true, false)
+
   def expression(column: String) = s"(${to_literal(start)} <= ${column} AND ${column} < ${to_literal(end)})"
   override def where(column: Column)(implicit ctx: SqlContext): String =
     s"(${to_literal(column, start)} <= ${column.name} AND ${column.name} < ${to_literal(column, end)})"
-  def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
+  def isAccept(p: Any): Boolean = _matcher.apply(p)
 
   override def mapPowertypeOrException(pt: PowertypeClass) = {
     map_powertype_value(pt, start, end).right.map {
@@ -503,10 +537,12 @@ object RangeInclusiveExclusiveQuery extends QueryExpressionClass {
 }
 
 case class RangeExclusiveInclusiveQuery(start: Any, end: Any) extends QueryExpression {
+  private lazy val _matcher = QueryExpression.IntervalFunction(Some(start), Some(end), false, true)
+
   def expression(column: String) = s"(${to_literal(start)} < ${column} AND ${column} <= ${to_literal(end)})"
   override def where(column: Column)(implicit ctx: SqlContext): String =
     s"(${to_literal(column, start)} < ${column.name} AND ${column.name} <= ${to_literal(column, end)})"
-  def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
+  def isAccept(p: Any): Boolean = _matcher(p)
 
   override def mapPowertypeOrException(pt: PowertypeClass) = {
     map_powertype_value(pt, start, end).right.map {
@@ -527,7 +563,12 @@ case class DateTimePeriodQuery(period: DateTimePeriod) extends QueryExpression {
   def expression(column: String) = s"$column ${period.toSqlBetweenDateTime}"
   override def where(column: Column)(implicit ctx: SqlContext): String = 
     s"${column.name} ${period.toSqlBetweenDateTime}"
-  def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
+  def isAccept(p: Any): Boolean = p match {
+    case m: java.sql.Timestamp => period.isValid(m)
+    case m: java.util.Date => period.isValid(m)
+    case m: DateTime => period.isValid(m)
+    case _ => false
+  }
 }
 object DateTimePeriodQuery extends QueryExpressionClass {
   val name = "datetime-period"
@@ -551,11 +592,13 @@ object DateTimePeriodQuery extends QueryExpressionClass {
   }
 }
 
-case class LikeQuery(value: Any) extends QueryExpression {
+case class LikeQuery(value: String) extends QueryExpression {
+  private lazy val _matcher = QueryExpression.LikeFunction(value)
+
   def expression(column: String) = s"${column} LIKE ${to_literal(value)}"
   override def where(column: Column)(implicit ctx: SqlContext): String = 
     s"${column.name} LIKE ${to_literal(column, value)}"
-  def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
+  def isAccept(p: Any): Boolean = _matcher(p)
 }
 object LikeQuery extends QueryExpressionClass {
   val name = "like"
@@ -563,11 +606,13 @@ object LikeQuery extends QueryExpressionClass {
   def create(params: List[String], v: FieldValue)(implicit ctx: Context): QueryExpression = LikeQuery(v.asString)
 }
 
-case class RegexQuery(value: Any) extends QueryExpression {
+case class RegexQuery(value: String) extends QueryExpression {
+  private lazy val _matcher = QueryExpression.RegexFunction(value)
+
   def expression(column: String) = s"${column} REGEXP ${to_literal(value)}"
   override def where(column: Column)(implicit ctx: SqlContext): String = 
     s"${column.name} REGEXP ${to_literal(column, value)}"
-  def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
+  def isAccept(p: Any): Boolean = _matcher(p)
 }
 object RegexQuery extends QueryExpressionClass {
   val name = "regex"
@@ -575,11 +620,14 @@ object RegexQuery extends QueryExpressionClass {
   def create(params: List[String], v: FieldValue)(implicit ctx: Context): QueryExpression = RegexQuery(v.asString)
 }
 
-case class FirstMatchQuery(value: Any) extends QueryExpression {
+case class FirstMatchQuery(value: String) extends QueryExpression {
   def expression(column: String) = s"""${column} LIKE ${to_literal(value + "%")}"""
   override def where(column: Column)(implicit ctx: SqlContext): String = 
     s"""${column.name} LIKE ${to_literal(column, value + "%")}"""
-  def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
+  def isAccept(p: Any): Boolean = p match {
+    case m: String => m.startsWith(value)
+    case _ => false
+  }
 }
 object FirstMatchQuery extends QueryExpressionClass {
   val name = "first-match"
@@ -587,11 +635,14 @@ object FirstMatchQuery extends QueryExpressionClass {
   def create(params: List[String], v: FieldValue)(implicit ctx: Context): QueryExpression = FirstMatchQuery(v.asString)
 }
 
-case class LastMatchQuery(value: Any) extends QueryExpression {
+case class LastMatchQuery(value: String) extends QueryExpression {
   def expression(column: String) = s"""${column} LIKE ${to_literal("%" + value)}"""
   override def where(column: Column)(implicit ctx: SqlContext): String =
     s"""${column.name} LIKE ${to_literal(column, "%" + value)}"""
-  def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
+  def isAccept(p: Any): Boolean = p match {
+    case m: String => m.endsWith(value)
+    case _ => false
+  }
 }
 object LastMatchQuery extends QueryExpressionClass {
   val name = "last-match"
@@ -599,11 +650,13 @@ object LastMatchQuery extends QueryExpressionClass {
   def create(params: List[String], v: FieldValue)(implicit ctx: Context): QueryExpression = LastMatchQuery(v.asString)
 }
 
-case class FirstLastMatchQuery(value: Any) extends QueryExpression {
+case class FirstLastMatchQuery(value: String) extends QueryExpression {
+  private lazy val _matcher = QueryExpression.LikeFunction(s"%${value}%")
+
   def expression(column: String) = s"""${column} LIKE ${to_literal("%" + value + "%")}"""
   override def where(column: Column)(implicit ctx: SqlContext): String = 
     s"""${column.name} LIKE ${to_literal(column, "%" + value + "%")}"""
-  def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
+  def isAccept(p: Any): Boolean = _matcher(p)
 }
 object FirstLastMatchQuery extends QueryExpressionClass {
   val name = "first-last-match"
@@ -611,35 +664,67 @@ object FirstLastMatchQuery extends QueryExpressionClass {
   def create(params: List[String], v: FieldValue)(implicit ctx: Context): QueryExpression = FirstLastMatchQuery(v.asString)
 }
 
-case object IsNullQuery extends QueryExpression with QueryExpressionClass {
+case object IsNullQuery extends QueryExpression with QueryExpressionClass with ValueQueryExpressionClass {
   val name = "is-null"
 
   def expression(column: String) = s"${column} IS NULL"
   override def where(column: Column)(implicit ctx: SqlContext): String = 
     s"${column.name} IS NULL"
-  def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
+  def isAccept(p: Any): Boolean = p == null || p == None
 
   def create(params: List[String], v: FieldValue)(implicit ctx: Context): QueryExpression = this
+
+  def createValueExpression(name: String) = this
 }
 
-case object IsNotNullQuery extends QueryExpression with QueryExpressionClass {
+case object IsNotNullQuery extends QueryExpression with QueryExpressionClass with ValueQueryExpressionClass  {
   val name = "is-not-null"
 
   def expression(column: String) = s"${column} IS NOT NULL"
   override def where(column: Column)(implicit ctx: SqlContext): String = 
     s"${column.name} IS NOT NULL"
-  def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
+  def isAccept(p: Any): Boolean = true
 
   def create(params: List[String], v: FieldValue)(implicit ctx: Context): QueryExpression = this
+
+  def createValueExpression(name: String) = this
 }
 
-case object AllQuery extends QueryExpression with QueryExpressionClass {
+case object IsEmptyQuery extends QueryExpression with QueryExpressionClass with ValueQueryExpressionClass  {
+  val name = "is-empty"
+
+  def expression(column: String) = s"""(${column} IS NULL OR ${column} = """""
+  override def where(column: Column)(implicit ctx: SqlContext): String = 
+    s"${column.name} IS NULL"
+  def isAccept(p: Any): Boolean = (p == null || p == None) || p == ""
+
+  def create(params: List[String], v: FieldValue)(implicit ctx: Context): QueryExpression = this
+
+  def createValueExpression(name: String) = this
+}
+
+case object IsNotEmptyQuery extends QueryExpression with QueryExpressionClass with ValueQueryExpressionClass  {
+  val name = "is-not-empty"
+
+  def expression(column: String) = s"""(${column} IS NOT NULL AND ${column} <> """""
+  override def where(column: Column)(implicit ctx: SqlContext): String = 
+    s"""(${column.name} IS NOT NULL AND ${column} <> """""
+  def isAccept(p: Any): Boolean = true && p != ""
+
+  def create(params: List[String], v: FieldValue)(implicit ctx: Context): QueryExpression = this
+
+  def createValueExpression(name: String) = this
+}
+
+case object AllQuery extends QueryExpression with QueryExpressionClass with ValueQueryExpressionClass {
   val name = "all"
 
   def expression(column: String) = "1 = 1"
-  def isAccept(p: Any): Boolean = RAISE.notImplementedYetDefect
+  def isAccept(p: Any): Boolean = true
 
   def create(params: List[String], v: FieldValue)(implicit ctx: Context): QueryExpression = this
+
+  def createValueExpression(name: String) = this
 }
 
 object QueryExpression {
@@ -666,9 +751,9 @@ object QueryExpression {
   }
 
   val expressions: Vector[QueryExpressionClass] = Vector(
-    AllQuery,
-    IsNullQuery,
-    IsNotNullQuery,
+    AllQuery, // compatibility
+    IsNullQuery, // compatibility
+    IsNotNullQuery, // compatibility
     EqualQuery,
     NotEqualQuery,
     EnumQuery,
@@ -689,6 +774,229 @@ object QueryExpression {
     LastMatchQuery,
     FirstLastMatchQuery
   )
+
+  val valueExpressions: Vector[ValueQueryExpressionClass] = Vector(
+    AllQuery,
+    IsNullQuery,
+    IsNotNullQuery,
+    IsEmptyQuery,
+    IsNotEmptyQuery
+  )
+
+  sealed trait CompareFunction {
+    def value: Any
+    def apply(p: Any): Boolean
+
+    protected lazy val int_value = AnyUtils.getInt(value)
+    protected lazy val long_value = AnyUtils.getLong(value)
+    protected lazy val float_value = AnyUtils.getFloat(value)
+    protected lazy val double_value = AnyUtils.getDouble(value)
+    protected lazy val bigint_value = AnyUtils.getBigInt(value)
+    protected lazy val bigdecimal_value = AnyUtils.getBigDecimal(value)
+  }
+  object CompareFunction {
+    case class GreaterThan(value: Any) extends CompareFunction {
+      def apply(p: Any): Boolean = p match {
+        case m: Byte => int_value.map(m > _) getOrElse false
+        case m: Short => int_value.map(m > _) getOrElse false
+        case m: Int => int_value.map(m > _) getOrElse false
+        case m: Long => long_value.map(m > _) getOrElse false
+        case m: Float => float_value.map(m > _) getOrElse false
+        case m: Double => double_value.map(m > _) getOrElse false
+        case m: BigInt => bigint_value.map(m > _) getOrElse false
+        case m: BigDecimal => bigdecimal_value.map(m > _) getOrElse false
+        case m: java.math.BigInteger => bigint_value.map(BigInt(m) > _) getOrElse false
+        case m: java.math.BigDecimal => bigdecimal_value.map(BigDecimal(m) > _) getOrElse false
+        case m: java.sql.Timestamp => RAISE.notImplementedYetDefect
+        case m: DateTime => RAISE.notImplementedYetDefect
+      }
+    }
+    case class GreaterEqualThan(value: Any) extends CompareFunction {
+      def apply(p: Any): Boolean = p match {
+        case m: Byte => int_value.map(m >= _) getOrElse false
+        case m: Short => int_value.map(m >= _) getOrElse false
+        case m: Int => int_value.map(m >= _) getOrElse false
+        case m: Long => long_value.map(m >= _) getOrElse false
+        case m: Float => float_value.map(m >= _) getOrElse false
+        case m: Double => double_value.map(m >= _) getOrElse false
+        case m: BigInt => bigint_value.map(m >= _) getOrElse false
+        case m: BigDecimal => bigdecimal_value.map(m >= _) getOrElse false
+        case m: java.math.BigInteger => bigint_value.map(BigInt(m) >= _) getOrElse false
+        case m: java.math.BigDecimal => bigdecimal_value.map(BigDecimal(m) >= _) getOrElse false
+        case m: java.sql.Timestamp => RAISE.notImplementedYetDefect
+        case m: DateTime => RAISE.notImplementedYetDefect
+      }
+    }
+    case class LesserThan(value: Any) extends CompareFunction {
+      def apply(p: Any): Boolean = p match {
+        case m: Byte => int_value.map(m < _) getOrElse false
+        case m: Short => int_value.map(m < _) getOrElse false
+        case m: Int => int_value.map(m < _) getOrElse false
+        case m: Long => long_value.map(m < _) getOrElse false
+        case m: Float => float_value.map(m < _) getOrElse false
+        case m: Double => double_value.map(m < _) getOrElse false
+        case m: BigInt => bigint_value.map(m < _) getOrElse false
+        case m: BigDecimal => bigdecimal_value.map(m < _) getOrElse false
+        case m: java.math.BigInteger => bigint_value.map(BigInt(m) < _) getOrElse false
+        case m: java.math.BigDecimal => bigdecimal_value.map(BigDecimal(m) < _) getOrElse false
+        case m: java.sql.Timestamp => RAISE.notImplementedYetDefect
+        case m: DateTime => RAISE.notImplementedYetDefect
+      }
+    }
+    case class LesserEqualThan(value: Any) extends CompareFunction {
+      def apply(p: Any): Boolean = p match {
+        case m: Byte => int_value.map(m <= _) getOrElse false
+        case m: Short => int_value.map(m <= _) getOrElse false
+        case m: Int => int_value.map(m <= _) getOrElse false
+        case m: Long => long_value.map(m <= _) getOrElse false
+        case m: Float => float_value.map(m <= _) getOrElse false
+        case m: Double => double_value.map(m <= _) getOrElse false
+        case m: BigInt => bigint_value.map(m <= _) getOrElse false
+        case m: BigDecimal => bigdecimal_value.map(m <= _) getOrElse false
+        case m: java.math.BigInteger => bigint_value.map(BigInt(m) <= _) getOrElse false
+        case m: java.math.BigDecimal => bigdecimal_value.map(BigDecimal(m) <= _) getOrElse false
+        case m: java.sql.Timestamp => RAISE.notImplementedYetDefect
+        case m: DateTime => RAISE.notImplementedYetDefect
+      }
+    }
+
+    case object True extends CompareFunction {
+      val value  = None
+      def apply(p: Any): Boolean = true
+    }
+  }
+
+  case class IntervalFunction(
+    low: Option[Any],
+    high: Option[Any],
+    inlow: Boolean,
+    inhigh: Boolean
+  ) {
+    private val _bottom_matcher = low.map(x =>
+      if (inlow)
+        CompareFunction.GreaterEqualThan(x)
+      else
+        CompareFunction.GreaterThan(x)
+    ).getOrElse(CompareFunction.True)
+
+    private val _top_matcher = high.map(x =>
+      if (inhigh)
+        CompareFunction.LesserEqualThan(x)
+      else
+        CompareFunction.LesserThan(x)
+    ).getOrElse(CompareFunction.True)
+
+    def apply(p: Any): Boolean = {
+      val a = _bottom_matcher(p)
+      val b = _top_matcher(p)
+      a && b
+    }
+  }
+
+  case class LikeFunction(value: String) {
+    case class State(marks: List[State.Mark]) {
+      def apply(p: Char, next: Char): Option[State] = {
+//        println(s"LikeFunction#State#apply($p, $next)[${marks}]")
+        val r = marks.headOption.map {
+          case State.Wildcard => marks.lift(1).map {
+            case State.Wildcard => RAISE.noReachDefect
+            case State.OneChar(c) => if (p == c) _next2 else _this
+            case State.MatchOne => _next2
+          }.getOrElse(_this)
+          case State.OneChar(c) => if (p == c) _next else _error
+          case State.MatchOne => _next
+        }.getOrElse(_error)
+//        println(s"LikeFunction#State#apply($p, $next)[${marks}] => $r")
+        r
+      }
+
+      private def _this = Some(this)
+      private def _next = Some(State(marks.tail))
+      private def _next2 = Some(State(marks.tail.tail))
+      private def _error = None
+
+      def applyEnd(p: Char): Boolean = {
+//        println(s"LikeFunction#State#applyEnd($p)[${marks}]")
+        val r = marks.headOption.map {
+          case State.Wildcard => _is_complete
+          case State.OneChar(c) => if (p == c) _is_complete else false
+          case State.MatchOne => _is_complete
+        }.getOrElse(false)
+//        println(s"LikeFunction#State#applyEnd($p)[${marks}] => $r")
+        r
+      }
+
+      private def _is_complete = marks match {
+        case Nil => true
+        case x :: Nil => true
+        case x :: x2 :: Nil => x2 match {
+          case State.Wildcard => true
+          case _ => false
+        }
+        case _ => false
+      }
+    }
+    object State {
+      sealed trait Mark {
+      }
+      case object Wildcard extends Mark
+      case class OneChar(c: Char) extends Mark
+      case object MatchOne extends Mark
+
+      def parse(p: String): State = {
+        case class Z(
+          marks: Vector[Mark] = Vector.empty,
+          isEscape: Boolean = false
+        ) {
+          def r = State(marks.toList)
+
+          def +(rhs: Char) =
+            if (isEscape)
+              copy(marks = marks :+ OneChar(rhs), isEscape = false)
+            else
+              rhs match {
+                case '%' => _add_wildcard
+                case '_' => _add(MatchOne)
+                case '\\' => copy(isEscape = true)
+                case m => _add(OneChar(m))
+              }
+
+          private def _add(p: Mark) = copy(marks = marks :+ p)
+          private def _add_wildcard = marks.lastOption.map {
+            case Wildcard => this
+            case _ => _add(Wildcard)
+          }.getOrElse(_add(Wildcard))
+        }
+        p./:(Z())(_+_).r
+      }
+    }
+
+    private val _syntax = State.parse(value)
+
+    def apply(p: Any): Boolean = p match {
+      case m: String => _is_accept(m.toList, _syntax)
+      case _ => false
+    }
+
+    @annotation.tailrec
+    private def _is_accept(ps: List[Char], state: State): Boolean = ps match {
+      case Nil => true
+      case x :: Nil => state.applyEnd(x)
+      case x :: x2 :: xs => state(x, x2) match {
+        case Some(s) => _is_accept(x2 :: xs, s)
+        case None => false
+      }
+    }
+  }
+
+  case class RegexFunction(value: String) {
+    private val _regex = value.r
+
+    def apply(p: Any): Boolean = p match {
+      case m: String => _regex.findFirstIn(m).isDefined
+      case _ => false
+    }
+  }
 
   def isDefined(key: String): Boolean = expressions.exists(_.name == key)
 
@@ -711,7 +1019,12 @@ object QueryExpression {
       val fv = p.toFieldValue
       val v = expressions.toStream.flatMap(_.createOption(x, adargs.tail, fv)).headOption
       v.map(p.update(path, _))
-    }.getOrElse(RAISE.invalidArgumentFault(s"Invalid query: ${p.key.name}"))
+    }.getOrElse {
+      p.getString.flatMap { x =>
+        val v = valueExpressions.toStream.flatMap(_.createValueOption(x)).headOption
+        v.map(p.update(path, _))
+      }.getOrElse(RAISE.invalidArgumentFault(s"Invalid query: ${p.key.name}"))
+    }
 
   def activate(pt: PowertypeClass, p: Field2)(implicit ctx: Context): Field2 = {
     val key = ParameterKey.parse(p.key)
@@ -737,6 +1050,12 @@ object QueryExpression {
       case xs => MultipleValue(xs)
     }
 
+  def parse(
+    key: String,
+    value: String
+  )(implicit ctx: Context): (ParameterKey, QueryExpression) =
+    parse(Field3.create(key, value))
+
   def parse(p: Field3)(implicit ctx: Context): (ParameterKey, QueryExpression) = {
     val key = ParameterKey.parse(p.key)
     val expr = key.adornment.collect {
@@ -753,7 +1072,10 @@ object QueryExpression {
     adargs.headOption.flatMap { x =>
       val fv = p.value
       expressions.toStream.flatMap(_.createOption(x, adargs.tail, fv)).headOption
-    }.getOrElse(RAISE.invalidArgumentFault(s"Invalid query: ${p.key.name}"))
+    }.getOrElse {
+      valueExpressions.toStream.flatMap(_.createValueOption(p.asString)).headOption.
+        getOrElse(RAISE.invalidArgumentFault(s"Invalid query: ${p.key.name}"))
+    }
   }
 
   private def _record_to_expression(
@@ -794,4 +1116,3 @@ object QueryExpression {
   //   }
   // }
 }
-

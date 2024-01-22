@@ -23,7 +23,8 @@ import org.goldenport.record.util.AnyUtils
  *  version Jun. 18, 2020
  *  version Aug. 19, 2020
  *  version Oct. 28, 2020
- * @version Feb. 20, 2021
+ *  version Feb. 20, 2021
+ * @version Mar.  1, 2022
  * @author  ASAMI, Tomoharu
  */
 trait Powertype {
@@ -160,6 +161,18 @@ trait PowertypeClass {
   def apply(v: String): T = paramString(v)
 
   def usage = elements.map(x => s"${x.name}:${x.value}").mkString("(", " ,", ")")
+
+  def param(p: Any): T = p match {
+    case Some(s) => _param(s)
+    case None => default
+    case _ => _param(p)
+  }
+
+  private def _param(p: Any): T = p match {
+    case m: Number => paramInt(m.intValue)
+    case m: String => paramString(m)
+    case m => throw new IllegalArgumentException(s"Invalid powertype value '$m' for $usage")
+  }
 
   def paramInt(v: Int): T = {
     get(v) getOrElse {

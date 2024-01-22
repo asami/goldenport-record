@@ -3,7 +3,7 @@ package org.goldenport.record.v3
 import org.w3c.dom._
 import org.goldenport.exception.RAISE
 import org.goldenport.matrix.IMatrix
-import org.goldenport.record.v2.{Schema, XmlSchema, Column => V2Column}
+import org.goldenport.record.v2.{Schema => Schema2, XmlSchema, Column => V2Column}
 import org.goldenport.values.{NumberRange, EnumRange}
 
 /*
@@ -16,12 +16,13 @@ import org.goldenport.values.{NumberRange, EnumRange}
  *  version Sep. 16, 2019
  *  version Jan. 26, 2020
  *  version Feb. 28, 2020
- * @version Mar. 25, 2021
+ *  version Mar. 25, 2021
+ * @version Oct. 31, 2021
  * @author  ASAMI, Tomoharu
  */
 trait ITable extends org.goldenport.table.ITable {
   def toTable: Table
-  def schema: Schema
+  def schema: Schema2
   def meta: Table.MetaData // TODO
   def head: Option[Table.Head] // TODO
   def foot: Option[Table.Foot] // TODO
@@ -39,27 +40,27 @@ trait ITable extends org.goldenport.table.ITable {
 object ITable {
   private val _table_schema = {
     val columns = Vector()
-    Schema(columns, xml = XmlSchema("table"))
+    Schema2(columns, xml = XmlSchema("table"))
   }
 
   private val _thead_schema = {
     val columns = Vector()
-    Schema(columns, xml = XmlSchema("thead"))
+    Schema2(columns, xml = XmlSchema("thead"))
   }
 
   private val _tbody_schema = {
     val columns = Vector()
-    Schema(columns, xml = XmlSchema("tbody"))
+    Schema2(columns, xml = XmlSchema("tbody"))
   }
 
   private val _tfoot_schema = {
     val columns = Vector()
-    Schema(columns, xml = XmlSchema("tfoot"))
+    Schema2(columns, xml = XmlSchema("tfoot"))
   }
 
   private val _tr_schema = {
     val columns = Vector()
-    Schema(columns, xml = XmlSchema("tr"))
+    Schema2(columns, xml = XmlSchema("tr"))
   }
 
   private val _th_column = V2Column("th", xml = V2Column.Xml.element)
@@ -105,7 +106,7 @@ object ITable {
       Field.create("tfoot", _element(_tbody_schema, xs.toVector))
     }
 
-    private def _element(schema: Schema, fields: Seq[Field]) =
+    private def _element(schema: Schema2, fields: Seq[Field]) =
       Record(fields, Record.MetaData(Some(schema)))
   }
 }

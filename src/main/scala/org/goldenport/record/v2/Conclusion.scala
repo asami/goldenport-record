@@ -6,12 +6,19 @@ import play.api.libs.json._
 import org.goldenport.RAISE
 import org.goldenport.i18n.I18NString
 import org.goldenport.collection.NonEmptyVector
+import org.goldenport.context.{Conclusion => LibConclusion, ErrorMessages, WarningMessages, Messages, Faults}
 
 /*
+ * See 
  * @since   Apr. 17, 2020
  *  version May. 26, 2020
  *  version Jun.  8, 2020
- * @version May. 20, 2021
+ *  version May. 20, 2021
+ *  version Oct. 12, 2021
+ *  version Jan. 25, 2022
+ *  version Feb. 18, 2022
+ *  version Mar.  6, 2022
+ * @version Oct. 22, 2022
  * @author  ASAMI, Tomoharu
  */
 case class Conclusion(
@@ -89,6 +96,30 @@ case class Conclusion(
 
   private def _unify(lhs: List[Conclusion.ValidationSlot], rhs: List[Conclusion.ValidationSlot]) = {
     lhs ++ rhs // TODO merge
+  }
+
+  def forConfig: Conclusion = if (code == 200) this else copy(code = 500)
+
+  def toContextConclusion: LibConclusion = {
+    import org.goldenport.context.StatusCode
+    import org.goldenport.context.{ErrorMessage, WarningMessage}
+
+    def _error_(p: I18NString) = ErrorMessage.I18NStringErrorMessage(p)
+    def _warning_(p: I18NString) = WarningMessage.I18NStringWarningMessage(p)
+
+    def es = errors.map(_.list.map(_error_)).getOrElse(Nil)
+    def ws = warnings.map(_.list.map(_warning_)).getOrElse(Nil)
+
+    def _errors_ = ErrorMessages(es)
+    def _warnings_ = WarningMessages(ws)
+
+    LibConclusion(
+      StatusCode(code, None, detail),
+      None,
+      _errors_,
+      _warnings_,
+      exception
+    )
   }
 }
 
@@ -174,4 +205,24 @@ object Conclusion {
   private def _missing(p: String) = {
     ValidationSlot(Symbol(p), MissingFieldFailure(p))
   }
+
+  def from(p: LibConclusion): Conclusion =
+    Conclusion(
+      p.code,
+      p.status.detail.map(_.code),
+      errors = _messages(p.errors, p.faults),
+      warnings = _messages(p.warnings),
+      p.exception,
+      _validations(p.faults)
+    )
+
+  private def _messages(em: ErrorMessages, f: Faults): Option[NonEmptyVector[I18NString]] = {
+    _messages(em) |+| _messages(f)
+  }
+
+  private def _messages(p: Messages): Option[NonEmptyVector[I18NString]] = p.toI18NStringONev
+
+  private def _messages(p: Faults): Option[NonEmptyVector[I18NString]] = p.toI18NStringONev
+
+  private def _validations(p: Faults): List[Conclusion.ValidationSlot] = Nil
 }

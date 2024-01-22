@@ -1,5 +1,6 @@
 package org.goldenport.record.v3
 
+import scala.util.control.NonFatal
 import java.util.Date
 import java.net.{URL, URI}
 import java.sql.Timestamp
@@ -8,7 +9,7 @@ import org.goldenport.exception.RAISE
 import org.goldenport.extension.{IRecord => LIRecord}
 import org.goldenport.util.ListUtils
 import org.goldenport.util.StringUtils
-import org.goldenport.record.v2.{Schema, Column => Column2, DataType, Multiplicity}
+import org.goldenport.record.v2.{Schema => Schema2, Column => Column2, DataType, Multiplicity}
 import org.goldenport.record.v2.{MZeroOne, MZeroMore}
 import org.goldenport.record.util.AnyUtils
 
@@ -25,15 +26,22 @@ import org.goldenport.record.util.AnyUtils
  *  version Nov. 29, 2019
  *  version Jan.  9, 2020
  *  version Oct. 15, 2020
- * @version Mar. 28, 2021
+ *  version Mar. 28, 2021
+ *  version Oct. 31, 2021
+ * @version Sep. 27, 2022
  * @author  ASAMI, Tomoharu
  */
 trait IRecord extends org.goldenport.record.IRecord
     with org.w3c.dom.Element with DomPart {
+  override def toString() = try {
+    super.toString()
+  } catch {
+    case NonFatal(e) => s"IRecord: $e"
+  }
   def parent: Option[IRecord] = None
   def toRecord: Record
   override def toMap: Map[String, Any] = toRecord.toMap
-  def getSchema: Option[Schema]
+  def getSchema: Option[Schema2]
   def fields: Seq[Field]
   def isEmpty: Boolean
   def isDefined(key: Symbol): Boolean
@@ -136,20 +144,21 @@ object IRecord {
 
   // def +(lhs: IRecord, rhs: IRecord): IRecord = lhs + rhs
 
+  // See SchemaMaker
   case class Slot(column: Column2, lefts: List[String], rights: List[String]) {
     def isMatch(p: Slot): Boolean = isMatch(p.column.name)
     def isMatch(p: String): Boolean = column.name == p
   }
 
-  def makeSchema(p: IRecord, ps: IRecord*): Schema = makeSchema(p +: ps)
+  def makeSchema(p: IRecord, ps: IRecord*): Schema2 = makeSchema(p +: ps)
 
-  def makeSchema(p: RecordSequence): Schema = makeSchema(p.irecords)
+  def makeSchema(p: RecordSequence): Schema2 = makeSchema(p.irecords)
 
   // See org.goldenport.record.v2.util.RecordUtils.buildSchema
-  def makeSchema(ps: Seq[IRecord]): Schema = {
+  def makeSchema(ps: Seq[IRecord]): Schema2 = {
     case class Z(columns: List[Slot] = Nil) {
       // TODO MOne, MOneMore
-      def r = Schema(columns.map(_.column))
+      def r = Schema2(columns.map(_.column))
       def +(rhs: IRecord): Z = {
         case class ZZ(r: List[Slot] = Nil) {
           def +(f: Field): ZZ = {

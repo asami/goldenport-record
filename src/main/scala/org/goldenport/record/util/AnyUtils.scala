@@ -5,10 +5,10 @@ import java.sql.Timestamp
 import java.net.{URL, URI}
 import java.io.File
 import org.joda.time.LocalTime
-import play.api.libs.json.JsValue
 import com.asamioffice.goldenport.io.UURL
 import org.goldenport.record.v2.Record
 import org.goldenport.record.v2.util.RecordUtils
+import org.goldenport.record.v3.{Record => Record3}
 import org.goldenport.extension.Showable
 import org.goldenport.util.{AnyUtils => LibAnyUtils}
 
@@ -23,18 +23,24 @@ import org.goldenport.util.{AnyUtils => LibAnyUtils}
  *  version Nov. 13, 2017
  *  version Jun. 27, 2018
  *  version Jul. 18, 2018
- * @version Nov. 27, 2019
+ *  version Nov. 27, 2019
+ *  version Nov.  5, 2021
+ *  version Feb. 23, 2022
+ *  version Sep. 27, 2022
+ *  version Oct. 29, 2022
+ * @version Nov. 23, 2022
  * @author  ASAMI, Tomoharu
  */
 object AnyUtils {
   def toString(x: Any): String = {
     x match {
-      case v: Timestamp => DateTimeUtils.toIsoDateTimeStringJst(v)
-      case v: Symbol => v.name
-      case m: Seq[_] => m.map(toString(_)).mkString(",")
-      case m: Array[_] => m.map(toString(_)).mkString(",")
+      // case m: String => m
+      // case v: Timestamp => DateTimeUtils.toIsoDateTimeStringJst(v)
+      // case v: Symbol => v.name
+      // case m: NodeSeq => m.toString
+      // case m: Seq[_] => m.map(toString(_)).mkString(",")
+      // case m: Array[_] => m.map(toString(_)).mkString(",")
       case m: Record => RecordUtils.toJsonString(m)
-      case m: JsValue => m.toString
       case _ => LibAnyUtils.toString(x)
     }
   }
@@ -42,6 +48,7 @@ object AnyUtils {
     case m: Showable => m.print
     case m => toString(m)
   }
+//  def toPrint(x: Any, width: Int): String = LibAnyUtils.toPrint(x, width)
   def toDisplay(x: Any): String = x match {
     case m: Showable => m.display
     case m => toString(m)
@@ -54,6 +61,7 @@ object AnyUtils {
     case m: Showable => m.embed
     case m => toString(m)
   }
+  def toEmbed(x: Any, width: Int): String = LibAnyUtils.toEmbed(x, width)
   def toBoolean(x: Any): Boolean = {
     x match {
       case v: Boolean => v
@@ -78,6 +86,7 @@ object AnyUtils {
       case v: Timestamp => v
       case v: Long => new Timestamp(v)
       case s: String => TimestampUtils.parse(s)
+      case m => LibAnyUtils.toTimestamp(m)
     }
   }
   def toDate(x: Any): Date = {
@@ -85,6 +94,7 @@ object AnyUtils {
       case v: Date => v
       case v: Long => new Date(v)
       case s: String => DateUtils.parse(s)
+      case m => LibAnyUtils.toDate(m)
     }
   }
   def toLocalTime(x: Any): LocalTime = org.goldenport.util.AnyUtils.toLocalTime(x)
@@ -94,13 +104,34 @@ object AnyUtils {
       case m: URI => m.toURL
       case m: File => m.toURI.toURL
       case s: String => UURL.getURLFromFileOrURLName(s)
+      case m => LibAnyUtils.toUrl(m)
     }
   }
   def toUri(x: Any): URI = LibAnyUtils.toUri(x)
   // V2
   def toRecord(x: Any): Record = x match {
     case m: Record => m
+    case m: Record3 => m.toRecord2
     case m: String => org.goldenport.record.v2.util.RecordUtils.fromJsonString(m)
-    case m => throw new IllegalArgumentException(s"No record: $x")
+    case m => Record.create(LibAnyUtils.toRecord(m))
+//    case m => throw new IllegalArgumentException(s"No record: $x")
   }
+  def toRecord3(x: Any): Record3 = x match {
+    case m: Record => Record3.create(m)
+    case m: Record3 => m
+    case m: String => Record3.fromJson(m) match {
+      case Right(r) => r
+      case Left(l) => throw new IllegalArgumentException(s"Json Array: $l")
+    }
+    case m => Record3.create(LibAnyUtils.toRecord(m))
+  }
+
+  def getByte(p: Any): Option[Byte] = LibAnyUtils.getByte(p)
+  def getShort(p: Any): Option[Short] = LibAnyUtils.getShort(p)
+  def getInt(p: Any): Option[Int] = LibAnyUtils.getInt(p)
+  def getLong(p: Any): Option[Long] = LibAnyUtils.getLong(p)
+  def getFloat(p: Any): Option[Float] = LibAnyUtils.getFloat(p)
+  def getDouble(p: Any): Option[Double] = LibAnyUtils.getDouble(p)
+  def getBigInt(p: Any): Option[BigInt] = LibAnyUtils.getBigInt(p)
+  def getBigDecimal(p: Any): Option[BigDecimal] = LibAnyUtils.getBigDecimal(p)
 }

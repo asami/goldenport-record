@@ -1,5 +1,6 @@
 package org.goldenport.record.v3
 
+import scala.util.control.NonFatal
 import scalaz._, Scalaz._
 import java.sql.Timestamp
 import org.w3c.dom.{Element, Attr}
@@ -18,7 +19,7 @@ import org.goldenport.record.v2.{Record => Record2, Field => Field2, Schema}
 import org.goldenport.record.util.StringUtils
 import org.goldenport.record.util.AnyUtils
 import org.goldenport.util.VectorUtils
-import org.goldenport.record.v2.{Record => Record2, Field => Field2, Schema}
+import org.goldenport.record.v2.{Record => Record2, Field => Field2, Schema => Schema2}
 import org.goldenport.record.v2.InputFile
 import org.goldenport.record.v2.util.RecordUtils
 import org.goldenport.collection.{NonEmptyVector, VectorMap}
@@ -79,7 +80,18 @@ import org.goldenport.values.PathName
  *  version Oct. 14, 2020
  *  version Mar. 28, 2021
  *  version Apr. 22, 2021
- * @version May. 20, 2021
+ *  version May. 20, 2021
+ *  version May.  8, 2021
+ *  version Sep. 17, 2021
+ *  version Oct. 31, 2021
+ *  version Jan. 25, 2022
+ *  version Feb. 17, 2022
+ *  version Mar. 30, 2022
+ *  version Aug. 29, 2022
+ *  version Sep. 27, 2022
+ *  version Oct. 10, 2022
+ *  version Dec. 16, 2022
+ * @version Jan. 20, 2023
  * @author  ASAMI, Tomoharu
  */
 case class Record(
@@ -87,17 +99,21 @@ case class Record(
   meta: Record.MetaData = Record.MetaData.empty,
   extra: Record.Extra = Record.Extra.empty,
   override val parent: Option[Record] = None
-) extends IRecord with ElementNode with MapPart with ParsePart
+) extends IRecord with ElementNode with MapPart with ParsePart with ConsequencePart
     with XmlPart with JsonPart with CsvPart with LtsvPart with LxsvPart
-    with HttpPart with SqlPart
+    with HttpPart with SqlPart with HoconPart with PathNamePart
     with CompatibilityPart {
   def toRecord = this
-  def getSchema: Option[Schema] = meta.schema
+  def getSchema: Option[Schema2] = meta.schema
 
   override def toMap = this
 
+  override def isDefinedAt(key: String): Boolean = isDefined(key)
+  override def apply(key: String): Any = get(key) getOrElse {
+    throw new IllegalArgumentException(s"Missing string '$key.name'")
+  }
   override def isEmpty: Boolean = fields.isEmpty
-  override def toString(): String = s"Record($show)"
+  override def toString(): String = s"Record(${fields.length})" // s"""Record(${fields.map(_.toString).mkString(",")})"""
 
   def isDefined(key: Symbol): Boolean = fields.exists(_.key == key)
   def isDefined(key: String): Boolean = isDefined(Symbol(key))
@@ -109,10 +125,17 @@ case class Record(
   lazy val keySymbols: List[Symbol] = fields.map(_.key).toList
   lazy val keyNames: List[String] = fields.map(_.name).toList
 
-  def print: String = toLxsv.print
-  def display: String = print // TODO
-  def show: String = print // TODO
-  def embed: String = display.replace('\t', ' ')
+  private lazy val _print = try {
+    toLxsv.print
+  } catch {
+    case NonFatal(e) => s"Record: $e"
+  }
+  def print: String = _print
+  def display: String = print.replace('\t', ' ')
+  def show: String = {
+    val a = fields.map(_.show).mkString(",")
+    s"Record($a)"
+  }
 
   def get(key: String): Option[Any] = getField(key).flatMap(_.value.getValue)
 
@@ -141,16 +164,34 @@ case class Record(
   //   getField(Symbol(key))
   // }
 
+// <<<<<<< HEAD
   def getList(key: String): Option[List[Any]] = getField(key).flatMap(_.value.getList)
 
   def getList(key: Symbol): Option[List[Any]] = getField(key).flatMap(_.value.getList)
 
-  def getValue(key: Symbol): Option[FieldValue] = {
+//   def getValue(key: Symbol): Option[FieldValue] = {
+//     getField(key).map(_.value)
+//   }
+
+//   def getValue(key: String): Option[FieldValue] = {
+//     getValue(Symbol(key))
+
+// =======
+  def getValue(key: Symbol): Option[Any] = {
     getField(key).map(_.value)
   }
 
-  def getValue(key: String): Option[FieldValue] = {
-    getValue(Symbol(key))
+  def getValue(key: String): Option[Any] = {
+    getField(key).map(_.value)
+  }
+
+  def getFieldValue(key: Symbol): Option[FieldValue] = {
+    getField(key).map(_.value)
+  }
+
+  def getFieldValue(key: String): Option[FieldValue] = {
+    getField(key).map(_.value)
+// >>>>>>> master
   }
 
   override def getString(key: Symbol): Option[String] = {
@@ -160,6 +201,9 @@ case class Record(
   override def getString(key: String): Option[String] = {
     getString(Symbol(key))
   }
+
+  def getStringCaseInsensitive(keys: Seq[String]): Option[String] =
+    fields.find(x => keys.exists(x.name.equalsIgnoreCase)).map(_.asString)
 
   def getStringCaseInsensitive(keys: NonEmptyVector[String]): Option[String] =
     fields.find(x => keys.exists(x.name.equalsIgnoreCase)).map(_.asString)
@@ -217,6 +261,11 @@ case class Record(
   def getBigDecimal(key: Symbol): Option[BigDecimal] = getField(key).map(_.asBigDecimal)
   def getBigDecimal(key: String): Option[BigDecimal] = getField(key).map(_.asBigDecimal)
 
+  def takeBigDecimal(key: Symbol): BigDecimal = getBigDecimal(key) getOrElse {
+    throw new IllegalArgumentException(s"Missing float '$key.name'")
+  }
+  def takeBigDecimal(key: String): BigDecimal = takeBigDecimal(Symbol(key))
+
   // def getTimestamp(key: Symbol): Option[Timestamp] = {
   //   getField(key).map(_.asTimestamp)
   // }
@@ -231,11 +280,20 @@ case class Record(
   //   }
   // }
 
-  def getRecord(key: Symbol): Option[Record] = getField(key).map(_.asRecord)
-  def getRecord(key: String): Option[Record] = getField(key).map(_.asRecord)
+  def getAsRecord(key: Symbol): Option[Record] = getField(key).map(_.asRecord)
+  def getAsRecord(key: String): Option[Record] = getField(key).map(_.asRecord)
+  def getRecord(key: Symbol): Option[Record] = getField(key).flatMap(_.getRecord)
+  def getRecord(key: String): Option[Record] = getField(key).flatMap(_.getRecord)
 
-  def takeRecordList(key: Symbol): List[Record] = getField(key).map(_.asRecordList).getOrElse(Nil)
-  def takeRecordList(key: String): List[Record] = getField(key).map(_.asRecordList).getOrElse(Nil)
+  def takeRecordList(key: Symbol): List[Record] = getField(key).map(_.asRecordList) getOrElse {
+    throw new IllegalArgumentException(s"Missing record list '$key.name'")
+  }
+  def takeRecordList(key: String): List[Record] = getField(key).map(_.asRecordList) getOrElse {
+    throw new IllegalArgumentException(s"Missing record list '$key.name'")
+  }
+
+  def takeinRecordList(key: Symbol): List[Record] = getField(key).map(_.asRecordList).getOrElse(Nil)
+  def takeinRecordList(key: String): List[Record] = getField(key).map(_.asRecordList).getOrElse(Nil)
 
   def keyValues: Seq[(Symbol, Any)] = fields.flatMap(_.keyValue)
   def nameValues: Seq[(String, Any)] = fields.flatMap(_.nameValue)
@@ -433,7 +491,7 @@ object Record {
   val empty = Record(Vector.empty)
 
   case class MetaData(
-    schema: Option[Schema]
+    schema: Option[Schema2]
   ) {
     def columns: Option[List[Field.MetaData]] = schema.map(_.columns.map(x => Field.MetaData(Some(x))).toList)
     def prefix: Option[String] = schema.flatMap(_.xml.prefix)
@@ -597,6 +655,9 @@ object Record {
     createAnyMap(p.asScala.toMap)
   }
 
+  def createHttpArray(data: Map[String, Array[String]]): Record =
+    create(data).http.request.normalize
+
   def createHttp(data: Map[String, List[String]]): Record =
     create(data).http.request.normalize
 
@@ -636,6 +697,10 @@ object Record {
 
   def fromJson(p: String): Either[RecordSequence, Record] = createRecordOrSequence(Json.parse(p))
 
+  def fromJsonObject(p: String): Record = fromJson(p).right.get
+
+  def fromJsonArray(p: String): RecordSequence = fromJson(p).left.get
+ 
   def fromXml(p: String): Record = RAISE.notImplementedYetDefect
 
   // def fromDom(p: org.w3c.dom.Node): Either[RecordSequence, Record] = create(p)
@@ -759,7 +824,7 @@ object Record {
   private def _create_record_sequence(ps: IndexedSeq[Element]): RecordSequence =
     RecordSequence(ps.map(_create_record).toVector)
 
-  def create(schema: Schema, data: Seq[Any]): Record = {
+  def create(schema: Schema2, data: Seq[Any]): Record = {
     val xs = schema.columns.toVector.zip(data).map {
       case (c, d) => Field.create(c, d)
     }
@@ -773,8 +838,8 @@ object Record {
     Record(xs)
   }
 
-  def makeSchema(p: Record, ps: Record*): Schema = IRecord.makeSchema(p +: ps)
-  def makeSchema(ps: Seq[Record]): Schema = IRecord.makeSchema(ps)
+  def makeSchema(p: Record, ps: Record*): Schema2 = IRecord.makeSchema(p +: ps)
+  def makeSchema(ps: Seq[Record]): Schema2 = IRecord.makeSchema(ps)
 
   // def buildSchema(p: IRecord): Schema = RecordUtils.buildSchema(p.toRecord.toRecord2)
   // def buildSchema(ps: Seq[IRecord]): Schema = {
