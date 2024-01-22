@@ -2,9 +2,9 @@ organization := "org.goldenport"
 
 name := "goldenport-record"
 
-version := "2.1.10.1A-SNAPSHOT"
+version := "2.1.10.1A"
 
-scalaVersion := "2.12.13"
+scalaVersion := "2.12.7"
 
 // crossScalaVersions := Seq("2.11.6", "2.10.5")
 
@@ -28,15 +28,9 @@ resolvers += "GitHab releases 2019" at "https://raw.github.com/asami/maven-repos
 
 resolvers += "GitHab releases 2020" at "https://raw.github.com/asami/maven-repository/2020/releases"
 
-// <<<<<<< HEAD
-resolvers += "GitHab releases" at "https://raw.github.com/asami/maven-repository/2021-scala2.12/releases"
-// =======
-// resolvers += "GitHab releases 2021" at "https://raw.github.com/asami/maven-repository/2021/releases"
+resolvers += "GitHab releases 2021" at "https://raw.github.com/asami/maven-repository/2021-scala2.12/releases"
 
-// resolvers += "GitHab releases 2022" at "https://raw.github.com/asami/maven-repository/2022/releases"
-
-// resolvers += "GitHab releases" at "https://raw.github.com/asami/maven-repository/2023/releases"
-// >>>>>>> master
+resolvers += "GitHab releases" at "https://raw.github.com/asami/maven-repository/2024/releases"
 
 // resolvers += "Asami Maven Repository" at "http://www.asamioffice.com/maven"
 
@@ -48,7 +42,7 @@ libraryDependencies += "org.goldenport" %% "goldenport-atom" % "2.1.1"
 
 libraryDependencies += "org.smartdox" %% "smartdox" % "2.1.3"
 
-libraryDependencies += "org.goldenport" %% "goldenport-scala-lib" % "2.1.12.1A-SNAPSHOT"
+libraryDependencies += "org.goldenport" %% "goldenport-scala-lib" % "2.1.12.1A"
 
 libraryDependencies += "com.typesafe.play" %% "play-json" % "2.6.10" % "provided" exclude("org.scala-stm", "scala-stm_2.10.0")
 
