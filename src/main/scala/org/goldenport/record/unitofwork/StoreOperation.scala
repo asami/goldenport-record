@@ -129,13 +129,9 @@ object StoreOperation {
     rs: RecordSet
   ): StoreOperationFM[IndexedSeq[InsertResult]] = Free.liftF(Inserts(store, rs))
 
-// <<<<<<< HEAD
-//   def update(store: Store, id: Store.Id, rec: Record) = Free.liftF(Update(store, id, rec))
-// =======
-  def update(cmd: Update): StoreOperationFM[UpdateResult] = Free.liftFC(cmd)
+  def update(cmd: Update): StoreOperationFM[UpdateResult] = Free.liftF(cmd)
 
-  def update(store: Store, id: Store.Id, rec: Record) = Free.liftFC(Update(store, id, rec))
-// >>>>>>> master
+  def update(store: Store, id: Store.Id, rec: Record) = Free.liftF(Update(store, id, rec))
 
   def update(store: Store, id: String, rec: Record) = Free.liftF(Update(store, Store.StringId(id), rec))
 

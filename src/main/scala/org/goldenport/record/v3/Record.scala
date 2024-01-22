@@ -15,7 +15,6 @@ import play.api.libs.json._
 // }
 import com.typesafe.config.Config
 import org.goldenport.RAISE
-import org.goldenport.record.v2.{Record => Record2, Field => Field2, Schema}
 import org.goldenport.record.util.StringUtils
 import org.goldenport.record.util.AnyUtils
 import org.goldenport.util.VectorUtils
@@ -438,7 +437,7 @@ case class Record(
     fields.map(_.asString).toVector
   }
 
-  def toStrings(schema: Schema): Vector[String] = {
+  def toStrings(schema: Schema2): Vector[String] = {
     schema.columns.toVector.map(c => getString(c.name) getOrElse "")
   }
 
