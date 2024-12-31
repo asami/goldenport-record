@@ -17,7 +17,8 @@ import org.goldenport.values.{NumberRange, EnumRange}
  *  version Jan. 26, 2020
  *  version Feb. 28, 2020
  *  version Mar. 25, 2021
- * @version Oct. 31, 2021
+ *  version Oct. 31, 2021
+ * @version Oct. 16, 2024
  * @author  ASAMI, Tomoharu
  */
 trait ITable extends org.goldenport.table.ITable {
@@ -25,13 +26,14 @@ trait ITable extends org.goldenport.table.ITable {
   def schema: Schema2
   def meta: Table.MetaData // TODO
   def head: Option[Table.Head] // TODO
+  def side: Option[Table.Side]
   def foot: Option[Table.Foot] // TODO
   def data: Table.Data
   def width: Int = data.width
   def height: Int = data.height
   def toRecordList: List[Record]
   def toRecordVector: Vector[Record]
-  def toVectorVector: Vector[Vector[Any]] = data.matrix.rowVector.map(_.map(_.content))
+  def toVectorVector: Vector[Vector[Any]] = data.datamatrix.rowVector.map(_.map(_.content))
   def filter(f: Record => Boolean): ITable
   def select(names: Seq[String]): ITable
   def select(p: NumberRange): ITable
@@ -87,7 +89,7 @@ object ITable {
 
     private def _tbody(p: ITable): Option[Field] = {
       // data.columns
-      val xs = for (row <- p.data.matrix.rowIterator) yield {
+      val xs = for (row <- p.data.datamatrix.rowIterator) yield {
         val a = for (c <- row) yield {
           val d = c.text
           Field.create("td", d, _td_column)

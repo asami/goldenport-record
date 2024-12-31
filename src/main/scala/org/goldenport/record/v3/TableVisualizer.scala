@@ -12,7 +12,8 @@ import org.goldenport.record.v2.{Schema => Schema2, Column => Column2, DisplayFo
  *  version Nov. 16, 2019
  *  version Mar. 25, 2021
  *  version Oct. 31, 2021
- * @version Feb. 24, 2022
+ *  version Feb. 24, 2022
+ * @version Oct. 16, 2024
  * @author  ASAMI, Tomoharu
  */
 case class TableVisualizer(
@@ -37,9 +38,9 @@ case class TableVisualizer(
     val data = _format_data(p)
     val linestyle = lineStyle getOrElse MatrixVisualizer.JisLineStyle
     val mv = MatrixVisualizer.border(_to_string).withLineStyle(linestyle).withColumnDefs(cdefs).withCompact(isCompact)
-    val a = data.matrix
+    val a = data.datamatrix
     val columns = _build_columns(mv, a)
-    mv.plainText(columns, data.matrix)
+    mv.plainText(columns, data.datamatrix)
   }
 
   private def _with_header(ph: Table.Head, pp: Table.Data) = {
@@ -50,10 +51,10 @@ case class TableVisualizer(
     val linestyle = lineStyle getOrElse MatrixVisualizer.JisThickLineStyle
     val headervis = MatrixVisualizer.header(_to_string).withLineStyle(linestyle).withColumnDefs(cdefs).withCompact(isCompact)
     val bodyvis = MatrixVisualizer.bodyEnd(_to_string).withLineStyle(linestyle).withColumnDefs(cdefs).withCompact(isCompact)
-    val a = h.matrix appendRows data.matrix
+    val a = h.matrix appendRows data.datamatrix
     val columns = _build_columns(bodyvis, a)
     val rh = headervis.plainTextCenter(columns, h.matrix)
-    val rb = bodyvis.plainText(columns, data.matrix)
+    val rb = bodyvis.plainText(columns, data.datamatrix)
     rh + rb
   }
 
@@ -65,9 +66,9 @@ case class TableVisualizer(
     val linestyle = lineStyle getOrElse MatrixVisualizer.JisThickLineStyle
     val footervis = MatrixVisualizer.footer(_to_string).withLineStyle(linestyle).withColumnDefs(cdefs).withCompact(isCompact)
     val bodyvis = MatrixVisualizer.bodyStart(_to_string).withLineStyle(linestyle).withColumnDefs(cdefs).withCompact(isCompact)
-    val a = data.matrix appendRows f.matrix
+    val a = data.datamatrix appendRows f.matrix
     val columns = _build_columns(bodyvis, a)
-    val rb = bodyvis.plainText(columns, data.matrix)
+    val rb = bodyvis.plainText(columns, data.datamatrix)
     val rf = footervis.plainText(columns, f.matrix)
     rb + rf
   }
@@ -82,12 +83,12 @@ case class TableVisualizer(
     val headervis = MatrixVisualizer.header(_to_string).withLineStyle(linestyle).withColumnDefs(cdefs).withCompact(isCompact)
     val footervis = MatrixVisualizer.body(_to_string).withLineStyle(linestyle).withColumnDefs(cdefs).withCompact(isCompact)
     val bodyvis = MatrixVisualizer.footer(_to_string).withLineStyle(linestyle).withColumnDefs(cdefs).withCompact(isCompact)
-    val datamatrix = p.matrix
+    val datamatrix = p.datamatrix
     val a = h.matrix appendRows datamatrix appendRows f.matrix
     val columns = _build_columns(bodyvis, a)
-    val rh = headervis.plainText(columns, p.matrix)
-    val rb = bodyvis.plainText(columns, p.matrix)
-    val rf = footervis.plainText(columns, p.matrix)
+    val rh = headervis.plainText(columns, p.datamatrix)
+    val rb = bodyvis.plainText(columns, p.datamatrix)
+    val rf = footervis.plainText(columns, p.datamatrix)
     rh + rb + rf
   }
 

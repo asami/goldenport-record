@@ -2,12 +2,15 @@ package org.goldenport.record.v3
 
 import scala.util.control.NonFatal
 import scalaz._, Scalaz._
+import scala.collection.JavaConverters._
 import java.sql.Timestamp
 import org.w3c.dom.{Element, Attr}
 import org.joda.time.DateTime
 import play.api.libs.json._
 import com.typesafe.config.Config
+import com.typesafe.config.{ConfigValue, ConfigObject, ConfigList}
 import org.goldenport.RAISE
+import org.goldenport.Strings
 import org.goldenport.util.VectorUtils
 import org.goldenport.record.util.StringUtils
 import org.goldenport.record.util.AnyUtils
@@ -80,7 +83,8 @@ import org.goldenport.values.PathName
  *  version Dec. 16, 2022
  *  version Jan. 20, 2023
  *  version Nov. 29, 2023
- * @version Dec.  2, 2023
+ *  version Dec.  2, 2023
+ * @version Dec.  5, 2024
  * @author  ASAMI, Tomoharu
  */
 case class Record(
@@ -480,8 +484,42 @@ object Record {
     })
 
   def createConfig(p: Config): Record = {
-    import scala.collection.JavaConverters._
-    createDataSeq(p.entrySet.asScala.toVector.map(x => x.getKey -> x.getValue.unwrapped))
+    val xs = p.entrySet.asScala.toVector.map(_to_field)
+    Record.createDataSeq(xs)
+  }
+
+  private def _to_field(p: java.util.Map.Entry[String, ConfigValue]): (String, Any) =
+    _to_field(p.getKey, p.getValue)
+
+  private def _to_field(key: String, value: ConfigValue): (String, Any) = {
+    val path = Strings.totokens(key, ".")
+    println(s"path: $path")
+    val v = _to_value(value)
+    println(s"v: $value => $v")
+    val r = _create_tree(path, v)
+    println(s"r: $r")
+    r
+  }
+
+  private def _to_value(p: ConfigValue): Any = p match {
+    case m: ConfigObject => _create_object(m.asScala.toMap)
+    case m: ConfigList => _create_list(m.asScala)
+    case m => m.unwrapped
+  }
+
+  private def _create_object(p: Map[String, ConfigValue]) = {
+    val xs = p.toVector.map {
+      case (k, v) => _to_field(k, v)
+    }
+    Record.createDataSeq(xs)
+  }
+
+  private def _create_list(p: Seq[ConfigValue]) = p.toList.map(_to_value)
+
+  private def _create_tree(path: List[String], value: Any): (String, Any) = path match {
+    case Nil => RAISE.noReachDefect
+    case x :: Nil => x -> value
+    case x :: xs => x -> Record.data(_create_tree(xs, value))
   }
 
   def createJavaMap(p: java.util.Map[_, _]): Record = {

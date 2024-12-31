@@ -14,7 +14,8 @@ import org.goldenport.record.v2.Validator._
 /*
  * @since   Apr. 29, 2021
  *  version Jun. 19, 2021
- * @version Oct. 25, 2021
+ *  version Oct. 25, 2021
+ * @version Nov.  2, 2024
  * @author  ASAMI, Tomoharu
  */
 case class ValueDomain(
@@ -67,7 +68,7 @@ case class ValueDomain(
       case m: Invalid => m match {
         case CompoundFailure(fs, w) =>
           val a = fs.map(_value_domain_fault)
-          Failure(NonEmptyList.nel(a.head, a.tail.toList))
+          Failure(NonEmptyList.nel(a.head, a.tail.list))
         case mm => Failure(NonEmptyList(ValueDomainFault(mm.i18nMessage)))
       }
     }

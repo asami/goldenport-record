@@ -19,7 +19,7 @@ import org.goldenport.values.DateTimePeriod
 import org.goldenport.record.query._
 import org.goldenport.record.util.{
   DateUtils, TimeUtils, TimestampUtils, DateTimeUtils, AnyUtils}
-import org.goldenport.statemachine.{StateMachineClass, StateMachine}
+import org.goldenport.sm.{StateMachineClass, StateMachine}
 
 /*
  * @since   Nov. 23, 2012
@@ -48,7 +48,8 @@ import org.goldenport.statemachine.{StateMachineClass, StateMachine}
  *  version Mar. 21, 2021
  *  version Apr. 29, 2021
  *  version Oct. 31, 2021
- * @version Nov.  5, 2021
+ *  version Nov.  5, 2021
+ * @version Sep.  6, 2024
  * @author  ASAMI, Tomoharu
  */
 sealed trait DataType {

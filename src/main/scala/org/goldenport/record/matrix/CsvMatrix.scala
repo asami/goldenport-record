@@ -13,7 +13,8 @@ import org.goldenport.record.v2.bag.CsvBag
  *  version Jul. 16, 2019
  *  version Aug. 26, 2019
  *  version Sep. 19, 2019
- * @version Feb. 26, 2020
+ *  version Feb. 26, 2020
+ * @version Oct. 18, 2024
  * @author  ASAMI, Tomoharu
  */
 case class CsvMatrix(bag: CsvBag) extends IMatrix[Double] {
@@ -39,6 +40,7 @@ case class CsvMatrix(bag: CsvBag) extends IMatrix[Double] {
   def appendColumns(ps: IMatrix[Double]): IMatrix[Double] = RAISE.notImplementedYetDefect
 
   def transpose: IMatrix[Double] = RAISE.notImplementedYetDefect
+  def map[A](p: Double => A): IMatrix[A] = RAISE.notImplementedYetDefect
 }
 
 object CsvMatrix {
