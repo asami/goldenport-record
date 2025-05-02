@@ -2,9 +2,9 @@ organization := "org.goldenport"
 
 name := "goldenport-record"
 
-version := "2.1.10.1B"
+version := "2.2.0"
 
-scalaVersion := "2.12.7"
+scalaVersion := "2.12.18"
 
 // crossScalaVersions := Seq("2.11.6", "2.10.5")
 
@@ -42,7 +42,7 @@ libraryDependencies += "org.goldenport" %% "goldenport-atom" % "2.1.1"
 
 libraryDependencies += "org.smartdox" %% "smartdox" % "2.1.3"
 
-libraryDependencies += "org.goldenport" %% "goldenport-scala-lib" % "2.1.12.1A"
+libraryDependencies += "org.goldenport" %% "goldenport-scala-lib" % "2.2.0"
 
 libraryDependencies += "com.typesafe.play" %% "play-json" % "2.6.10" % "provided" exclude("org.scala-stm", "scala-stm_2.10.0")
 
@@ -72,10 +72,10 @@ libraryDependencies += "com.googlecode.json-simple" % "json-simple" % "1.1"
 //
 // publishTo := Some(Resolver.file("asamioffice", file("target/maven-repository")))
 
-val mavenrepo = settingKey[String]("mavenrepo")
+publishTo := Some(
+  "GitHub Packages" at "https://maven.pkg.github.com/asami/maven-repository"
+)
 
-mavenrepo := sys.env.getOrElse("PUBLISH_MAVEN_REPO", default = "target/maven-repository")
+credentials += Credentials(Path.userHome / ".sbt" / ".credentials")
 
-publishTo <<= mavenrepo { v: String =>
-  Some(Resolver.file("file", file(v)))
-}
+publishMavenStyle := true

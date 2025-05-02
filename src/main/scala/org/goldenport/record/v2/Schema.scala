@@ -549,7 +549,8 @@ object Schema {
             case JsArray(xs) => xs.map(_.as[Validator])
             case m => RAISE.noReachDefect(s"Unknown element in columns: $m") // JsError(s"Unknown element in columns: $m")
           }
-          case m: JsUndefined => RAISE.noReachDefect(s"Unknown element in columns: $m") // JsError(s"Unknown element in columns: $m")
+          case m: JsUndefined => Nil
+          case m => RAISE.noReachDefect(s"Unknown element in columns: $m") // JsError(s"Unknown element in columns: $m")
         }
         JsSuccess(Schema(columns, validators = validators))
       }

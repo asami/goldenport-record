@@ -41,6 +41,8 @@ import org.goldenport.record.chart._
 class JFreeChartDriver() extends ChartDriver {
   val name = "jfreechart"
 
+  protected def get_Observability_Context = None
+
   def draw(chart: Chart): ChartWindow = {
     val space = chart.space
     val strategy = JFreeChartDriver.Strategy.create(chart)
