@@ -35,13 +35,14 @@ import org.goldenport.record.chart._
  *  version Mar. 18, 2019
  *  version Aug.  4, 2019
  *  version Sep. 19, 2019
- * @version Feb. 25, 2020
+ *  version Feb. 25, 2020
+ * @version May.  9, 2025
  * @author  ASAMI, Tomoharu
  */
 class JFreeChartDriver() extends ChartDriver {
   val name = "jfreechart"
 
-  protected def get_Observability_Context = None
+  override protected def get_Observability_Context = None
 
   def draw(chart: Chart): ChartWindow = {
     val space = chart.space
