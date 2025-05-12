@@ -2,7 +2,7 @@ organization := "org.goldenport"
 
 name := "goldenport-record"
 
-version := "2.2.0"
+version := "2.2.1"
 
 scalaVersion := "2.12.18"
 
@@ -15,7 +15,7 @@ scalacOptions += "-unchecked"
 scalacOptions += "-feature"
 
 // <<<<<<< HEAD
-incOptions := incOptions.value.withNameHashing(true)
+// incOptions := incOptions.value.withNameHashing(true)
 
 javacOptions ++= Seq("-source", "1.8", "-target", "1.8")
 
@@ -24,13 +24,17 @@ javacOptions ++= Seq("-source", "1.8", "-target", "1.8")
 // resolvers += "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases"
 // >>>>>>> master
 
-resolvers += "GitHab releases 2019" at "https://raw.github.com/asami/maven-repository/2019/releases"
+// resolvers += "GitHab releases 2019" at "https://raw.github.com/asami/maven-repository/2019/releases"
 
 resolvers += "GitHab releases 2020" at "https://raw.github.com/asami/maven-repository/2020/releases"
 
-resolvers += "GitHab releases 2021" at "https://raw.github.com/asami/maven-repository/2021-scala2.12/releases"
+// resolvers += "GitHab releases 2021" at "https://raw.github.com/asami/maven-repository/2021-scala2.12/releases"
 
-resolvers += "GitHab releases" at "https://raw.github.com/asami/maven-repository/2024/releases"
+// resolvers += "GitHab releases" at "https://raw.github.com/asami/maven-repository/2024/releases"
+
+resolvers += "GitHab releases" at "https://raw.github.com/asami/maven-repository/2025/releases"
+
+resolvers += "GitHub Packages" at "https://maven.pkg.github.com/asami/maven-repository"
 
 // resolvers += "Asami Maven Repository" at "http://www.asamioffice.com/maven"
 
@@ -40,9 +44,9 @@ resolvers += "Local Maven Repository" at "file://"+Path.userHome.absolutePath+"/
 
 libraryDependencies += "org.goldenport" %% "goldenport-atom" % "2.1.1"
 
-libraryDependencies += "org.smartdox" %% "smartdox" % "2.1.3"
+libraryDependencies += "org.smartdox" %% "smartdox" % "2.2.2"
 
-libraryDependencies += "org.goldenport" %% "goldenport-scala-lib" % "2.2.0"
+libraryDependencies += "org.goldenport" %% "goldenport-scala-lib" % "2.2.2"
 
 libraryDependencies += "com.typesafe.play" %% "play-json" % "2.6.10" % "provided" exclude("org.scala-stm", "scala-stm_2.10.0")
 
