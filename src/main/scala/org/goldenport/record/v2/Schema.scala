@@ -48,7 +48,8 @@ import org.goldenport.record.v3.IRecord
  *  version Jul. 28, 2018
  *  version Aug. 29, 2018
  *  version Sep.  5, 2018
- * @version Oct. 24, 2018
+ *  version Oct. 24, 2018
+ * @version Sep. 12, 2025
  *  version Jan.  1, 2019
  *  version Feb. 12, 2019
  *  version Apr. 29, 2019
@@ -60,7 +61,7 @@ import org.goldenport.record.v3.IRecord
  *  version Apr. 17, 2020
  *  version Jun.  8, 2020
  *  version Mar. 17, 2021
- * @version Mar. 19, 2022
+ * @version Sep. 12, 2025
  * @author  ASAMI, Tomoharu
  */
 case class Schema(
@@ -859,7 +860,7 @@ sealed trait ValidationResult {
   def enkey(key: String): ValidationResult = this
   def enlabel(label: String): ValidationResult = this
   def i18nMessage: I18NString
-  def message(locale: Locale): String = i18nMessage(locale)
+  def message(locale: Locale): String = i18nMessage.distill(locale)
   def isSuccess: Boolean
   def isWarning: Boolean
   def isError: Boolean

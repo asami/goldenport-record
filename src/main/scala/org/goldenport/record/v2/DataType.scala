@@ -49,7 +49,8 @@ import org.goldenport.sm.{StateMachineClass, StateMachine}
  *  version Apr. 29, 2021
  *  version Oct. 31, 2021
  *  version Nov.  5, 2021
- * @version Sep.  6, 2024
+ *  version Sep.  6, 2024
+ * @version Sep. 17, 2025
  * @author  ASAMI, Tomoharu
  */
 sealed trait DataType {
@@ -249,7 +250,11 @@ object DataType {
     XXml,
     XHtml,
     XRecordInstance,
-    XObject
+    XObject,
+    //
+    XIdentifier,
+    XName,
+    XTitle
     // XEntityReference, XValue, XEverforthObjectReference, XPowertype, XPowertypeReference, XStateMachine, XStateMachineReference, XExternalDataType
   )
 
@@ -1561,6 +1566,33 @@ case object XObject extends DataType {
   override def isSqlString = false // typical case
   override def isValue = true
   override def isReference = false
+}
+
+case object XIdentifier extends DataType {
+  type InstanceType = String
+  def toInstance(x: Any): InstanceType = x.toString
+
+  def validate(d: Any): ValidationResult = Valid // TODO
+  def label = "識別子"
+  override def getXmlDatatypeName = Some("token")
+}
+
+case object XName extends DataType {
+  type InstanceType = String
+  def toInstance(x: Any): InstanceType = x.toString
+
+  def validate(d: Any): ValidationResult = Valid // TODO
+  def label = "名前"
+  override def getXmlDatatypeName = Some("token")
+}
+
+case object XTitle extends DataType {
+  type InstanceType = String
+  def toInstance(x: Any): InstanceType = x.toString
+
+  def validate(d: Any): ValidationResult = Valid // TODO
+  def label = "タイトル"
+  override def getXmlDatatypeName = Some("token")
 }
 
 case class XEverforthObjectReference(schema: Schema, reader: (java.sql.Connection, Schema, Record) => RecordSet) extends DataType {

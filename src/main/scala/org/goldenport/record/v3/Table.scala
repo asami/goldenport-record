@@ -40,7 +40,8 @@ import org.goldenport.record.util.AnyUtils
  *  version Mar. 19, 2022
  *  version May.  7, 2022
  *  version Jan. 22, 2023
- * @version Oct. 23, 2024
+ *  version Oct. 23, 2024
+ * @version Sep. 12, 2025
  * @author  ASAMI, Tomoharu
  */
 case class Table(
@@ -1009,7 +1010,7 @@ object Table {
       val name = "label"
     }
     object LabelStrategy extends EnumerationClass[LabelStrategy] {
-      val name = "label"
+//      val name = "label"
 
       val elements = Vector(NameLabel, LabelLabel)
     }
@@ -1036,7 +1037,7 @@ object Table {
     private def _to_cell(p: Column2): Cell = {
       val s = header.label match {
         case HeaderStrategy.NameLabel => p.name
-        case HeaderStrategy.LabelLabel => p.labelI18NString(i18n.locale)
+        case HeaderStrategy.LabelLabel => p.labelI18NString.distill(i18n.locale)
       }
       Cell(s)
     }
@@ -1053,7 +1054,7 @@ object Table {
           val names = rhs.nameCandidates
           p.fields.find(x => names.contains(x.name)).
             map { f =>
-              val label = rhs.labelI18NString(i18n.locale)
+              val label = rhs.labelI18NString.distill(i18n.locale)
               val a = f.withKey(label)
               copy(xs = xs :+ a)
             }.getOrElse(this)

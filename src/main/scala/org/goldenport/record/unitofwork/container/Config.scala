@@ -6,7 +6,8 @@ import org.goldenport.record.unitofwork.interpreter._
 
 /*
  * @since   Feb. 11, 2020
- * @version Feb. 11, 2020
+ *  version Feb. 11, 2020
+ * @version Sep. 12, 2025
  * @author  ASAMI, Tomoharu
  */
 case class Config(
@@ -20,7 +21,9 @@ case class Config(
 }
 
 object Config {
-  val defaultServiceLogic = new StandardUnitOfWorkLogic()
+  private val _default_context = UnitOfWorkLogic.ExecutionContext.default
+
+  val defaultServiceLogic = new StandardUnitOfWorkLogic(_default_context)
   val defaultStoreLogic = new StandardStoreOperationLogic()
   val default = Config(CliConfig.c, defaultServiceLogic, defaultStoreLogic)
 
