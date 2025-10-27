@@ -2,7 +2,7 @@ organization := "org.goldenport"
 
 name := "goldenport-record"
 
-version := "2.2.2"
+version := "2.2.3"
 
 scalaVersion := "2.12.18"
 
@@ -46,7 +46,7 @@ libraryDependencies += "org.goldenport" %% "goldenport-atom" % "2.1.1"
 
 libraryDependencies += "org.smartdox" %% "smartdox" % "2.2.2"
 
-libraryDependencies += "org.goldenport" %% "goldenport-scala-lib" % "2.3.14"
+libraryDependencies += "org.goldenport" %% "goldenport-scala-lib" % "2.3.15"
 
 libraryDependencies += "com.typesafe.play" %% "play-json" % "2.6.10" % "provided" exclude("org.scala-stm", "scala-stm_2.10.0")
 
