@@ -14,10 +14,12 @@ import org.apache.poi.ss.usermodel._
 import com.asamioffice.goldenport.io.UURL
 import org.goldenport.Platform
 import org.goldenport.Strings
+import org.goldenport.context.Conclusion
 import org.goldenport.values.FileName
 import org.goldenport.io.{ResourceHandle, MimeType}
+import org.goldenport.io.ResourceLocator
 import org.goldenport.bag._
-import org.goldenport.record.v2._
+import org.goldenport.record.v2.{Conclusion => _, _}
 import org.goldenport.record.v2.bag.RecordBag._
 import org.goldenport.record.v2.util.{TupleUtils, RecordUtils}
 import org.goldenport.util.StringUtils
@@ -28,7 +30,8 @@ import org.goldenport.util.StringUtils
  *  version Sep. 22, 2016
  *  version Sep. 21, 2017
  *  version Aug. 18, 2019
- * @version May. 26, 2020
+ *  version May. 26, 2020
+ * @version Oct. 24, 2025
  * @author  ASAMI, Tomoharu
  */
 class ExcelBag(
@@ -461,6 +464,11 @@ object ExcelBag {
       bag.write(in)
     }
     create(kind, bag, strategy, name)
+  }
+
+  def loadResource(l: ResourceLocator): ExcelBag = {
+    val uri = l.getUrl.map(_.toURI) getOrElse Conclusion.invalidArgumentFault("???").RAISE
+    load(uri)
   }
 
   case class View(

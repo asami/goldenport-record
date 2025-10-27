@@ -41,7 +41,8 @@ import org.goldenport.record.util.AnyUtils
  *  version May.  7, 2022
  *  version Jan. 22, 2023
  *  version Oct. 23, 2024
- * @version Sep. 12, 2025
+ *  version Sep. 12, 2025
+ * @version Oct. 24, 2025
  * @author  ASAMI, Tomoharu
  */
 case class Table(
@@ -439,7 +440,7 @@ object Table {
     lazy val records: Vector[Record] =
       for (y <- datamatrix.matrix) yield {
         val a = columns.zip(y) map {
-          case (c, x) => c.name -> x
+          case (c, x) => c.name -> x.content
         }
         Record.create(a)
       }
