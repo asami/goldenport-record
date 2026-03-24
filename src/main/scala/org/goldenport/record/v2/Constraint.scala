@@ -428,11 +428,19 @@ object CFormat extends ConstraintClass {
   private val emailRegex = "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$".r
   private val uuidRegex = "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$".r
   private val uriRegex = "^[a-zA-Z][a-zA-Z0-9+\\-.]*:.*$".r
+  private val dateRegex = "^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])$".r
+  private val timeRegex = "^([01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:[\\.,]\\d{1,9})?)?(?:Z|[+-](?:[01]\\d|2[0-3]):?[0-5]\\d)?$".r
+  private val dateTimeRegex = "^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])[Tt ]([01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:[\\.,]\\d{1,9})?)?(?:Z|[+-](?:[01]\\d|2[0-3]):?[0-5]\\d)?$".r
+  private val phoneRegex = "^\\+?[1-9]\\d{6,14}$".r
 
   def regex(p: String): Option[Regex] = p.trim.toLowerCase match {
     case "email" => Some(emailRegex)
     case "uuid" => Some(uuidRegex)
     case "uri" | "url" => Some(uriRegex)
+    case "date" => Some(dateRegex)
+    case "time" => Some(timeRegex)
+    case "date-time" | "datetime" | "date_time" => Some(dateTimeRegex)
+    case "phone" | "tel" | "e164" => Some(phoneRegex)
     case _ => None
   }
 }
