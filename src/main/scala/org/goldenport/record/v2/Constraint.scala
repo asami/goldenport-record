@@ -21,7 +21,7 @@ import org.goldenport.RAISE
  *  version Jan. 21, 2017
  *  version May. 24, 2017
  *  version Apr. 28, 2019
- * @version Mar. 25, 2021
+ * @version Mar. 25, 2026
  * @author  ASAMI, Tomoharu
  */
 trait Constraint {
@@ -201,6 +201,7 @@ object Constraint {
       CMinInteger,
       CMaxDecimal,
       CMinDecimal,
+      CFormat,
       CRegex,
       CMaxItems,
       CMinItems,
@@ -402,6 +403,38 @@ case class CMinDecimal(v: BigDecimal, isExclusive: Boolean) extends Constraint {
     ???
 }
 object CMinDecimal extends ConstraintClass {
+}
+
+case class CFormat(format: String) extends Constraint {
+  override def label: String = s"format:${format.toLowerCase}"
+
+  override def validate(datatype: DataType, value: Any): ValidationResult = {
+    val s = Option(value).map(_.toString).getOrElse("")
+    validate(datatype, s, Record.empty).getOrElse(Valid)
+  }
+
+  def validate(datatype: DataType, value: String, record: Record): Option[ValidationResult] = {
+    CFormat.regex(format) match {
+      case Some(regex) =>
+        value_domain(s"'$value' does not match format '$format'.", value) {
+          regex.pattern.matcher(value).matches
+        }
+      case None =>
+        Some(ValueDomainFailure(s"Unsupported format '$format'.", value))
+    }
+  }
+}
+object CFormat extends ConstraintClass {
+  private val emailRegex = "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$".r
+  private val uuidRegex = "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$".r
+  private val uriRegex = "^[a-zA-Z][a-zA-Z0-9+\\-.]*:.*$".r
+
+  def regex(p: String): Option[Regex] = p.trim.toLowerCase match {
+    case "email" => Some(emailRegex)
+    case "uuid" => Some(uuidRegex)
+    case "uri" | "url" => Some(uriRegex)
+    case _ => None
+  }
 }
 
 case class CRegex(regex: Regex) extends Constraint {
