@@ -1,17 +1,15 @@
 package org.goldenport.record.v3
 
-import org.scalatest.junit.JUnitRunner
-import org.junit.runner.RunWith
-import org.scalatest._
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.matchers.should.Matchers
 import org.goldenport.record.v3._
 
 /*
  * @since   Jan. 25, 2022
- * @version Jan. 25, 2022
+ * @version Mar. 25, 2026
  * @author  ASAMI, Tomoharu
  */
-@RunWith(classOf[JUnitRunner])
-class RecordHoconSpec extends WordSpec with Matchers {
+class RecordHoconSpec extends AnyWordSpec with Matchers {
   "RecordHocon" should {
     "typical" which {
       "simple" in {

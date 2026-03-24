@@ -1,18 +1,17 @@
 package org.goldenport.record.v2
 
-import org.scalatest.junit.JUnitRunner
-import org.junit.runner.RunWith
-import org.scalatest._
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.matchers.should.Matchers
 import org.goldenport.record.v2.projector.{Importer => PImporter}
 import org.goldenport.record.v2.util.SchemaBuilder, SchemaBuilder._
 
 /*
  * @since   Aug. 24, 2018
- * @version Sep.  5, 2018
+ *  version Sep.  5, 2018
+ * @version Mar. 25, 2026
  * @author  ASAMI, Tomoharu
  */
-@RunWith(classOf[JUnitRunner])
-class SchemaSpec extends WordSpec with Matchers {
+class SchemaSpec extends AnyWordSpec with Matchers {
   val importerFactory = ImporterFactory(PImporter.defaultImporterClass)
   val schemaFactory = SchemaFactory(importerFactory)
 

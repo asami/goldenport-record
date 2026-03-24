@@ -1,18 +1,17 @@
 package org.goldenport.record.v2.util
 
-import org.junit.runner.RunWith
-import org.scalatest.junit.JUnitRunner
-import org.scalatest._
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.GivenWhenThen
 import org.goldenport.record.v2._, SchemaBuilder._
 import org.goldenport.record.v2.projector.{Importer => PImporter}
 
 /*
  * @since   Sep.  4, 2018
- * @version Sep.  4, 2018
+ * @version Mar. 25, 2026
  * @author  ASAMI, Tomoharu
  */
-@RunWith(classOf[JUnitRunner])
-class SchemaBuilderSpec extends WordSpec with Matchers with GivenWhenThen {
+class SchemaBuilderSpec extends AnyWordSpec with Matchers with GivenWhenThen {
   "typical" should {
     "typical" in {
       val r = SchemaBuilder.create(

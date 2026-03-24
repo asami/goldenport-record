@@ -1,19 +1,17 @@
 package org.goldenport.record.util
 
 import java.net.URL
-import org.scalatest.junit.JUnitRunner
-import org.junit.runner.RunWith
-import org.scalatest._
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.matchers.should.Matchers
 import org.goldenport.RAISE
 import org.goldenport.record.v2.Record
 
 /*
  * @since   Jul.  1, 2022
- * @version Jul.  1, 2022
+ * @version Mar. 25, 2026
  * @author  ASAMI, Tomoharu
  */
-@RunWith(classOf[JUnitRunner])
-class JsonUtilsSpec extends WordSpec with Matchers {
+class JsonUtilsSpec extends AnyWordSpec with Matchers {
   "data2json" should {
     "data2json" which {
       "data2json" in {

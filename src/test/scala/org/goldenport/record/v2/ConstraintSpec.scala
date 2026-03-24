@@ -1,16 +1,14 @@
 package org.goldenport.record.v2
 
-import org.scalatest.junit.JUnitRunner
-import org.junit.runner.RunWith
-import org.scalatest._
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.matchers.should.Matchers
 
 /*
  * @since   Mar. 25, 2026
  * @version Mar. 25, 2026
  * @author  ASAMI, Tomoharu
  */
-@RunWith(classOf[JUnitRunner])
-class ConstraintSpec extends WordSpec with Matchers {
+class ConstraintSpec extends AnyWordSpec with Matchers {
   "CFormat" should {
     "accept valid email" in {
       val c = CFormat("email")

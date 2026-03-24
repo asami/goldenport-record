@@ -1,9 +1,8 @@
 package org.goldenport.record.v2.unitofwork
 
 import java.net.URL
-import org.scalatest.junit.JUnitRunner
-import org.junit.runner.RunWith
-import org.scalatest._
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.matchers.should.Matchers
 import scalaz.{Store => _, _}, Scalaz._
 import org.goldenport.record.v2._
 import org.goldenport.record.unitofwork
@@ -12,11 +11,11 @@ import org.goldenport.record.unitofwork.interpreter._
 
 /*
  * @since   Nov. 15, 2015
- * @version Dec.  8, 2015
+ *  version Dec.  8, 2015
+ * @version Mar. 25, 2026
  * @author  ASAMI, Tomoharu
  */
-@RunWith(classOf[JUnitRunner])
-class StoreOperationSpec extends WordSpec with Matchers {
+class StoreOperationSpec extends AnyWordSpec with Matchers {
   import StoreOperation._
   "a" should {
     "b" in {

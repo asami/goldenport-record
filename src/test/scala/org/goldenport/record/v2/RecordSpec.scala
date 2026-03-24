@@ -1,9 +1,8 @@
 package org.goldenport.record.v2
 
 import java.net.URL
-import org.scalatest.junit.JUnitRunner
-import org.junit.runner.RunWith
-import org.scalatest._
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * @since   Feb. 16, 2013
@@ -14,8 +13,7 @@ import org.scalatest._
  * @version Oct. 18, 2016
  * @author  ASAMI, Tomoharu
  */
-@RunWith(classOf[JUnitRunner])
-class PlainTableTest extends WordSpec with Matchers {
+class PlainTableTest extends AnyWordSpec with Matchers {
   "Record" should {
     "asString" which {
       "plain" in {

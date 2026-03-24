@@ -1,9 +1,8 @@
 package org.goldenport.record.v3
 
 import java.net.URL
-import org.scalatest.junit.JUnitRunner
-import org.junit.runner.RunWith
-import org.scalatest._
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.matchers.should.Matchers
 import org.goldenport.collection.NonEmptyVector
 import org.goldenport.record.v2.UrlInputFile
 import org.goldenport.record.v2.{Record => Record2}
@@ -11,11 +10,11 @@ import org.goldenport.record.v2.{Record => Record2}
 /*
  * @since   Dec. 26, 2018
  *  version Feb. 29, 2020
- * @version May.  8, 2021
+ *  version May.  8, 2021
+ * @version Mar. 25, 2026
  * @author  ASAMI, Tomoharu
  */
-@RunWith(classOf[JUnitRunner])
-class RecordSpec extends WordSpec with Matchers {
+class RecordSpec extends AnyWordSpec with Matchers {
   "Record" should {
     "normalize" which {
       "none" in {

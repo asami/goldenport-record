@@ -1,20 +1,19 @@
 package org.goldenport.record.util
 
 import java.net.URL
-import org.scalatest.junit.JUnitRunner
-import org.junit.runner.RunWith
-import org.scalatest._
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.matchers.should.Matchers
 import com.typesafe.config.{Config => Hocon, ConfigFactory}
 import org.goldenport.RAISE
 import org.goldenport.record.v3.Record
 
 /*
  * @since   Sep.  7, 2022
- * @version Dec. 16, 2022
+ *  version Dec. 16, 2022
+ * @version Mar. 25, 2026
  * @author  ASAMI, Tomoharu
  */
-@RunWith(classOf[JUnitRunner])
-class HoconUtilsSpec extends WordSpec with Matchers {
+class HoconUtilsSpec extends AnyWordSpec with Matchers {
   "toRecord" should {
     "toRecord" which {
       "toRecord" ignore {

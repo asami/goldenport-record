@@ -1,8 +1,8 @@
 package org.goldenport.record.v2.projector
 
-import org.junit.runner.RunWith
-import org.scalatest.junit.JUnitRunner
-import org.scalatest._
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.GivenWhenThen
 import scalaz._, Scalaz._
 import org.goldenport.record.v2._
 
@@ -10,11 +10,11 @@ import org.goldenport.record.v2._
  * @since   Sep. 24, 2015
  *  version Oct.  9, 2015
  *  version Mar. 11, 2016
- * @version May. 16, 2018
+ *  version May. 16, 2018
+ * @version Mar. 25, 2026
  * @author  ASAMI, Tomoharu
  */
-@RunWith(classOf[JUnitRunner])
-class ProjectorSpec extends WordSpec with Matchers with GivenWhenThen {
+class ProjectorSpec extends AnyWordSpec with Matchers with GivenWhenThen {
   "Projector" should {
     "typical" which {
       val schema = Schema(Vector(

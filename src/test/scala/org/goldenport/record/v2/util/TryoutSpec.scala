@@ -1,17 +1,16 @@
 package org.goldenport.record.v2.util
 
-import org.junit.runner.RunWith
-import org.scalatest.junit.JUnitRunner
-import org.scalatest._
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.GivenWhenThen
 import org.goldenport.record.v2._
 
 /*
  * @since   Apr.  3, 2019
- * @version Apr.  3, 2019
+ * @version Mar. 25, 2026
  * @author  ASAMI, Tomoharu
  */
-@RunWith(classOf[JUnitRunner])
-class TryoutSpec extends WordSpec with Matchers with GivenWhenThen {
+class TryoutSpec extends AnyWordSpec with Matchers with GivenWhenThen {
   "json" should {
     "simple" in {
       val json = """{"a":"A"}"""

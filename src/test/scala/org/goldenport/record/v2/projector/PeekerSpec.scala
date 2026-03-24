@@ -1,18 +1,18 @@
 package org.goldenport.record.v2.projector
 
-import org.junit.runner.RunWith
-import org.scalatest.junit.JUnitRunner
-import org.scalatest._
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.GivenWhenThen
 import scalaz._, Scalaz._
 import org.goldenport.record.v2._
 
 /*
  * @since   Jul. 20, 2018
- * @version Jul. 21, 2018
+ *  version Jul. 21, 2018
+ * @version Mar. 25, 2026
  * @author  ASAMI, Tomoharu
  */
-@RunWith(classOf[JUnitRunner])
-class PeekerSpec extends WordSpec with Matchers with GivenWhenThen {
+class PeekerSpec extends AnyWordSpec with Matchers with GivenWhenThen {
   "PathNamePeeker" should {
     implicit val ctx = ProjectorContext.default
     "typical" in {

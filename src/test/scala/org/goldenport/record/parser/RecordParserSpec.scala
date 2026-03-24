@@ -1,20 +1,18 @@
 package org.goldenport.record.parser
 
 import java.net.URL
-import org.scalatest.junit.JUnitRunner
-import org.junit.runner.RunWith
-import org.scalatest._
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.matchers.should.Matchers
 import org.goldenport.collection.NonEmptyVector
 import org.goldenport.parser.ParseSuccess
 import org.goldenport.record.v3.Record
 
 /*
  * @since   Mar. 20, 2021
- * @version Mar. 20, 2021
+ * @version Mar. 25, 2026
  * @author  ASAMI, Tomoharu
  */
-@RunWith(classOf[JUnitRunner])
-class RecordParserSpec extends WordSpec with Matchers {
+class RecordParserSpec extends AnyWordSpec with Matchers {
   "RecordParser" should {
     "httpQuery" which {
       val config = RecordParser.Config()

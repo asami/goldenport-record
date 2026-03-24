@@ -1,17 +1,17 @@
 package org.goldenport.record.v2.util
 
-import org.junit.runner.RunWith
-import org.scalatest.junit.JUnitRunner
-import org.scalatest._
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.GivenWhenThen
 import org.goldenport.record.v2._
 
 /*
  * @since   Sep. 14, 2015
- * @version Sep. 15, 2017
+ *  version Sep. 15, 2017
+ * @version Mar. 25, 2026
  * @author  ASAMI, Tomoharu
  */
-@RunWith(classOf[JUnitRunner])
-class RecordUtilsSpec extends WordSpec with Matchers with GivenWhenThen {
+class RecordUtilsSpec extends AnyWordSpec with Matchers with GivenWhenThen {
   "sum" should {
     "typical" in {
       val schema = Schema(Vector(

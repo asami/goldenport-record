@@ -1,18 +1,17 @@
 package org.goldenport.record.v3
 
 import java.net.URL
-import org.scalatest.junit.JUnitRunner
-import org.junit.runner.RunWith
-import org.scalatest._
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.matchers.should.Matchers
 import org.goldenport.collection.NonEmptyVector
 
 /*
  * @since   Jun. 22, 2019
- * @version Jun. 23, 2019
+ *  version Jun. 23, 2019
+ * @version Mar. 25, 2026
  * @author  ASAMI, Tomoharu
  */
-@RunWith(classOf[JUnitRunner])
-class TableVisualizerSpec extends WordSpec with Matchers {
+class TableVisualizerSpec extends AnyWordSpec with Matchers {
   "a" should {
     "b" which {
       "c" in {

@@ -1,20 +1,19 @@
 package org.goldenport.record.query
 
 import java.net.URL
-import org.scalatest.junit.JUnitRunner
-import org.junit.runner.RunWith
-import org.scalatest._
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.matchers.should.Matchers
 import scalaz.{Store => _, _}, Scalaz._
 import org.goldenport.RAISE
 import org.goldenport.record.v2.{Record => Record2, Field => Field2}
 
 /*
  * @since   Nov.  5, 2021
- * @version Jan.  7, 2022
+ *  version Jan.  7, 2022
+ * @version Mar. 25, 2026
  * @author  ASAMI, Tomoharu
  */
-@RunWith(classOf[JUnitRunner])
-class QueryExpressionSpec extends WordSpec with Matchers {
+class QueryExpressionSpec extends AnyWordSpec with Matchers {
   "LikeQuery" should {
     "%abc%" which {
       val q = LikeQuery("%abc%")
