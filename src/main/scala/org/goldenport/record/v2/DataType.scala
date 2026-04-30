@@ -50,7 +50,7 @@ import org.goldenport.sm.{StateMachineClass, StateMachine}
  *  version Oct. 31, 2021
  *  version Nov.  5, 2021
  *  version Sep.  6, 2024
- * @version Sep. 17, 2025
+ * @version Apr. 30, 2026
  * @author  ASAMI, Tomoharu
  */
 sealed trait DataType {
@@ -231,6 +231,7 @@ object DataType {
     XAge,
     XColor,
     XFile,
+    XFileBundle,
     XMonth,
     XMonthDay,
     XYear,
@@ -1266,6 +1267,15 @@ case object XFile extends DataType {
 
   def validate(d: Any): ValidationResult = Valid
   def label = "ファイル"
+  override def getHtmlInputTypeName = Some("file")
+}
+
+case object XFileBundle extends DataType {
+  type InstanceType = Any
+  def toInstance(x: Any): InstanceType = x
+
+  def validate(d: Any): ValidationResult = Valid
+  def label = "File Bundle"
   override def getHtmlInputTypeName = Some("file")
 }
 
