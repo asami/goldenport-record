@@ -30,7 +30,8 @@ import QueryExpression.Context
  *  version Feb. 28, 2021
  *  version Nov.  5, 2021
  *  version Jan.  7, 2022
- * @version Jun. 17, 2022
+ *  version Jun. 17, 2022
+ * @version May.  7, 2026
  * @author  ASAMI, Tomoharu
  */
 sealed trait QueryExpression {
@@ -595,7 +596,10 @@ object DateTimePeriodQuery extends QueryExpressionClass {
 case class LikeQuery(value: String) extends QueryExpression {
   private lazy val _matcher = QueryExpression.LikeFunction(value)
 
-  def expression(column: String) = s"${column} LIKE ${to_literal(value)}"
+  def expression(column: String) = {
+    val s = "%" + value + "%"
+    s"${column} LIKE ${to_literal(s)}"
+  }
   override def where(column: Column)(implicit ctx: SqlContext): String = 
     s"${column.name} LIKE ${to_literal(column, value)}"
   def isAccept(p: Any): Boolean = _matcher(p)
